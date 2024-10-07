@@ -11,10 +11,20 @@
     <h1>Zendesk Helper</h1>
 
     <!-- Auto Refresh Section -->
-    <h3>Auto Refresh</h3>
+    <h2>Auto Refresh</h2>
     <label for="refreshInterval">Auto-Refresh Interval (seconds):</label>
     <input type="number" id="refreshInterval" value="60">
     <button id="toggleRefresh">Start Auto-Refresh</button>
+
+
+    <!-- Add New Ticket -->
+    <h2>Add New Ticket</h2>
+    <input type="text" id="ticketInput" placeholder="Ticket ID">
+    <input type="text" id="ticketDescription" placeholder="Description">
+    <label for="reminderTime">Optional Reminder Time:</label>
+
+    <input type="datetime-local" id="reminderTime" placeholder="Reminder Time">
+    <button id="addTicket">Add Ticket</button>
 
     <!-- Important Tickets Section -->
     <h2>Important Tickets</h2>
@@ -30,14 +40,6 @@
     <h2>Overdue Tickets</h2>
     <ul id="overdueTicketsList"></ul>
 
-    <!-- Add New Ticket -->
-    <h3>Add New Ticket</h3>
-    <input type="text" id="ticketInput" placeholder="Ticket ID">
-    <input type="text" id="ticketDescription" placeholder="Description">
-    <label for="reminderTime">Optional Reminder Time:</label>
-
-    <input type="datetime-local" id="reminderTime" placeholder="Reminder Time">
-    <button id="addTicket">Add Ticket</button>
 
     <script src="popup.js"></script>
 </body>

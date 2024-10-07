@@ -13,8 +13,7 @@ h1 {
   text-align: center;
 }
 
-h2,
-h3 {
+h2 {
   font-size: 1.2em;
   margin-bottom: 10px;
   color: #444;
@@ -28,7 +27,7 @@ ul {
 li {
   background-color: #fff;
   margin-bottom: 10px;
-  padding: 20px;
+  padding: 10px;
   border-radius: 4px;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
   display: flex;
@@ -55,14 +54,11 @@ li button.markAsDone {
   border: none;
   color: white;
   padding: 5px 6px;
-  /* Reduced padding for a smaller button */
   border-radius: 4px;
   font-size: 1em;
-  /* Smaller font size */
   cursor: pointer;
   transition: background-color 0.3s ease;
   margin-left: 10px;
-  /* Space between the button and the description */
 }
 
 li button.markAsDone:hover {

@@ -1,5 +1,17 @@
 let refreshIntervalId = null;
 
+//// Throttle Write Utility ////
+let writeTimeout;
+
+function throttleWriteData(dataToWrite) {
+  clearTimeout(writeTimeout); // Clear the previous timeout if it's still pending
+  writeTimeout = setTimeout(() => {
+    chrome.storage.sync.set(dataToWrite, () => {
+      console.log("Batched write to chrome.storage.sync", dataToWrite);
+    });
+  }, 5000); // Adjust this interval as necessary (5 seconds in this case)
+}
+
 // Listen for messages from popup.js
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === "startRefresh") {
@@ -17,9 +29,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 });
 
+// Auto-refresh function
 function refreshZendesk() {
+  console.log("button clicked");
   chrome.tabs.query({ url: "*://*.zendesk.com/*" }, (tabs) => {
     if (tabs.length === 0) {
+      console.log("No Zendesk tabs found.");
       return;
     }
 
@@ -32,6 +47,8 @@ function refreshZendesk() {
           );
           if (refreshButton) {
             refreshButton.click();
+          } else {
+            console.error("Refresh button not found.");
           }
         },
       });
@@ -41,77 +58,88 @@ function refreshZendesk() {
 
 // Detect zendesk domain
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-  if (changeInfo.status === "complete" && tab.url.includes(".zendesk.com")) {
-    const zendeskDomain = new URL(tab.url).origin;
+  console.log("Tab URL:", tab.url); // Log the tab URL for debugging
 
-    chrome.storage.sync.set({ zendeskDomain: zendeskDomain });
+  if (
+    changeInfo.status === "complete" &&
+    tab.url &&
+    tab.url.includes(".zendesk.com")
+  ) {
+    const zendeskDomain = new URL(tab.url).origin;
+    throttleWriteData({ zendeskDomain: zendeskDomain }); // Throttle domain writes
   }
 });
 
-//// Check Reminders in the Background ////
+// Check Reminders in the Background
 function checkManualReminders() {
-  chrome.storage.sync.get({ importantTickets: [] }, (data) => {
-    const now = new Date().getTime();
-    const overdueTickets = [];
-    const updatedTickets = [];
+  chrome.storage.sync.get(
+    { importantTickets: [], overdueTickets: [] }, // Ensure both importantTickets and overdueTickets have default values
+    (data) => {
+      const now = new Date().getTime();
+      let overdueTickets = [...data.overdueTickets]; // Keep existing overdue tickets
+      let updatedTickets = [];
 
-    data.importantTickets.forEach(({ ticketId, description, reminderTime }) => {
-      // Trigger reminder notification only if the reminderTime has passed and hasn't been triggered yet
-      if (reminderTime && new Date(reminderTime).getTime() <= now) {
-        console.log(`Reminder triggered for ticket #${ticketId}`);
+      data.importantTickets.forEach(
+        ({ ticketId, description, reminderTime }) => {
+          const reminderTimestamp = reminderTime
+            ? new Date(reminderTime).getTime()
+            : null;
 
-        // Create the reminder notification with an integer ticketId
-        chrome.notifications.create(String(ticketId), {
-          // Use String() to ensure the ID is valid
-          type: "basic",
-          iconUrl: "icons/icon128.png",
-          title: `Reminder for Ticket #${ticketId}`,
-          message: description,
-          priority: 2,
-        });
+          if (reminderTimestamp && reminderTimestamp <= now) {
+            console.log(`Reminder triggered for ticket #${ticketId}`);
 
-        // Mark the ticket as overdue after 1 hour if no action is taken
-        if (reminderTime + 5 * 60 * 1000 <= now) {
-          // 5 minutes (5 * 60 * 1000 milliseconds)
-          overdueTickets.push({ ticketId, description });
-        } else {
-          updatedTickets.push({ ticketId, description, reminderTime: null }); // Remove reminderTime after triggering
+            // Create reminder notification
+            chrome.notifications.create(String(ticketId), {
+              type: "basic",
+              iconUrl: "icons/icon128.png",
+              title: `Reminder for Ticket #${ticketId}`,
+              message: description,
+              priority: 2,
+            });
+
+            // Move ticket to overdue if it's not already in the overdue list
+            if (
+              !overdueTickets.some((ticket) => ticket.ticketId === ticketId)
+            ) {
+              overdueTickets.push({ ticketId, description });
+              console.log(`Ticket #${ticketId} moved to overdue.`);
+            }
+          } else {
+            updatedTickets.push({ ticketId, description, reminderTime });
+          }
         }
-      } else {
-        updatedTickets.push({ ticketId, description, reminderTime }); // Keep unaffected tickets
-      }
-    });
+      );
 
-    // Update the important tickets list (without repeated notifications)
-    chrome.storage.sync.set({ importantTickets: updatedTickets });
-
-    // Save overdue tickets
-    chrome.storage.sync.get({ overdueTickets: [] }, (overdueData) => {
-      const updatedOverdue = [...overdueData.overdueTickets, ...overdueTickets];
-      chrome.storage.sync.set({ overdueTickets: updatedOverdue });
-    });
-  });
+      // Throttle writes for important and overdue tickets
+      throttleWriteData({
+        importantTickets: updatedTickets,
+        overdueTickets: overdueTickets,
+      });
+    }
+  );
 }
 
-// Check reminders every minute in the background
-setInterval(checkManualReminders, 10 * 1000); // Check every 10 seconds
+// Check reminders every 60 seconds (optimizing check interval to reduce overhead)
+setInterval(checkManualReminders, 60 * 1000);
 
 // Listen for notification clicks globally
 chrome.notifications.onClicked.addListener((notificationId) => {
   console.log("Notification clicked:", notificationId);
 
-  // Ensure the notificationId is a valid integer (as Zendesk expects integers for ticket IDs)
   const ticketId = parseInt(notificationId, 10); // Convert the notificationId back to an integer
 
   if (!isNaN(ticketId)) {
     // Get the Zendesk domain from storage
     chrome.storage.sync.get("zendeskDomain", (data) => {
-      const zendeskDomain =
-        data.zendeskDomain || "https://your_zendesk_domain.com";
-      const ticketUrl = `${zendeskDomain}/agent/tickets/${ticketId}`;
+      if (data.zendeskDomain) {
+        const zendeskDomain = data.zendeskDomain;
+        const ticketUrl = `${zendeskDomain}/agent/tickets/${ticketId}`;
 
-      // Always open the ticket in a new tab
-      chrome.tabs.create({ url: ticketUrl });
+        // Always open the ticket in a new tab
+        chrome.tabs.create({ url: ticketUrl });
+      } else {
+        console.error("Zendesk domain not found.");
+      }
     });
   } else {
     console.error("Invalid ticket ID:", notificationId);

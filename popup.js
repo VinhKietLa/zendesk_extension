@@ -1,3 +1,15 @@
+let writeTimeout;
+
+// Function to throttle writes to chrome.storage.sync
+function throttleWriteData(dataToWrite) {
+  clearTimeout(writeTimeout); // Clear any previous timeout
+  writeTimeout = setTimeout(() => {
+    chrome.storage.sync.set(dataToWrite, () => {
+      console.log("Batched write to chrome.storage.sync", dataToWrite);
+    });
+  }, 1000); // Adjust the debounce interval if necessary
+}
+
 //// Auto Refresh Functionality ////
 document.getElementById("toggleRefresh").addEventListener("click", () => {
   const interval = parseInt(document.getElementById("refreshInterval").value);
@@ -7,13 +19,19 @@ document.getElementById("toggleRefresh").addEventListener("click", () => {
     alert("Please enter a valid refresh interval greater than 0.");
     return;
   }
-  // Save the new interval to chrome.storage.sync
+
+  // Save interval and send message to background script
   chrome.storage.sync.set({ refreshInterval: interval }, () => {
     console.log("Auto-refresh interval saved:", interval);
-  });
 
-  // Send message to background script to start/stop the refresh
-  chrome.runtime.sendMessage({ action: "startRefresh", interval: interval });
+    // Send message to the background script to start the refresh
+    chrome.runtime.sendMessage(
+      { action: "startRefresh", interval: interval },
+      (response) => {
+        console.log("Message sent to background script. Response:", response);
+      }
+    );
+  });
 });
 
 //// Add Important Ticket with Optional Reminder ////
@@ -24,26 +42,99 @@ document.getElementById("addTicket").addEventListener("click", () => {
 
   if (ticketId && description) {
     chrome.storage.sync.get({ importantTickets: [] }, (data) => {
+      const currentTickets = [...data.importantTickets];
+
+      const isDuplicate = currentTickets.some(
+        (ticket) => ticket.ticketId === ticketId
+      );
+      if (isDuplicate) {
+        alert(
+          `Ticket ID #${ticketId} already exists. Please enter a unique ID.`
+        );
+        return;
+      }
+
       const updatedTickets = [
-        ...data.importantTickets,
+        ...currentTickets,
         { ticketId, description, reminderTime },
       ];
-      chrome.storage.sync.set({ importantTickets: updatedTickets }, () => {
-        displayImportantTickets(updatedTickets); // Update the UI
-        document.getElementById("ticketInput").value = ""; // Clear the fields
-        document.getElementById("ticketDescription").value = "";
-        document.getElementById("reminderTime").value = ""; // Clear the reminder field
-      });
+
+      throttleWriteData({ importantTickets: updatedTickets });
+      displayImportantTickets(updatedTickets);
+
+      document.getElementById("ticketInput").value = "";
+      document.getElementById("ticketDescription").value = "";
+      document.getElementById("reminderTime").value = "";
     });
   } else {
     alert("Please enter a ticket ID and description.");
   }
 });
 
+//// Mark Ticket as Done ////
+document.addEventListener("click", (event) => {
+  if (event.target.classList.contains("markAsDone")) {
+    const ticketId = event.target.getAttribute("data-ticket-id");
+    markAsDone(ticketId);
+  }
+});
+
+function markAsDone(ticketId) {
+  chrome.storage.sync.get(
+    { importantTickets: [], overdueTickets: [], completedTickets: [] },
+    (data) => {
+      let updatedImportantTickets = data.importantTickets.filter(
+        (ticket) => ticket.ticketId !== ticketId
+      );
+      let updatedOverdueTickets = data.overdueTickets.filter(
+        (ticket) => ticket.ticketId !== ticketId
+      );
+
+      let completedTicket =
+        data.importantTickets.find((ticket) => ticket.ticketId === ticketId) ||
+        data.overdueTickets.find((ticket) => ticket.ticketId === ticketId);
+
+      if (completedTicket) {
+        let updatedCompletedTickets = [
+          ...data.completedTickets.filter(
+            (ticket) => ticket.ticketId !== ticketId
+          ),
+          completedTicket,
+        ];
+
+        chrome.storage.sync.set(
+          {
+            importantTickets: updatedImportantTickets,
+            overdueTickets: updatedOverdueTickets,
+            completedTickets: updatedCompletedTickets,
+          },
+          () => {
+            clearUI();
+
+            displayImportantTickets(updatedImportantTickets);
+            displayCompletedTickets(updatedCompletedTickets);
+            displayOverdueTickets(updatedOverdueTickets);
+            console.log(`Ticket #${ticketId} marked as done.`);
+          }
+        );
+      } else {
+        console.error("Could not find the ticket to mark as done.");
+      }
+    }
+  );
+}
+
+//// Clear UI Before Updating ////
+function clearUI() {
+  document.getElementById("importantTicketsList").innerHTML = "";
+  document.getElementById("completedTicketsList").innerHTML = "";
+  document.getElementById("overdueTicketsList").innerHTML = "";
+}
+
 //// Display Important Tickets ////
 function displayImportantTickets(tickets) {
   const list = document.getElementById("importantTicketsList");
-  list.innerHTML = ""; // Clear the list before displaying
+  list.innerHTML = "";
 
   chrome.storage.sync.get("zendeskDomain", (data) => {
     const zendeskDomain =
@@ -53,9 +144,9 @@ function displayImportantTickets(tickets) {
       const li = document.createElement("li");
       const link = document.createElement("a");
       link.href = `${zendeskDomain}/agent/tickets/${ticketId}`;
-      link.target = "_blank"; // Opens the link in a new tab
+      link.target = "_blank";
       link.textContent = `Ticket #${ticketId} - ${description}`;
-      // Display reminder time if it exists
+
       if (reminderTime) {
         const reminderText = document.createElement("span");
         reminderText.textContent = ` (Reminder: ${new Date(
@@ -76,66 +167,25 @@ function displayImportantTickets(tickets) {
   });
 }
 
-//// Mark Ticket as Done ////
-document.addEventListener("click", (event) => {
-  if (event.target.classList.contains("markAsDone")) {
-    const ticketId = event.target.getAttribute("data-ticket-id");
-    markAsDone(ticketId);
-  }
-});
-
-//// Mark Ticket as Done ////
-function markAsDone(ticketId) {
-  chrome.storage.sync.get(["importantTickets", "overdueTickets"], (data) => {
-    // Remove the ticket from the importantTickets list
-    const updatedImportantTickets = data.importantTickets.filter(
-      (ticket) => ticket.ticketId !== ticketId
-    );
-
-    // Remove the ticket from the overdueTickets list
-    const updatedOverdueTickets = data.overdueTickets.filter(
-      (ticket) => ticket.ticketId !== ticketId
-    );
-
-    // Find the completed ticket
-    const completedTicket = data.importantTickets.find(
-      (ticket) => ticket.ticketId === ticketId
-    );
-
-    // Add the completed ticket to the completedTickets list
-    chrome.storage.sync.get({ completedTickets: [] }, (completedData) => {
-      const updatedCompletedTickets = [
-        ...completedData.completedTickets,
-        completedTicket,
-      ];
-
-      // Update storage with the new completedTickets and remove from overdue and important tickets
-      chrome.storage.sync.set(
-        {
-          importantTickets: updatedImportantTickets,
-          overdueTickets: updatedOverdueTickets,
-          completedTickets: updatedCompletedTickets,
-        },
-        () => {
-          // Update the UI
-          displayImportantTickets(updatedImportantTickets);
-          displayCompletedTickets(updatedCompletedTickets);
-          displayOverdueTickets(updatedOverdueTickets);
-        }
-      );
-    });
-  });
-}
-
 //// Display Completed Tickets ////
 function displayCompletedTickets(tickets) {
   const list = document.getElementById("completedTicketsList");
   list.innerHTML = ""; // Clear the list before displaying
 
-  tickets.forEach(({ ticketId, description }) => {
-    const li = document.createElement("li");
-    li.textContent = `Ticket #${ticketId} - ${description}`;
-    list.appendChild(li);
+  chrome.storage.sync.get("zendeskDomain", (data) => {
+    const zendeskDomain =
+      data.zendeskDomain || "https://your_zendesk_domain.com";
+
+    tickets.forEach(({ ticketId, description }) => {
+      const li = document.createElement("li");
+      const link = document.createElement("a");
+      link.href = `${zendeskDomain}/agent/tickets/${ticketId}`;
+      link.target = "_blank"; // Opens the link in a new tab
+      link.textContent = `Ticket #${ticketId} - ${description}`;
+
+      li.appendChild(link);
+      list.appendChild(li);
+    });
   });
 }
 
@@ -144,10 +194,26 @@ function displayOverdueTickets(tickets) {
   const list = document.getElementById("overdueTicketsList");
   list.innerHTML = ""; // Clear the list before displaying
 
-  tickets.forEach(({ ticketId, description }) => {
-    const li = document.createElement("li");
-    li.textContent = `Ticket #${ticketId} - ${description}`;
-    list.appendChild(li);
+  chrome.storage.sync.get("zendeskDomain", (data) => {
+    const zendeskDomain =
+      data.zendeskDomain || "https://your_zendesk_domain.com";
+
+    tickets.forEach(({ ticketId, description }) => {
+      const li = document.createElement("li");
+      const link = document.createElement("a");
+      link.href = `${zendeskDomain}/agent/tickets/${ticketId}`;
+      link.target = "_blank"; // Opens the link in a new tab
+      link.textContent = `Ticket #${ticketId} - ${description}`;
+
+      const markAsDoneButton = document.createElement("button");
+      markAsDoneButton.textContent = "Done";
+      markAsDoneButton.classList.add("markAsDone");
+      markAsDoneButton.setAttribute("data-ticket-id", ticketId);
+
+      li.appendChild(link);
+      li.appendChild(markAsDoneButton);
+      list.appendChild(li);
+    });
   });
 }
 
@@ -161,17 +227,10 @@ chrome.storage.sync.get(
   }
 );
 
-// When the popup is opened, load the saved refresh interval (if any)
-chrome.storage.sync.get("refreshInterval", (data) => {
-  const savedInterval = data.refreshInterval || 60; // Default to 60 if nothing is saved
-  document.getElementById("refreshInterval").value = savedInterval;
-});
-
-//// Clear Completed Tickets ////
+// Clear Completed Tickets
 document
   .getElementById("clearCompletedTickets")
   .addEventListener("click", () => {
-    chrome.storage.sync.set({ completedTickets: [] }, () => {
-      displayCompletedTickets([]); // Clear the UI
-    });
+    throttleWriteData({ completedTickets: [] });
+    displayCompletedTickets([]);
   });
