@@ -1,0 +1,31 @@
+{
+    "manifest_version": 3,
+    "name": "Zendesk Helper",
+    "version": "1.0",
+    "description": "An extension to manage Zendesk tickets efficiently.",
+    "permissions": [
+      "storage",
+      "notifications",
+      "alarms",
+      "background"
+    ],
+    "action": {
+      "default_popup": "popup.html",
+      "default_icon": "icon.png"
+    },
+    "background": {
+      "service_worker": "background.js"
+    },
+    "content_scripts": [
+      {
+        "matches": ["*://*.zendesk.com/*"],
+        "js": ["content.js"]
+      }
+    ],
+    "icons": {
+      "16": "icon16.png",
+      "48": "icon48.png",
+      "128": "icon128.png"
+    }
+  }
+  
