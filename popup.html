@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zendesk Helper</title>
+    <style>
+        /* Add some basic styles */
+        body {
+            font-family: Arial, sans-serif;
+            padding: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Zendesk Helper</h1>
+
+    <!-- Auto Refresh Settings -->
+    <label for="refreshInterval">Auto-Refresh Interval (seconds):</label>
+    <input type="number" id="refreshInterval" value="60">
+    <button id="toggleRefresh">Start Auto-Refresh</button>
+
+    <!-- Important Tickets Section -->
+    <h2>Important Tickets</h2>
+    <ul id="importantTicketsList"></ul>
+    <input type="text" id="ticketInput" placeholder="Ticket ID">
+    <button id="addTicket">Add Ticket</button>
+
+    <!-- Reminders Section -->
+    <h2>Reminders</h2>
+    <input type="text" id="reminderInput" placeholder="Reminder note">
+    <button id="setReminder">Set Reminder</button>
+
+    <script src="popup.js"></script>
+</body>
+
+</html>
