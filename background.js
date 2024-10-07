@@ -2,8 +2,6 @@ let refreshIntervalId = null;
 
 // Listen for messages from popup.js
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  console.log("button from popupjs fired");
-
   if (request.action === "startRefresh") {
     const interval = request.interval;
 
@@ -14,20 +12,14 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
     // Start the new refresh interval
     refreshIntervalId = setInterval(() => {
-      console.log("Interval is calling refreshZendesk");
-
       refreshZendesk();
     }, interval * 1000); // Convert seconds to milliseconds
-
-    console.log("Auto-refresh set for every " + interval + " seconds");
   }
 });
 
 function refreshZendesk() {
-  console.log("this fired");
   chrome.tabs.query({ url: "*://*.zendesk.com/*" }, (tabs) => {
     if (tabs.length === 0) {
-      console.log("No Zendesk tabs found.");
       return;
     }
 
@@ -40,9 +32,6 @@ function refreshZendesk() {
           );
           if (refreshButton) {
             refreshButton.click();
-            console.log("Zendesk view refreshed");
-          } else {
-            console.log("Refresh button not found on this page");
           }
         },
       });
@@ -50,25 +39,57 @@ function refreshZendesk() {
   });
 }
 
-// Cleanup the interval if necessary
-chrome.runtime.onSuspend.addListener(() => {
-  if (refreshIntervalId) {
-    clearInterval(refreshIntervalId);
-    console.log("Auto-refresh interval cleared.");
-  }
-});
-
 // Detect zendesk domain
-
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-  // Ensure that the tab is fully loaded before running the detection
   if (changeInfo.status === "complete" && tab.url.includes(".zendesk.com")) {
-    const zendeskDomain = new URL(tab.url).origin; // Get base domain (e.g., https://your_zendesk_domain.com)
+    const zendeskDomain = new URL(tab.url).origin;
 
-    console.log("Detected Zendesk domain:", zendeskDomain); // Log detected domain for debugging
-
-    chrome.storage.sync.set({ zendeskDomain: zendeskDomain }, () => {
-      console.log("Zendesk domain saved:", zendeskDomain); // Log when domain is saved
-    });
+    chrome.storage.sync.set({ zendeskDomain: zendeskDomain });
   }
 });
+
+//// Check Reminders in the Background ////
+function checkManualReminders() {
+  console.log("Checking manual reminders...");
+  chrome.storage.sync.get({ importantTickets: [] }, (data) => {
+    const now = new Date().getTime();
+    const overdueTickets = [];
+    const updatedTickets = [];
+
+    data.importantTickets.forEach(({ ticketId, description, reminderTime }) => {
+      // Trigger reminder notification only once
+      if (reminderTime && reminderTime <= now) {
+        console.log(`Reminder triggered for ticket #${ticketId}`);
+
+        chrome.notifications.create({
+          type: "basic",
+          iconUrl: "icons/icon128.png",
+          title: `Reminder for Ticket #${ticketId}`,
+          message: description,
+          priority: 2,
+        });
+
+        // Move to overdue if necessary, otherwise keep in list without reminder
+        if (reminderTime + 60 * 60 * 1000 <= now) {
+          overdueTickets.push({ ticketId, description });
+        } else {
+          updatedTickets.push({ ticketId, description }); // Keep ticket but remove reminderTime
+        }
+      } else {
+        updatedTickets.push({ ticketId, description, reminderTime }); // Keep unaffected tickets
+      }
+    });
+
+    // Update the important tickets list (without repeated notifications)
+    chrome.storage.sync.set({ importantTickets: updatedTickets });
+
+    // Save overdue tickets
+    chrome.storage.sync.get({ overdueTickets: [] }, (overdueData) => {
+      const updatedOverdue = [...overdueData.overdueTickets, ...overdueTickets];
+      chrome.storage.sync.set({ overdueTickets: updatedOverdue });
+    });
+  });
+}
+
+// Check reminders every minute in the background
+setInterval(checkManualReminders, 60 * 1000); // Check every minute
