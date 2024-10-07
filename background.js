@@ -50,18 +50,19 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 
 //// Check Reminders in the Background ////
 function checkManualReminders() {
-  console.log("Checking manual reminders...");
   chrome.storage.sync.get({ importantTickets: [] }, (data) => {
     const now = new Date().getTime();
     const overdueTickets = [];
     const updatedTickets = [];
 
     data.importantTickets.forEach(({ ticketId, description, reminderTime }) => {
-      // Trigger reminder notification only once
-      if (reminderTime && reminderTime <= now) {
+      // Trigger reminder notification only if the reminderTime has passed and hasn't been triggered yet
+      if (reminderTime && new Date(reminderTime).getTime() <= now) {
         console.log(`Reminder triggered for ticket #${ticketId}`);
 
-        chrome.notifications.create({
+        // Create the reminder notification with an integer ticketId
+        chrome.notifications.create(String(ticketId), {
+          // Use String() to ensure the ID is valid
           type: "basic",
           iconUrl: "icons/icon128.png",
           title: `Reminder for Ticket #${ticketId}`,
@@ -69,11 +70,12 @@ function checkManualReminders() {
           priority: 2,
         });
 
-        // Move to overdue if necessary, otherwise keep in list without reminder
-        if (reminderTime + 60 * 60 * 1000 <= now) {
+        // Mark the ticket as overdue after 1 hour if no action is taken
+        if (reminderTime + 5 * 60 * 1000 <= now) {
+          // 5 minutes (5 * 60 * 1000 milliseconds)
           overdueTickets.push({ ticketId, description });
         } else {
-          updatedTickets.push({ ticketId, description }); // Keep ticket but remove reminderTime
+          updatedTickets.push({ ticketId, description, reminderTime: null }); // Remove reminderTime after triggering
         }
       } else {
         updatedTickets.push({ ticketId, description, reminderTime }); // Keep unaffected tickets
@@ -92,4 +94,26 @@ function checkManualReminders() {
 }
 
 // Check reminders every minute in the background
-setInterval(checkManualReminders, 60 * 1000); // Check every minute
+setInterval(checkManualReminders, 10 * 1000); // Check every 10 seconds
+
+// Listen for notification clicks globally
+chrome.notifications.onClicked.addListener((notificationId) => {
+  console.log("Notification clicked:", notificationId);
+
+  // Ensure the notificationId is a valid integer (as Zendesk expects integers for ticket IDs)
+  const ticketId = parseInt(notificationId, 10); // Convert the notificationId back to an integer
+
+  if (!isNaN(ticketId)) {
+    // Get the Zendesk domain from storage
+    chrome.storage.sync.get("zendeskDomain", (data) => {
+      const zendeskDomain =
+        data.zendeskDomain || "https://your_zendesk_domain.com";
+      const ticketUrl = `${zendeskDomain}/agent/tickets/${ticketId}`;
+
+      // Always open the ticket in a new tab
+      chrome.tabs.create({ url: ticketUrl });
+    });
+  } else {
+    console.error("Invalid ticket ID:", notificationId);
+  }
+});

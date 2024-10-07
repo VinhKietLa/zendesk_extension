@@ -7,7 +7,10 @@ document.getElementById("toggleRefresh").addEventListener("click", () => {
     alert("Please enter a valid refresh interval greater than 0.");
     return;
   }
-  console.log("button in popupjs fired");
+  // Save the new interval to chrome.storage.sync
+  chrome.storage.sync.set({ refreshInterval: interval }, () => {
+    console.log("Auto-refresh interval saved:", interval);
+  });
 
   // Send message to background script to start/stop the refresh
   chrome.runtime.sendMessage({ action: "startRefresh", interval: interval });
@@ -52,6 +55,14 @@ function displayImportantTickets(tickets) {
       link.href = `${zendeskDomain}/agent/tickets/${ticketId}`;
       link.target = "_blank"; // Opens the link in a new tab
       link.textContent = `Ticket #${ticketId} - ${description}`;
+      // Display reminder time if it exists
+      if (reminderTime) {
+        const reminderText = document.createElement("span");
+        reminderText.textContent = ` (Reminder: ${new Date(
+          reminderTime
+        ).toLocaleString()})`;
+        li.appendChild(reminderText);
+      }
 
       const markAsDoneButton = document.createElement("button");
       markAsDoneButton.textContent = "Done";
@@ -150,12 +161,17 @@ chrome.storage.sync.get(
   }
 );
 
+// When the popup is opened, load the saved refresh interval (if any)
+chrome.storage.sync.get("refreshInterval", (data) => {
+  const savedInterval = data.refreshInterval || 60; // Default to 60 if nothing is saved
+  document.getElementById("refreshInterval").value = savedInterval;
+});
+
 //// Clear Completed Tickets ////
 document
   .getElementById("clearCompletedTickets")
   .addEventListener("click", () => {
     chrome.storage.sync.set({ completedTickets: [] }, () => {
       displayCompletedTickets([]); // Clear the UI
-      console.log("Completed tickets cleared.");
     });
   });
