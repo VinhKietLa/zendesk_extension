@@ -57,3 +57,18 @@ chrome.runtime.onSuspend.addListener(() => {
     console.log("Auto-refresh interval cleared.");
   }
 });
+
+// Detect zendesk domain
+
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  // Ensure that the tab is fully loaded before running the detection
+  if (changeInfo.status === "complete" && tab.url.includes(".zendesk.com")) {
+    const zendeskDomain = new URL(tab.url).origin; // Get base domain (e.g., https://your_zendesk_domain.com)
+
+    console.log("Detected Zendesk domain:", zendeskDomain); // Log detected domain for debugging
+
+    chrome.storage.sync.set({ zendeskDomain: zendeskDomain }, () => {
+      console.log("Zendesk domain saved:", zendeskDomain); // Log when domain is saved
+    });
+  }
+});
