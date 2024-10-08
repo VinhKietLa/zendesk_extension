@@ -1,6 +1,6 @@
-# **Zendesk Refresh & Remind**
+# **Zendesk Helper**
 
-**Zendesk Refresh & Remind** is a Chrome extension designed to streamline your Zendesk workflow. This tool allows users to set auto-refresh intervals for tickets, mark important tickets, and receive reminders for high-priority tasks—all in a clean, intuitive interface that integrates seamlessly with Zendesk.
+**Zendesk Helper** is a Chrome extension designed to streamline your Zendesk workflow. This tool allows users to set auto-refresh intervals for tickets, mark important tickets, and receive reminders for high-priority tasks—all in a clean, intuitive interface that integrates seamlessly with Zendesk.
 
 ## **Features**
 
@@ -10,21 +10,21 @@
 
 ## **Installation**
 
-1. Go to the [Chrome Web Store](https://chrome.google.com/webstore/category/extensions) and search for **Zendesk Refresh & Remind**.
+1. Go to the [Chrome Web Store](https://chrome.google.com/webstore/category/extensions) and search for **Zendesk Helper**.
 2. Click on **Add to Chrome** to install the extension.
-3. Once installed, you’ll find the **Zendesk Refresh & Remind** icon in your Chrome toolbar.
+3. Once installed, you’ll find the **Zendesk Helpe** icon in your Chrome toolbar.
 
 ## **How to Use**
 
 ### Auto-Refresh Feature
 
-1. Open the extension by clicking the **Zendesk Refresh & Remind** icon in the Chrome toolbar.
+1. Open the extension by clicking the **Zendesk Helper** icon in the Chrome toolbar.
 2. Enter the auto-refresh interval (in seconds) in the input field.
 3. Click **Start Auto-Refresh** to apply the changes. Zendesk tickets will now refresh automatically according to the set interval.
 
 ### Adding Important Tickets with Reminders
 
-1. Open the **Zendesk Refrsh & Remind** popup.
+1. Open the **Zendesk Helper** popup.
 2. Enter the **Ticket ID** and a **Description** in the input fields.
 3. Optionally, set a **Reminder Time** to receive notifications for this ticket.
 4. Click **Add Ticket** to save it. You will see it appear in the list of important tickets.
