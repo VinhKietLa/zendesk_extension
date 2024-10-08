@@ -8,10 +8,6 @@
 - **Important Tickets & Reminders:** Add important tickets with optional reminders, so you never miss critical tasks or deadlines. Set reminders for key tickets and receive notifications at the appropriate time.
 - **Simple UI:** The extension features an easy-to-use interface, letting you manage your tickets with minimal effort.
 
-## **Preview**
-
-![Zendesk Helper Screenshot](./export_screenshot.png)
-
 ## **Installation**
 
 1. Go to the [Chrome Web Store](https://chrome.google.com/webstore/category/extensions) and search for **Zendesk Refresh & Remind**.
@@ -38,9 +34,9 @@
 - **Mark as Done**: Click the **Done** button next to any important or overdue ticket to mark it as completed.
 - **Clear Completed Tickets**: Click **Clear Completed Tickets** to remove all completed tickets from the list.
 
-## **Screenshots**
+## **Screenshot**
 
-- _(Include a screenshot of your extension interface here)_
+![Zendesk Helper Screenshot](./export_screenshot.png)
 
 ## **Development Setup**
 
