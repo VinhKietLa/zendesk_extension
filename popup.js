@@ -10,6 +10,13 @@ function throttleWriteData(dataToWrite) {
   }, 1000); // Adjust the debounce interval if necessary
 }
 
+//// Load saved interval on popup load ////
+document.addEventListener("DOMContentLoaded", () => {
+  chrome.storage.sync.get({ refreshInterval: 60 }, (data) => {
+    document.getElementById("refreshInterval").value = data.refreshInterval;
+  });
+});
+
 //// Auto Refresh Functionality ////
 document.getElementById("toggleRefresh").addEventListener("click", () => {
   const interval = parseInt(document.getElementById("refreshInterval").value);

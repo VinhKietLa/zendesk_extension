@@ -91,7 +91,7 @@ function checkManualReminders() {
             // Create reminder notification
             chrome.notifications.create(String(ticketId), {
               type: "basic",
-              iconUrl: "icons/icon128.png",
+              iconUrl: "icon128.png",
               title: `Reminder for Ticket #${ticketId}`,
               message: description,
               priority: 2,
