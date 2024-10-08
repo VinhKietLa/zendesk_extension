@@ -7,7 +7,6 @@
     "storage",
     "notifications",
     "alarms",
-    "background",
     "scripting"
   ],
   "host_permissions": [
