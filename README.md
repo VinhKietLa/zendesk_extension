@@ -10,7 +10,7 @@
 
 ## **Installation**
 
-1. Go to the [Chrome Web Store](https://chrome.google.com/webstore/category/extensions) and search for **Zendesk Helper**.
+1. Go to the [Chrome Web Store](https://chromewebstore.google.com/detail/zendesk-helper/cglfkdbjmdipbcjgjhdnkoafkiealbkb) and search for **Zendesk Helper**.
 2. Click on **Add to Chrome** to install the extension.
 3. Once installed, you’ll find the **Zendesk Helpe** icon in your Chrome toolbar.
 
