@@ -90,25 +90,31 @@ function markAsDone(ticketId) {
   chrome.storage.sync.get(
     { importantTickets: [], overdueTickets: [], completedTickets: [] },
     (data) => {
-      let updatedImportantTickets = data.importantTickets.filter(
-        (ticket) => ticket.ticketId !== ticketId
-      );
-      let updatedOverdueTickets = data.overdueTickets.filter(
-        (ticket) => ticket.ticketId !== ticketId
-      );
-
-      let completedTicket =
+      // Find the ticket from either important or overdue lists
+      const completedTicket =
         data.importantTickets.find((ticket) => ticket.ticketId === ticketId) ||
         data.overdueTickets.find((ticket) => ticket.ticketId === ticketId);
 
       if (completedTicket) {
-        let updatedCompletedTickets = [
+        // Remove the ticket from important and overdue lists
+        const updatedImportantTickets = data.importantTickets.filter(
+          (ticket) => ticket.ticketId !== ticketId
+        );
+        const updatedOverdueTickets = data.overdueTickets.filter(
+          (ticket) => ticket.ticketId !== ticketId
+        );
+
+        // Add the ticket to the completed list while preserving all properties
+        const updatedCompletedTickets = [
           ...data.completedTickets.filter(
             (ticket) => ticket.ticketId !== ticketId
           ),
-          completedTicket,
+          {
+            ...completedTicket, // Spread all properties to retain them
+          },
         ];
 
+        // Update the storage with the new lists
         chrome.storage.sync.set(
           {
             importantTickets: updatedImportantTickets,
@@ -116,8 +122,8 @@ function markAsDone(ticketId) {
             completedTickets: updatedCompletedTickets,
           },
           () => {
+            // Refresh the UI
             clearUI();
-
             displayImportantTickets(updatedImportantTickets);
             displayCompletedTickets(updatedCompletedTickets);
             displayOverdueTickets(updatedOverdueTickets);
@@ -177,20 +183,31 @@ function displayImportantTickets(tickets) {
 //// Display Completed Tickets ////
 function displayCompletedTickets(tickets) {
   const list = document.getElementById("completedTicketsList");
-  list.innerHTML = ""; // Clear the list before displaying
+  list.innerHTML = "";
 
   chrome.storage.sync.get("zendeskDomain", (data) => {
     const zendeskDomain =
       data.zendeskDomain || "https://your_zendesk_domain.com";
 
-    tickets.forEach(({ ticketId, description }) => {
+    tickets.forEach(({ ticketId, description, reminderTime }) => {
       const li = document.createElement("li");
+
+      // Create the link for the ticket
       const link = document.createElement("a");
       link.href = `${zendeskDomain}/agent/tickets/${ticketId}`;
-      link.target = "_blank"; // Opens the link in a new tab
+      link.target = "_blank";
       link.textContent = `Ticket #${ticketId} - ${description}`;
-
       li.appendChild(link);
+
+      // Display the reminder time if available
+      if (reminderTime) {
+        const reminderText = document.createElement("span");
+        reminderText.textContent = ` (Reminder: ${new Date(
+          reminderTime
+        ).toLocaleString()})`;
+        li.appendChild(reminderText);
+      }
+
       list.appendChild(li);
     });
   });
@@ -205,20 +222,33 @@ function displayOverdueTickets(tickets) {
     const zendeskDomain =
       data.zendeskDomain || "https://your_zendesk_domain.com";
 
-    tickets.forEach(({ ticketId, description }) => {
+    tickets.forEach(({ ticketId, description, reminderTime }) => {
       const li = document.createElement("li");
+
+      // Create the link for the ticket
       const link = document.createElement("a");
       link.href = `${zendeskDomain}/agent/tickets/${ticketId}`;
-      link.target = "_blank"; // Opens the link in a new tab
+      link.target = "_blank";
       link.textContent = `Ticket #${ticketId} - ${description}`;
+      li.appendChild(link);
 
+      // Display the reminder time if available
+      if (reminderTime) {
+        const reminderText = document.createElement("span");
+        reminderText.textContent = ` (Reminder: ${new Date(
+          reminderTime
+        ).toLocaleString()})`;
+        li.appendChild(reminderText);
+      }
+
+      // Add the "Done" button for marking the ticket as done
       const markAsDoneButton = document.createElement("button");
       markAsDoneButton.textContent = "Done";
       markAsDoneButton.classList.add("markAsDone");
       markAsDoneButton.setAttribute("data-ticket-id", ticketId);
-
-      li.appendChild(link);
       li.appendChild(markAsDoneButton);
+
+      // Append the list item to the list
       list.appendChild(li);
     });
   });

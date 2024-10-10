@@ -101,11 +101,19 @@ function checkManualReminders() {
             if (
               !overdueTickets.some((ticket) => ticket.ticketId === ticketId)
             ) {
-              overdueTickets.push({ ticketId, description });
+              overdueTickets.push({
+                ticketId,
+                description,
+                reminderTime, // Preserve the reminder time when moving to overdue
+              });
               console.log(`Ticket #${ticketId} moved to overdue.`);
             }
           } else {
-            updatedTickets.push({ ticketId, description, reminderTime });
+            updatedTickets.push({
+              ticketId,
+              description,
+              reminderTime,
+            });
           }
         }
       );
