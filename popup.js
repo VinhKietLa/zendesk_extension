@@ -271,3 +271,6 @@ document
     throttleWriteData({ completedTickets: [] });
     displayCompletedTickets([]);
   });
+
+// When the popup is opened, reset the badge count
+chrome.runtime.sendMessage({ action: "resetBadge" });

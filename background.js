@@ -1,3 +1,5 @@
+import { checkUnassignedTickets } from "./badgeUpdater.js";
+
 let refreshIntervalId = null;
 
 //// Throttle Write Utility ////
@@ -153,3 +155,9 @@ chrome.notifications.onClicked.addListener((notificationId) => {
     console.error("Invalid ticket ID:", notificationId);
   }
 });
+
+// Set interval to check unassigned tickets every 60 seconds
+setInterval(checkUnassignedTickets, 60 * 1000);
+
+// Initial check when the extension loads
+checkUnassignedTickets();
