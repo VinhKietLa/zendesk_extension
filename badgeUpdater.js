@@ -12,9 +12,14 @@ export function checkUnassignedTickets() {
         {
           target: { tabId: tab.id },
           function: () => {
+            // Get the last part of the URL, assuming it’s the view ID
+            const viewId = window.location.pathname.split("/").pop();
+
+            // Dynamically build the selector using the view ID
             const unassignedTicketElement = document.querySelector(
-              'a[data-test-id="views_views-tree_item-view-4561171961759"] div[data-test-id="views_views-tree_item_count"]'
+              `a[data-test-id="views_views-tree_item-view-${viewId}"] div[data-test-id="views_views-tree_item_count"]`
             );
+
             const unassignedTicketCount = unassignedTicketElement
               ? parseInt(unassignedTicketElement.textContent.trim(), 10)
               : 0;
@@ -24,11 +29,10 @@ export function checkUnassignedTickets() {
         (results) => {
           if (chrome.runtime.lastError) {
             console.error(chrome.runtime.lastError.message);
-            // checks whether there are valid results
           } else if (results && results.length > 0) {
-            const count = results[0].result; // Use only the result field
-            console.log("Unassigned ticket count:", count); // Log the correct count
-            updateBadge(count); // Update badge based on unassigned tickets
+            const count = results[0].result;
+            console.log("Unassigned ticket count:", count);
+            updateBadge(count);
           }
         }
       );
