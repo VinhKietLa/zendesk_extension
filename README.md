@@ -55,6 +55,21 @@
 - **Chrome Extensions API**: Communication with the background and popup scripts.
 - **Chrome Storage API**: Used for saving settings and ticket information.
 
+## **Changelog**
+
+### Version 1.2.0
+
+- Added a badge notification for new unassigned tickets.
+- Improved the auto-refresh interval to not apply when editing tickets e.g. when CCing.
+
+### Version 1.1.0
+
+- Added an update to keep the reminders in the ticket title when tickets are moved to completed or overdue.
+
+### Version 1.0.0
+
+- Initial release with core features: auto-refresh, important tickets with reminders, and simple UI for managing tickets.
+
 ## **Future Enhancements**
 
 - Customizable notification sounds for reminders.
