@@ -57,6 +57,10 @@
 
 ## **Changelog**
 
+### Version 1.3.0
+
+- Bug fix for badget notification - no longer hard coded when selecting the unassigned tickets string.
+
 ### Version 1.2.0
 
 - Added a badge notification for new unassigned tickets.
