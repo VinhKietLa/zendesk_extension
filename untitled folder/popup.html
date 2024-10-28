@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zendesk Helper
+    </title>
+    <link rel="stylesheet" href="popup.css">
+
+<body>
+    <h1>Zendesk Helper
+    </h1>
+
+    <!-- Auto Refresh Section -->
+    <h2>Auto Refresh</h2>
+    <label for="refreshInterval">Auto-Refresh Interval (seconds):</label>
+    <input type="number" id="refreshInterval" value="60">
+    <button id="toggleRefresh">Start Auto-Refresh</button>
+
+
+    <!-- Add New Ticket -->
+    <h2>Add New Ticket</h2>
+    <input type="text" id="ticketInput" placeholder="Ticket ID">
+    <input type="text" id="ticketDescription" placeholder="Description">
+    <label for="reminderTime">Optional Reminder Time:</label>
+
+    <input type="datetime-local" id="reminderTime" placeholder="Reminder Time">
+    <button id="addTicket">Add Ticket</button>
+
+    <!-- Important Tickets Section -->
+    <h2>Important Tickets</h2>
+    <ul id="importantTicketsList"></ul>
+
+    <!-- Completed Tickets Section -->
+    <h2>Completed Tickets</h2>
+    <ul id="completedTicketsList"></ul>
+    <button id="clearCompletedTickets">Clear Completed Tickets</button>
+
+
+    <!-- Overdue Tickets Section -->
+    <h2>Overdue Tickets</h2>
+    <ul id="overdueTicketsList"></ul>
+
+
+    <script src="popup.js"></script>
+</body>
+
+</html>
