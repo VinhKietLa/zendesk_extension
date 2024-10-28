@@ -7,23 +7,38 @@ export function checkUnassignedTickets() {
     }
     //If zendesk tabs are found, loops through each tab to perform the check for unassigned tickets
     tabs.forEach((tab) => {
+      console.log("Checking tab:", tab.url);
       //this injects a script into each zendesk tab to for check for unassigned tickets.
       chrome.scripting.executeScript(
         {
           target: { tabId: tab.id },
           function: () => {
-            // Get the last part of the URL, assuming it’s the view ID
-            const viewId = window.location.pathname.split("/").pop();
+            // Find the "Unassigned tickets" view element by its name
+            const unassignedViewElement = Array.from(
+              document.querySelectorAll(
+                'a[data-test-id^="views_views-tree_item-view-"]'
+              )
+            ).find((el) => el.textContent.includes("Unassigned tickets"));
 
-            // Dynamically build the selector using the view ID
-            const unassignedTicketElement = document.querySelector(
-              `a[data-test-id="views_views-tree_item-view-${viewId}"] div[data-test-id="views_views-tree_item_count"]`
-            );
+            if (unassignedViewElement) {
+              const unassignedTicketElement =
+                unassignedViewElement.querySelector(
+                  'div[data-test-id="views_views-tree_item_count"]'
+                );
 
-            const unassignedTicketCount = unassignedTicketElement
-              ? parseInt(unassignedTicketElement.textContent.trim(), 10)
-              : 0;
-            return unassignedTicketCount;
+              const unassignedTicketCount = unassignedTicketElement
+                ? parseInt(unassignedTicketElement.textContent.trim(), 10)
+                : 0;
+
+              console.log(
+                "Unassigned ticket count found:",
+                unassignedTicketCount
+              );
+              return unassignedTicketCount;
+            } else {
+              console.log("Unassigned tickets view not found.");
+              return 0;
+            }
           },
         },
         (results) => {

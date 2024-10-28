@@ -44,14 +44,23 @@ function refreshZendesk() {
         chrome.scripting.executeScript({
           target: { tabId: tab.id },
           function: () => {
-            const refreshButton = document.querySelector(
-              'button[data-test-id="views_views-list_header-refresh"]'
+            const waitForElement = (selector, callback) => {
+              const element = document.querySelector(selector);
+              if (element) {
+                callback(element);
+              } else {
+                console.log("Element not found, retrying...");
+                setTimeout(() => waitForElement(selector, callback), 500);
+              }
+            };
+
+            waitForElement(
+              'button[data-test-id="views_views-list_header-refresh"]',
+              (refreshButton) => {
+                refreshButton.click();
+                console.log("Refresh button clicked.");
+              }
             );
-            if (refreshButton) {
-              refreshButton.click();
-            } else {
-              console.error("Refresh button not found.");
-            }
           },
         });
       } else {
