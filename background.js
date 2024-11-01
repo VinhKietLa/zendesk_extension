@@ -4,6 +4,13 @@ import { checkManualReminders } from "./reminders.js";
 let refreshIntervalId = null;
 let refreshInterval = 60000; // Default refresh interval (60 seconds)
 
+// On startup, check for a saved interval and start the refresh if present
+chrome.storage.sync.get("refreshInterval", (data) => {
+  if (data.refreshInterval) {
+    setRefreshInterval(data.refreshInterval);
+  }
+});
+
 //// Throttle Write Utility ////
 let writeTimeout;
 function throttleWriteData(dataToWrite) {
@@ -26,6 +33,10 @@ function setRefreshInterval(interval) {
   if (refreshIntervalId) {
     clearInterval(refreshIntervalId);
   }
+
+  // Save interval to storage
+  chrome.storage.sync.set({ refreshInterval: interval });
+
   refreshIntervalId = setInterval(refreshZendesk, refreshInterval);
 }
 
