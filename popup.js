@@ -185,7 +185,21 @@ function displayImportantTickets(tickets) {
       markAsDoneButton.setAttribute("data-ticket-id", ticketId);
 
       li.appendChild(link);
+
+      // 📋 Copy button
+      const copyButton = document.createElement("button");
+      copyButton.textContent = "Copy Link";
+      copyButton.style.marginLeft = "10px";
+      copyButton.addEventListener("click", () => {
+        navigator.clipboard.writeText(
+          `${zendeskDomain}/agent/tickets/${ticketId}`
+        );
+        showToast(`Copied ticket #${ticketId}`);
+      });
+      li.appendChild(copyButton);
+
       li.appendChild(markAsDoneButton);
+
       list.appendChild(li);
     });
   });
@@ -285,3 +299,25 @@ document
 
 // When the popup is opened, reset the badge count
 chrome.runtime.sendMessage({ action: "resetBadge" });
+
+// Function to show a toast notification
+function showToast(message) {
+  const toast = document.createElement("div");
+  toast.textContent = message;
+  toast.style.cssText = `
+    position: fixed;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #2ecc71;
+    color: white;
+    padding: 8px 14px;
+    border-radius: 6px;
+    font-size: 0.85em;
+    z-index: 9999;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    animation: fadeInOut 2.5s ease;
+  `;
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 2500);
+}
