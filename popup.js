@@ -4,7 +4,7 @@ let writeTimeout;
 function throttleWriteData(dataToWrite) {
   clearTimeout(writeTimeout); // Clear any previous timeout
   writeTimeout = setTimeout(() => {
-    chrome.storage.sync.set(dataToWrite, () => {
+    chrome.storage.local.set(dataToWrite, () => {
       console.log("Batched write to chrome.storage.sync", dataToWrite);
     });
   }, 1000); // Adjust the debounce interval if necessary
@@ -20,8 +20,38 @@ function extractTicketId(input) {
 }
 
 //// Load saved interval on popup load ////
+
+function migrateSyncToLocal() {
+  chrome.storage.local.get(
+    ["importantTickets", "completedTickets", "overdueTickets"],
+    (localData) => {
+      const needsMigration =
+        !localData.importantTickets &&
+        !localData.completedTickets &&
+        !localData.overdueTickets;
+
+      if (!needsMigration) return;
+
+      console.log("Running one-time data migration from sync to local...");
+
+      chrome.storage.sync.get(
+        ["importantTickets", "completedTickets", "overdueTickets"],
+        (syncData) => {
+          chrome.storage.local.set(syncData, () => {
+            console.log("✅ Migration complete:", syncData);
+          });
+        }
+      );
+    }
+  );
+}
+
 document.addEventListener("DOMContentLoaded", () => {
-  chrome.storage.sync.get({ refreshInterval: 60 }, (data) => {
+  console.log("✅ Using chrome.storage.local for tickets/reminders");
+
+  migrateSyncToLocal(); // <-- run migration on load
+
+  chrome.storage.local.get({ refreshInterval: 60 }, (data) => {
     document.getElementById("refreshInterval").value = data.refreshInterval;
   });
 });
@@ -37,7 +67,7 @@ document.getElementById("toggleRefresh").addEventListener("click", () => {
   }
 
   // Save interval and send message to background script
-  chrome.storage.sync.set({ refreshInterval: interval }, () => {
+  chrome.storage.local.set({ refreshInterval: interval }, () => {
     console.log("Auto-refresh interval saved:", interval);
 
     // Send message to the background script to start the refresh
@@ -64,7 +94,7 @@ document.getElementById("addTicket").addEventListener("click", () => {
     return;
   }
 
-  chrome.storage.sync.get({ importantTickets: [] }, (data) => {
+  chrome.storage.local.get({ importantTickets: [] }, (data) => {
     const currentTickets = [...data.importantTickets];
 
     const isDuplicate = currentTickets.some(
@@ -98,7 +128,7 @@ document.addEventListener("click", (event) => {
 });
 
 function markAsDone(ticketId) {
-  chrome.storage.sync.get(
+  chrome.storage.local.get(
     { importantTickets: [], overdueTickets: [], completedTickets: [] },
     (data) => {
       // Find the ticket from either important or overdue lists
@@ -126,7 +156,7 @@ function markAsDone(ticketId) {
         ];
 
         // Update the storage with the new lists
-        chrome.storage.sync.set(
+        chrome.storage.local.set(
           {
             importantTickets: updatedImportantTickets,
             overdueTickets: updatedOverdueTickets,
@@ -280,7 +310,7 @@ function displayOverdueTickets(tickets) {
 }
 
 // Load important, completed, and overdue tickets when the popup opens
-chrome.storage.sync.get(
+chrome.storage.local.get(
   ["importantTickets", "completedTickets", "overdueTickets"],
   (data) => {
     displayImportantTickets(data.importantTickets || []);

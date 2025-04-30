@@ -5,7 +5,7 @@ let refreshIntervalId = null;
 let refreshInterval = 60000; // Default refresh interval (60 seconds)
 
 // On startup, check for a saved interval and start the refresh if present
-chrome.storage.sync.get("refreshInterval", (data) => {
+chrome.storage.local.get("refreshInterval", (data) => {
   if (data.refreshInterval) {
     setRefreshInterval(data.refreshInterval);
   }
@@ -16,7 +16,7 @@ let writeTimeout;
 function throttleWriteData(dataToWrite) {
   clearTimeout(writeTimeout); // Clear the previous timeout if it's still pending
   writeTimeout = setTimeout(() => {
-    chrome.storage.sync.set(dataToWrite, () => {});
+    chrome.storage.local.set(dataToWrite, () => {});
   }, 5000); // Adjust this interval as necessary (5 seconds in this case)
 }
 
@@ -35,7 +35,7 @@ function setRefreshInterval(interval) {
   }
 
   // Save interval to storage
-  chrome.storage.sync.set({ refreshInterval: interval });
+  chrome.storage.local.set({ refreshInterval: interval });
 
   refreshIntervalId = setInterval(refreshZendesk, refreshInterval);
 }

@@ -60,10 +60,10 @@ function updateBadge(count) {
   if (count > 0) {
     chrome.action.setBadgeText({ text: count.toString() });
     chrome.action.setBadgeBackgroundColor({ color: "#FF0000" });
-    chrome.storage.sync.set({ unassignedTicketCount: count }); // Save count in storage
+    chrome.storage.local.set({ unassignedTicketCount: count }); // Save count in storage
   } else {
     chrome.action.setBadgeText({ text: "" });
-    chrome.storage.sync.set({ unassignedTicketCount: 0 }); // Reset stored value
+    chrome.storage.local.set({ unassignedTicketCount: 0 }); // Reset stored value
   }
 }
 
@@ -79,7 +79,7 @@ export function restoreBadge() {
       if (tab.url && typeof tab.url === "string") {
         if (tab.url.includes(".zendesk.com")) {
           //Retrieve and restore the unassigned ticket count from storage
-          chrome.storage.sync.get("unassignedTicketCount", (data) => {
+          chrome.storage.local.get("unassignedTicketCount", (data) => {
             const storedCount = data.unassignedTicketCount || 0;
             if (storedCount > 0) {
               chrome.action.setBadgeText({ text: storedCount.toString() });

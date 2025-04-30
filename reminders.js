@@ -4,11 +4,11 @@ export function checkManualReminders() {
   function throttleWriteData(dataToWrite) {
     clearTimeout(writeTimeout); // Clear the previous timeout if it's still pending
     writeTimeout = setTimeout(() => {
-      chrome.storage.sync.set(dataToWrite, () => {});
+      chrome.storage.local.set(dataToWrite, () => {});
     }, 5000); // Adjust this interval as necessary (5 seconds in this case)
   }
 
-  chrome.storage.sync.get(
+  chrome.storage.local.get(
     { importantTickets: [], overdueTickets: [] }, // Ensure both importantTickets and overdueTickets have default values
     (data) => {
       const now = new Date().getTime();
