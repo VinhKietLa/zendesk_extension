@@ -10,6 +10,15 @@ function throttleWriteData(dataToWrite) {
   }, 1000); // Adjust the debounce interval if necessary
 }
 
+// Function to extract ticket ID from a Zendesk ticket URL
+function extractTicketId(input) {
+  const urlMatch = input.match(/\/agent\/tickets\/(\d+)/);
+  if (urlMatch) return urlMatch[1];
+
+  const idMatch = input.match(/^\d{3,}$/); // Allow 3+ digit raw IDs like 14394
+  return idMatch ? idMatch[0] : null;
+}
+
 //// Load saved interval on popup load ////
 document.addEventListener("DOMContentLoaded", () => {
   chrome.storage.sync.get({ refreshInterval: 60 }, (data) => {
@@ -43,39 +52,41 @@ document.getElementById("toggleRefresh").addEventListener("click", () => {
 
 //// Add Important Ticket with Optional Reminder ////
 document.getElementById("addTicket").addEventListener("click", () => {
-  const ticketId = document.getElementById("ticketInput").value;
+  const input = document.getElementById("ticketInput").value.trim();
+  const ticketId = extractTicketId(input);
   const description = document.getElementById("ticketDescription").value;
   const reminderTime = document.getElementById("reminderTime").value; // Optional reminder time
 
-  if (ticketId && description) {
-    chrome.storage.sync.get({ importantTickets: [] }, (data) => {
-      const currentTickets = [...data.importantTickets];
-
-      const isDuplicate = currentTickets.some(
-        (ticket) => ticket.ticketId === ticketId
-      );
-      if (isDuplicate) {
-        alert(
-          `Ticket ID #${ticketId} already exists. Please enter a unique ID.`
-        );
-        return;
-      }
-
-      const updatedTickets = [
-        ...currentTickets,
-        { ticketId, description, reminderTime },
-      ];
-
-      throttleWriteData({ importantTickets: updatedTickets });
-      displayImportantTickets(updatedTickets);
-
-      document.getElementById("ticketInput").value = "";
-      document.getElementById("ticketDescription").value = "";
-      document.getElementById("reminderTime").value = "";
-    });
-  } else {
-    alert("Please enter a ticket ID and description.");
+  if (!ticketId || !description) {
+    alert(
+      "Please enter a valid ticket ID or Zendesk ticket URL and a description."
+    );
+    return;
   }
+
+  chrome.storage.sync.get({ importantTickets: [] }, (data) => {
+    const currentTickets = [...data.importantTickets];
+
+    const isDuplicate = currentTickets.some(
+      (ticket) => ticket.ticketId === ticketId
+    );
+    if (isDuplicate) {
+      alert(`Ticket ID #${ticketId} already exists. Please enter a unique ID.`);
+      return;
+    }
+
+    const updatedTickets = [
+      ...currentTickets,
+      { ticketId, description, reminderTime },
+    ];
+
+    throttleWriteData({ importantTickets: updatedTickets });
+    displayImportantTickets(updatedTickets);
+
+    document.getElementById("ticketInput").value = "";
+    document.getElementById("ticketDescription").value = "";
+    document.getElementById("reminderTime").value = "";
+  });
 });
 
 //// Mark Ticket as Done ////
