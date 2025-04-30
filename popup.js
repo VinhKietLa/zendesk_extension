@@ -1,3 +1,7 @@
+// =========================
+// Zendesk Helper - popup.js
+// =========================
+
 let writeTimeout;
 
 // Throttle writes to chrome.storage.local
@@ -52,12 +56,26 @@ document.addEventListener("DOMContentLoaded", () => {
   chrome.storage.local.get({ refreshInterval: 60 }, (data) => {
     document.getElementById("refreshInterval").value = data.refreshInterval;
   });
+
+  chrome.storage.sync.get("darkMode", (data) => {
+    const isDark = data.darkMode === true;
+    document.getElementById("darkModeToggle").checked = isDark;
+    document.body.classList.toggle("dark-mode", isDark);
+  });
+});
+
+// Dark mode toggle handler
+const darkModeCheckbox = document.getElementById("darkModeToggle");
+darkModeCheckbox.addEventListener("change", (e) => {
+  const isDark = e.target.checked;
+  document.body.classList.toggle("dark-mode", isDark);
+  chrome.storage.sync.set({ darkMode: isDark });
 });
 
 // Auto-refresh setup
-document.getElementById("toggleRefresh").addEventListener("click", () => {
+const refreshBtn = document.getElementById("toggleRefresh");
+refreshBtn.addEventListener("click", () => {
   const interval = parseInt(document.getElementById("refreshInterval").value);
-
   if (isNaN(interval) || interval <= 0) {
     alert("Please enter a valid refresh interval greater than 0.");
     return;
@@ -75,7 +93,8 @@ document.getElementById("toggleRefresh").addEventListener("click", () => {
 });
 
 // Add ticket handler
-document.getElementById("addTicket").addEventListener("click", () => {
+const addTicketBtn = document.getElementById("addTicket");
+addTicketBtn.addEventListener("click", () => {
   const input = document.getElementById("ticketInput").value.trim();
   const ticketId = extractTicketId(input);
   const description = document.getElementById("ticketDescription").value;
@@ -113,13 +132,6 @@ document.getElementById("addTicket").addEventListener("click", () => {
 });
 
 // Mark ticket as done
-document.addEventListener("click", (event) => {
-  if (event.target.classList.contains("markAsDone")) {
-    const ticketId = event.target.getAttribute("data-ticket-id");
-    markAsDone(ticketId);
-  }
-});
-
 function markAsDone(ticketId) {
   chrome.storage.local.get(
     { importantTickets: [], overdueTickets: [], completedTickets: [] },
@@ -158,13 +170,19 @@ function markAsDone(ticketId) {
   );
 }
 
+document.addEventListener("click", (e) => {
+  if (e.target.classList.contains("markAsDone")) {
+    const ticketId = e.target.getAttribute("data-ticket-id");
+    markAsDone(ticketId);
+  }
+});
+
 function clearUI() {
   document.getElementById("importantTicketsList").innerHTML = "";
   document.getElementById("completedTicketsList").innerHTML = "";
   document.getElementById("overdueTicketsList").innerHTML = "";
 }
 
-// Display Important Tickets
 function displayImportantTickets(tickets) {
   const list = document.getElementById("importantTicketsList");
   list.innerHTML = "";
@@ -175,7 +193,6 @@ function displayImportantTickets(tickets) {
 
     tickets.forEach(({ ticketId, description, reminderTime }) => {
       const li = document.createElement("li");
-
       const link = document.createElement("a");
       link.href = `${zendeskDomain}/agent/tickets/${ticketId}`;
       link.target = "_blank";
@@ -212,13 +229,11 @@ function displayImportantTickets(tickets) {
       actions.appendChild(copyBtn);
       actions.appendChild(doneBtn);
       li.appendChild(actions);
-
       list.appendChild(li);
     });
   });
 }
 
-// Display Completed Tickets
 function displayCompletedTickets(tickets) {
   const list = document.getElementById("completedTicketsList");
   list.innerHTML = "";
@@ -229,7 +244,6 @@ function displayCompletedTickets(tickets) {
 
     tickets.forEach(({ ticketId, description, reminderTime }) => {
       const li = document.createElement("li");
-
       const link = document.createElement("a");
       link.href = `${zendeskDomain}/agent/tickets/${ticketId}`;
       link.target = "_blank";
@@ -250,7 +264,6 @@ function displayCompletedTickets(tickets) {
   });
 }
 
-// Display Overdue Tickets
 function displayOverdueTickets(tickets) {
   const list = document.getElementById("overdueTicketsList");
   list.innerHTML = "";
@@ -261,7 +274,6 @@ function displayOverdueTickets(tickets) {
 
     tickets.forEach(({ ticketId, description, reminderTime }) => {
       const li = document.createElement("li");
-
       const link = document.createElement("a");
       link.href = `${zendeskDomain}/agent/tickets/${ticketId}`;
       link.target = "_blank";
@@ -288,7 +300,7 @@ function displayOverdueTickets(tickets) {
   });
 }
 
-// Load tickets
+// Load all tickets on popup open
 chrome.storage.local.get(
   ["importantTickets", "completedTickets", "overdueTickets"],
   (data) => {
@@ -298,15 +310,14 @@ chrome.storage.local.get(
   }
 );
 
-// Clear completed
-document
-  .getElementById("clearCompletedTickets")
-  .addEventListener("click", () => {
-    throttleWriteData({ completedTickets: [] });
-    displayCompletedTickets([]);
-  });
+// Clear completed tickets
+const clearBtn = document.getElementById("clearCompletedTickets");
+clearBtn.addEventListener("click", () => {
+  throttleWriteData({ completedTickets: [] });
+  displayCompletedTickets([]);
+});
 
-// Reset badge
+// Reset badge on popup open
 chrome.runtime.sendMessage({ action: "resetBadge" });
 
 // Toast

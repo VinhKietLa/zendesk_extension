@@ -18,6 +18,88 @@ h1 {
   color: #2d3436;
 }
 
+/* Dark mode styles */
+
+.dark-mode-toggle {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.95em;
+}
+
+/* Dark mode styles */
+body.dark-mode {
+  background-color: #121212;
+  color: #e0e0e0;
+}
+
+body.dark-mode h1,
+body.dark-mode h2,
+body.dark-mode label {
+  color: #e0e0e0;
+}
+
+body.dark-mode input,
+body.dark-mode button {
+  background-color: #2c2c2c;
+  color: #ffffff;
+  border: 1px solid #444;
+}
+
+body.dark-mode input::placeholder {
+  color: #aaa;
+}
+
+body.dark-mode .ticket-form-group {
+  background-color: #1e1e1e;
+}
+
+body.dark-mode li {
+  background-color: #1f1f1f;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+/* Preserve functional button colors in dark mode */
+body.dark-mode .copy-btn {
+  background-color: #636e72;
+}
+
+body.dark-mode .copy-btn:hover {
+  background-color: #2d3436;
+}
+
+body.dark-mode .done-btn {
+  background-color: #00b894;
+}
+
+body.dark-mode .done-btn:hover {
+  background-color: #019875;
+}
+
+body.dark-mode #addTicket,
+body.dark-mode #toggleRefresh {
+  background-color: #0984e3;
+}
+
+body.dark-mode #addTicket:hover,
+body.dark-mode #toggleRefresh:hover {
+  background-color: #065fad;
+}
+
+body.dark-mode #clearCompletedTickets {
+  background-color: #e17055;
+}
+
+body.dark-mode #clearCompletedTickets:hover {
+  background-color: #d35400;
+}
+
+body.dark-mode .toast {
+  background: #4caf50;
+  color: white;
+}
+
 h2 {
   font-size: 1.2em;
   margin: 30px 0 10px;
