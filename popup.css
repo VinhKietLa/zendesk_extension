@@ -1,155 +1,183 @@
-@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap");
 
 body {
-  font-family: "Poppins", sans-serif;
+  font-family: "Inter", sans-serif;
   margin: 0;
   padding: 20px;
-  background-color: #f5f5f5;
+  background-color: #f9fafb;
   color: #2d3436;
   width: 400px;
-  line-height: 1.6; /* Increased line-height for readability */
+  line-height: 1.6;
 }
 
 h1 {
-  font-size: 2em; /* Increased size for better clarity */
-  color: #2d3436;
+  font-size: 1.8em;
   text-align: center;
+  font-weight: 600;
   margin-bottom: 20px;
-  font-weight: 600; /* Slightly heavier for clear distinction */
+  color: #2d3436;
 }
 
 h2 {
-  font-size: 1.4em; /* Increased size for headings */
-  margin-bottom: 15px;
-  color: #2d3436;
-  border-bottom: 2px solid #dfe6e9;
-  padding-bottom: 8px;
-  font-weight: 500; /* Stronger font weight */
+  font-size: 1.2em;
+  margin: 30px 0 10px;
+  color: #333;
+  font-weight: 500;
+  border-bottom: 1px solid #e0e0e0;
+  padding-bottom: 6px;
 }
 
-ul {
-  list-style: none;
-  padding: 0;
-}
-
-li {
-  background-color: #ffffff;
-  margin-bottom: 12px;
-  padding: 15px;
-  border-radius: 10px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  transition: box-shadow 0.3s ease;
-}
-
-li:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-li button {
-  background-color: #d63031;
-  border: none;
-  color: white;
-  padding: 8px 14px;
-  border-radius: 6px;
-  font-size: 0.9em;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
-}
-
-li button:hover {
-  background-color: #c0392b;
-}
-
-#addTicket {
-  width: 100%;
-  padding: 12px;
-  background-color: #0984e3;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  margin-top: 15px;
-  font-size: 1.1em; /* Slightly larger for ease of reading */
-  transition: background-color 0.3s ease;
-}
-
-#addTicket:hover {
-  background-color: #065fad;
-}
-
-/* Increase the size of the ticket description box */
-#ticketDescription {
-  width: 100%;
-  height: 60px; /* Adjust the height as needed */
-  padding: 10px;
-  border: 1px solid #dfe6e9;
-  border-radius: 8px;
-  background-color: #ffffff;
-  font-size: 1em;
-  box-sizing: border-box;
-  resize: vertical; /* Allows the user to resize the box if needed */
+label {
+  font-size: 0.95em;
+  margin: 8px 0 4px;
+  display: block;
+  color: #555;
 }
 
 input {
   width: 100%;
-  padding: 12px;
-  margin: 10px 0;
+  padding: 10px 12px;
+  margin: 6px 0 12px;
   box-sizing: border-box;
   border: 1px solid #dfe6e9;
   background-color: #ffffff;
   border-radius: 8px;
   font-size: 1em;
+  transition: border-color 0.2s ease;
 }
 
-#toggleRefresh {
-  width: 100%;
-  padding: 12px;
-  background-color: #0984e3;
-  color: white;
+input:focus {
+  border-color: #0984e3;
+  outline: none;
+}
+
+button {
+  padding: 10px 14px;
+  font-size: 0.95em;
+  font-weight: 500;
   border: none;
   border-radius: 8px;
   cursor: pointer;
-  margin-top: 15px;
-  font-size: 1.1em; /* Increased font size */
-  transition: background-color 0.3s ease;
+  transition: all 0.2s ease;
 }
 
+#addTicket,
+#toggleRefresh {
+  width: 100%;
+  margin-top: 10px;
+  color: white;
+  background-color: #0984e3;
+}
+
+#addTicket:hover,
 #toggleRefresh:hover {
   background-color: #065fad;
 }
 
-label {
-  font-size: 1em;
-  margin-top: 10px;
-  display: block;
-  color: #2d3436;
-}
-
-/* Sections for tickets */
-h2 {
-  margin-top: 20px;
-  font-size: 1.4em;
-  border-bottom: 2px solid #dfe6e9;
-  padding-bottom: 8px;
-  color: #2d3436;
-}
-
 #clearCompletedTickets {
   width: 100%;
-  padding: 12px;
-  background-color: #d63031;
+  background-color: #e17055;
   color: white;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  margin-top: 15px;
-  font-size: 1.1em; /* Increased size for readability */
-  transition: background-color 0.3s ease;
+  margin-top: 20px;
 }
 
 #clearCompletedTickets:hover {
-  background-color: #c0392b;
+  background-color: #d35400;
+}
+
+.ticket-form-group {
+  background-color: #ffffff;
+  padding: 16px;
+  border-radius: 10px;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.05);
+  margin-top: 10px;
+}
+
+.ticket-form-group input {
+  margin-top: 5px;
+}
+
+/* Ticket List Styling */
+ul {
+  list-style: none;
+  padding: 0;
+  margin-top: 10px;
+}
+
+li {
+  background-color: #fff;
+  margin-bottom: 12px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+li:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+li a {
+  font-weight: 500;
+  color: #0984e3;
+  text-decoration: none;
+  word-break: break-word;
+}
+
+li a:hover {
+  text-decoration: underline;
+}
+
+li .reminder {
+  font-size: 0.85em;
+  color: #888;
+}
+
+li .action-buttons {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+}
+
+/* ✅ Modernized buttons */
+.copy-btn {
+  background-color: #636e72;
+  color: white;
+  font-size: 0.85em;
+  padding: 6px 12px;
+  border-radius: 6px;
+}
+
+.copy-btn:hover {
+  background-color: #2d3436;
+}
+
+.done-btn {
+  background-color: #00b894;
+  color: white;
+  font-size: 0.85em;
+  padding: 6px 12px;
+  border-radius: 6px;
+}
+
+.done-btn:hover {
+  background-color: #019875;
+}
+
+.toast {
+  position: fixed;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #2ecc71;
+  color: white;
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-size: 0.85em;
+  z-index: 9999;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  animation: fadeInOut 2.5s ease;
 }

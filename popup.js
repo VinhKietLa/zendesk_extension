@@ -1,26 +1,24 @@
 let writeTimeout;
 
-// Function to throttle writes to chrome.storage.sync
+// Throttle writes to chrome.storage.local
 function throttleWriteData(dataToWrite) {
-  clearTimeout(writeTimeout); // Clear any previous timeout
+  clearTimeout(writeTimeout);
   writeTimeout = setTimeout(() => {
     chrome.storage.local.set(dataToWrite, () => {
-      console.log("Batched write to chrome.storage.sync", dataToWrite);
+      console.log("✅ Batched write to local:", dataToWrite);
     });
-  }, 1000); // Adjust the debounce interval if necessary
+  }, 1000);
 }
 
-// Function to extract ticket ID from a Zendesk ticket URL
+// Extract ticket ID from URL or allow raw numeric ID
 function extractTicketId(input) {
   const urlMatch = input.match(/\/agent\/tickets\/(\d+)/);
   if (urlMatch) return urlMatch[1];
-
-  const idMatch = input.match(/^\d{3,}$/); // Allow 3+ digit raw IDs like 14394
+  const idMatch = input.match(/^\d{3,}$/);
   return idMatch ? idMatch[0] : null;
 }
 
-//// Load saved interval on popup load ////
-
+// One-time migration from sync to local
 function migrateSyncToLocal() {
   chrome.storage.local.get(
     ["importantTickets", "completedTickets", "overdueTickets"],
@@ -32,7 +30,7 @@ function migrateSyncToLocal() {
 
       if (!needsMigration) return;
 
-      console.log("Running one-time data migration from sync to local...");
+      console.log("🔄 Migrating data from sync to local...");
 
       chrome.storage.sync.get(
         ["importantTickets", "completedTickets", "overdueTickets"],
@@ -46,46 +44,42 @@ function migrateSyncToLocal() {
   );
 }
 
+// On DOM load
 document.addEventListener("DOMContentLoaded", () => {
-  console.log("✅ Using chrome.storage.local for tickets/reminders");
-
-  migrateSyncToLocal(); // <-- run migration on load
+  console.log("✅ Using chrome.storage.local");
+  migrateSyncToLocal();
 
   chrome.storage.local.get({ refreshInterval: 60 }, (data) => {
     document.getElementById("refreshInterval").value = data.refreshInterval;
   });
 });
 
-//// Auto Refresh Functionality ////
+// Auto-refresh setup
 document.getElementById("toggleRefresh").addEventListener("click", () => {
   const interval = parseInt(document.getElementById("refreshInterval").value);
 
-  // Add validation for empty or non-numeric interval input
   if (isNaN(interval) || interval <= 0) {
     alert("Please enter a valid refresh interval greater than 0.");
     return;
   }
 
-  // Save interval and send message to background script
   chrome.storage.local.set({ refreshInterval: interval }, () => {
-    console.log("Auto-refresh interval saved:", interval);
-
-    // Send message to the background script to start the refresh
+    console.log("💾 Refresh interval saved:", interval);
     chrome.runtime.sendMessage(
-      { action: "startRefresh", interval: interval },
+      { action: "startRefresh", interval },
       (response) => {
-        console.log("Message sent to background script. Response:", response);
+        console.log("📨 Sent to background:", response);
       }
     );
   });
 });
 
-//// Add Important Ticket with Optional Reminder ////
+// Add ticket handler
 document.getElementById("addTicket").addEventListener("click", () => {
   const input = document.getElementById("ticketInput").value.trim();
   const ticketId = extractTicketId(input);
   const description = document.getElementById("ticketDescription").value;
-  const reminderTime = document.getElementById("reminderTime").value; // Optional reminder time
+  const reminderTime = document.getElementById("reminderTime").value;
 
   if (!ticketId || !description) {
     alert(
@@ -96,10 +90,10 @@ document.getElementById("addTicket").addEventListener("click", () => {
 
   chrome.storage.local.get({ importantTickets: [] }, (data) => {
     const currentTickets = [...data.importantTickets];
-
     const isDuplicate = currentTickets.some(
       (ticket) => ticket.ticketId === ticketId
     );
+
     if (isDuplicate) {
       alert(`Ticket ID #${ticketId} already exists. Please enter a unique ID.`);
       return;
@@ -109,7 +103,6 @@ document.getElementById("addTicket").addEventListener("click", () => {
       ...currentTickets,
       { ticketId, description, reminderTime },
     ];
-
     throttleWriteData({ importantTickets: updatedTickets });
     displayImportantTickets(updatedTickets);
 
@@ -119,7 +112,7 @@ document.getElementById("addTicket").addEventListener("click", () => {
   });
 });
 
-//// Mark Ticket as Done ////
+// Mark ticket as done
 document.addEventListener("click", (event) => {
   if (event.target.classList.contains("markAsDone")) {
     const ticketId = event.target.getAttribute("data-ticket-id");
@@ -131,61 +124,47 @@ function markAsDone(ticketId) {
   chrome.storage.local.get(
     { importantTickets: [], overdueTickets: [], completedTickets: [] },
     (data) => {
-      // Find the ticket from either important or overdue lists
       const completedTicket =
-        data.importantTickets.find((ticket) => ticket.ticketId === ticketId) ||
-        data.overdueTickets.find((ticket) => ticket.ticketId === ticketId);
+        data.importantTickets.find((t) => t.ticketId === ticketId) ||
+        data.overdueTickets.find((t) => t.ticketId === ticketId);
 
-      if (completedTicket) {
-        // Remove the ticket from important and overdue lists
-        const updatedImportantTickets = data.importantTickets.filter(
-          (ticket) => ticket.ticketId !== ticketId
-        );
-        const updatedOverdueTickets = data.overdueTickets.filter(
-          (ticket) => ticket.ticketId !== ticketId
-        );
+      if (!completedTicket) return;
 
-        // Add the ticket to the completed list while preserving all properties
-        const updatedCompletedTickets = [
-          ...data.completedTickets.filter(
-            (ticket) => ticket.ticketId !== ticketId
-          ),
-          {
-            ...completedTicket, // Spread all properties to retain them
-          },
-        ];
+      const updatedImportant = data.importantTickets.filter(
+        (t) => t.ticketId !== ticketId
+      );
+      const updatedOverdue = data.overdueTickets.filter(
+        (t) => t.ticketId !== ticketId
+      );
+      const updatedCompleted = [
+        ...data.completedTickets.filter((t) => t.ticketId !== ticketId),
+        completedTicket,
+      ];
 
-        // Update the storage with the new lists
-        chrome.storage.local.set(
-          {
-            importantTickets: updatedImportantTickets,
-            overdueTickets: updatedOverdueTickets,
-            completedTickets: updatedCompletedTickets,
-          },
-          () => {
-            // Refresh the UI
-            clearUI();
-            displayImportantTickets(updatedImportantTickets);
-            displayCompletedTickets(updatedCompletedTickets);
-            displayOverdueTickets(updatedOverdueTickets);
-            console.log(`Ticket #${ticketId} marked as done.`);
-          }
-        );
-      } else {
-        console.error("Could not find the ticket to mark as done.");
-      }
+      chrome.storage.local.set(
+        {
+          importantTickets: updatedImportant,
+          overdueTickets: updatedOverdue,
+          completedTickets: updatedCompleted,
+        },
+        () => {
+          clearUI();
+          displayImportantTickets(updatedImportant);
+          displayCompletedTickets(updatedCompleted);
+          displayOverdueTickets(updatedOverdue);
+        }
+      );
     }
   );
 }
 
-//// Clear UI Before Updating ////
 function clearUI() {
   document.getElementById("importantTicketsList").innerHTML = "";
   document.getElementById("completedTicketsList").innerHTML = "";
   document.getElementById("overdueTicketsList").innerHTML = "";
 }
 
-//// Display Important Tickets ////
+// Display Important Tickets
 function displayImportantTickets(tickets) {
   const list = document.getElementById("importantTicketsList");
   list.innerHTML = "";
@@ -196,46 +175,50 @@ function displayImportantTickets(tickets) {
 
     tickets.forEach(({ ticketId, description, reminderTime }) => {
       const li = document.createElement("li");
+
       const link = document.createElement("a");
       link.href = `${zendeskDomain}/agent/tickets/${ticketId}`;
       link.target = "_blank";
       link.textContent = `Ticket #${ticketId} - ${description}`;
-
-      if (reminderTime) {
-        const reminderText = document.createElement("span");
-        reminderText.textContent = ` (Reminder: ${new Date(
-          reminderTime
-        ).toLocaleString()})`;
-        li.appendChild(reminderText);
-      }
-
-      const markAsDoneButton = document.createElement("button");
-      markAsDoneButton.textContent = "Done";
-      markAsDoneButton.classList.add("markAsDone");
-      markAsDoneButton.setAttribute("data-ticket-id", ticketId);
-
       li.appendChild(link);
 
-      // 📋 Copy button
-      const copyButton = document.createElement("button");
-      copyButton.textContent = "Copy Link";
-      copyButton.style.marginLeft = "10px";
-      copyButton.addEventListener("click", () => {
+      if (reminderTime) {
+        const reminder = document.createElement("div");
+        reminder.className = "reminder";
+        reminder.textContent = `Reminder: ${new Date(
+          reminderTime
+        ).toLocaleString()}`;
+        li.appendChild(reminder);
+      }
+
+      const actions = document.createElement("div");
+      actions.className = "action-buttons";
+
+      const copyBtn = document.createElement("button");
+      copyBtn.textContent = "Copy Link";
+      copyBtn.className = "copy-btn";
+      copyBtn.addEventListener("click", () => {
         navigator.clipboard.writeText(
           `${zendeskDomain}/agent/tickets/${ticketId}`
         );
         showToast(`Copied ticket #${ticketId}`);
       });
-      li.appendChild(copyButton);
 
-      li.appendChild(markAsDoneButton);
+      const doneBtn = document.createElement("button");
+      doneBtn.textContent = "Done";
+      doneBtn.className = "done-btn markAsDone";
+      doneBtn.setAttribute("data-ticket-id", ticketId);
+
+      actions.appendChild(copyBtn);
+      actions.appendChild(doneBtn);
+      li.appendChild(actions);
 
       list.appendChild(li);
     });
   });
 }
 
-//// Display Completed Tickets ////
+// Display Completed Tickets
 function displayCompletedTickets(tickets) {
   const list = document.getElementById("completedTicketsList");
   list.innerHTML = "";
@@ -247,20 +230,19 @@ function displayCompletedTickets(tickets) {
     tickets.forEach(({ ticketId, description, reminderTime }) => {
       const li = document.createElement("li");
 
-      // Create the link for the ticket
       const link = document.createElement("a");
       link.href = `${zendeskDomain}/agent/tickets/${ticketId}`;
       link.target = "_blank";
       link.textContent = `Ticket #${ticketId} - ${description}`;
       li.appendChild(link);
 
-      // Display the reminder time if available
       if (reminderTime) {
-        const reminderText = document.createElement("span");
-        reminderText.textContent = ` (Reminder: ${new Date(
+        const reminder = document.createElement("div");
+        reminder.className = "reminder";
+        reminder.textContent = `Reminder: ${new Date(
           reminderTime
-        ).toLocaleString()})`;
-        li.appendChild(reminderText);
+        ).toLocaleString()}`;
+        li.appendChild(reminder);
       }
 
       list.appendChild(li);
@@ -268,10 +250,10 @@ function displayCompletedTickets(tickets) {
   });
 }
 
-//// Display Overdue Tickets ////
+// Display Overdue Tickets
 function displayOverdueTickets(tickets) {
   const list = document.getElementById("overdueTicketsList");
-  list.innerHTML = ""; // Clear the list before displaying
+  list.innerHTML = "";
 
   chrome.storage.sync.get("zendeskDomain", (data) => {
     const zendeskDomain =
@@ -280,36 +262,33 @@ function displayOverdueTickets(tickets) {
     tickets.forEach(({ ticketId, description, reminderTime }) => {
       const li = document.createElement("li");
 
-      // Create the link for the ticket
       const link = document.createElement("a");
       link.href = `${zendeskDomain}/agent/tickets/${ticketId}`;
       link.target = "_blank";
       link.textContent = `Ticket #${ticketId} - ${description}`;
       li.appendChild(link);
 
-      // Display the reminder time if available
       if (reminderTime) {
-        const reminderText = document.createElement("span");
-        reminderText.textContent = ` (Reminder: ${new Date(
+        const reminder = document.createElement("div");
+        reminder.className = "reminder";
+        reminder.textContent = `Reminder: ${new Date(
           reminderTime
-        ).toLocaleString()})`;
-        li.appendChild(reminderText);
+        ).toLocaleString()}`;
+        li.appendChild(reminder);
       }
 
-      // Add the "Done" button for marking the ticket as done
-      const markAsDoneButton = document.createElement("button");
-      markAsDoneButton.textContent = "Done";
-      markAsDoneButton.classList.add("markAsDone");
-      markAsDoneButton.setAttribute("data-ticket-id", ticketId);
-      li.appendChild(markAsDoneButton);
+      const doneBtn = document.createElement("button");
+      doneBtn.textContent = "Done";
+      doneBtn.className = "done-btn markAsDone";
+      doneBtn.setAttribute("data-ticket-id", ticketId);
+      li.appendChild(doneBtn);
 
-      // Append the list item to the list
       list.appendChild(li);
     });
   });
 }
 
-// Load important, completed, and overdue tickets when the popup opens
+// Load tickets
 chrome.storage.local.get(
   ["importantTickets", "completedTickets", "overdueTickets"],
   (data) => {
@@ -319,7 +298,7 @@ chrome.storage.local.get(
   }
 );
 
-// Clear Completed Tickets
+// Clear completed
 document
   .getElementById("clearCompletedTickets")
   .addEventListener("click", () => {
@@ -327,27 +306,14 @@ document
     displayCompletedTickets([]);
   });
 
-// When the popup is opened, reset the badge count
+// Reset badge
 chrome.runtime.sendMessage({ action: "resetBadge" });
 
-// Function to show a toast notification
+// Toast
 function showToast(message) {
   const toast = document.createElement("div");
+  toast.className = "toast";
   toast.textContent = message;
-  toast.style.cssText = `
-    position: fixed;
-    top: 10px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: #2ecc71;
-    color: white;
-    padding: 8px 14px;
-    border-radius: 6px;
-    font-size: 0.85em;
-    z-index: 9999;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-    animation: fadeInOut 2.5s ease;
-  `;
   document.body.appendChild(toast);
   setTimeout(() => toast.remove(), 2500);
 }
