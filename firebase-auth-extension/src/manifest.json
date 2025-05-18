@@ -1,0 +1,49 @@
+{
+  "manifest_version": 3,
+  "name": "Agent Hero for Zendesk",
+  "version": "1.5",
+  "description": "An extension to manage Zendesk tickets efficiently.",
+  "permissions": [
+    "storage",
+    "notifications",
+    "scripting",
+    "identity"
+  ],
+  "host_permissions": [
+    "*://*.zendesk.com/*",
+    "https://*.firebaseapp.com/",
+    "https://*.googleapis.com/"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": "icon128.png"
+  },
+  "background": {
+    "service_worker": "assets/background-XYZ123.js",
+    "type": "module"
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self';"
+  },
+  "icons": {
+    "16": "icon16.png",
+    "48": "icon48.png",
+    "128": "icon128.png"
+  },
+  "oauth2": {
+    "client_id": "469337959937-4hh07g3u8499rk3t5gd14cjcbpem6umm.apps.googleusercontent.com",
+    "scopes": ["profile", "email"]
+  },
+  "externally_connectable": {
+    "matches": ["*://*.googleusercontent.com/*"]
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "redirect.html",
+        "assets/*"
+      ],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}
