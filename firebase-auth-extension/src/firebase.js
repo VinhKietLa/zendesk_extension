@@ -9,6 +9,7 @@ import {
   getRedirectResult,
   signInWithCustomToken,
 } from "firebase/auth";
+import { getFirestore } from "firebase/firestore";
 
 // Firebase configuration with default values
 const firebaseConfig = {
@@ -23,11 +24,13 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
+const db = getFirestore(app);
 const provider = new GoogleAuthProvider();
 
 export {
   app,
   auth,
+  db,
   provider,
   signInWithPopup,
   signInWithRedirect,
