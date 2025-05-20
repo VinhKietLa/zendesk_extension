@@ -263,3 +263,31 @@ li .action-buttons {
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
   animation: fadeInOut 2.5s ease;
 }
+
+#proBadge {
+  display: none;
+  background-color: #4caf50;
+  color: white;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.8em;
+  margin-left: 8px;
+  font-weight: bold;
+}
+
+#upgradeBtn {
+  display: none;
+  margin-left: 8px;
+  background-color: #4caf50;
+  color: white;
+  border: none;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9em;
+  transition: background-color 0.3s;
+}
+
+#upgradeBtn:hover {
+  background-color: #45a049;
+}
