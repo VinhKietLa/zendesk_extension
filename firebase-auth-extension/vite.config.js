@@ -1,6 +1,13 @@
 import { defineConfig } from "vite";
 import { resolve } from "path";
 import fs from "fs";
+import dotenv from "dotenv";
+
+// Load environment variables from .env file
+const result = dotenv.config();
+console.log("Dotenv config result:", result);
+console.log("Current working directory:", process.cwd());
+console.log("Environment variables loaded:", process.env);
 
 // Load environment variables with fallbacks
 const env = {
@@ -14,6 +21,9 @@ const env = {
   VITE_FIREBASE_MEASUREMENT_ID: process.env.VITE_FIREBASE_MEASUREMENT_ID,
   VITE_OAUTH_CLIENT_ID: process.env.VITE_OAUTH_CLIENT_ID,
 };
+
+// Log the environment variables we're trying to use
+console.log("Environment variables being used:", env);
 
 // Validate required environment variables
 const requiredEnvVars = Object.keys(env);
