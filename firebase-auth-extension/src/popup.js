@@ -233,6 +233,9 @@ document.addEventListener("DOMContentLoaded", () => {
   const userInfo = document.getElementById("userInfo");
   const proBadge = document.getElementById("proBadge");
   const upgradeBtn = document.getElementById("upgradeBtn");
+  const modal = document.getElementById("upgradeModal");
+  const closeModal = document.getElementsByClassName("close-modal")[0];
+  const activateProBtn = document.getElementById("activateProBtn");
 
   onAuthStateChanged(auth, async (user) => {
     console.log("🔐 Auth state changed:", user ? "User signed in" : "No user");
@@ -483,8 +486,22 @@ document.addEventListener("DOMContentLoaded", () => {
   chrome.runtime.sendMessage({ action: "resetBadge" });
   migrateSyncToLocal();
 
-  // Add upgrade button click handler
-  upgradeBtn?.addEventListener("click", async () => {
+  // Modal handling
+  upgradeBtn?.addEventListener("click", () => {
+    modal.style.display = "block";
+  });
+
+  closeModal?.addEventListener("click", () => {
+    modal.style.display = "none";
+  });
+
+  window.addEventListener("click", (event) => {
+    if (event.target === modal) {
+      modal.style.display = "none";
+    }
+  });
+
+  activateProBtn?.addEventListener("click", async () => {
     const user = auth.currentUser;
     if (!user) {
       alert("Please sign in to upgrade to Pro.");
@@ -496,9 +513,15 @@ document.addEventListener("DOMContentLoaded", () => {
       await updateProStatus(user.uid, true);
       console.log("✅ User upgraded to Pro");
 
+      // Close modal
+      modal.style.display = "none";
+
       // Refresh the UI
       proBadge.style.display = "inline-block";
       upgradeBtn.style.display = "none";
+
+      // Show success message
+      showToast("Successfully upgraded to Pro!");
 
       // Reload reminders to use Firestore
       await loadReminders(user);
