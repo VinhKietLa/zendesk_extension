@@ -11,19 +11,89 @@
 
 <body>
 
-    <h1>Agent Hero
-    </h1>
+    <div class="container">
+        <div class="header">
+            <h1 class="logo-title">Agent Hero</h1>
+            <div class="menu-wrapper">
+                <button class="menu-btn" id="menuBtn" aria-label="Menu">
+                    <span class="menu-dot"></span>
+                    <span class="menu-dot"></span>
+                    <span class="menu-dot"></span>
+                </button>
+                <div class="dropdown-menu" id="dropdownMenu">
+                    <div class="dropdown-plan">
+                        <span id="planBadge" class="plan-badge">Free</span>
+                    </div>
+                    <div class="dropdown-user" id="dropdownUser"></div>
+                    <button id="dropdownSignOut" class="dropdown-signout">Sign Out</button>
+                </div>
+            </div>
+        </div>
 
-    <!-- Auth Section -->
-    <div id="authSection">
-        <button id="loginBtn">Sign in with Google</button>
-        <button id="logoutBtn" style="display: none;">Sign Out</button>
-        <p id="userInfo" style="font-size: 0.9em; margin-top: 5px;"></p>
-        <span id="proBadge"
-            style="display: none; background-color: #4CAF50; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.8em; margin-left: 8px;">PRO</span>
-        <button id="upgradeBtn"
-            style="display: none; margin-left: 8px; background-color: #4CAF50; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">Upgrade
-            to Pro</button>
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="important">Important</button>
+            <button class="tab-btn" data-tab="pinned">Pinned</button>
+            <button class="tab-btn" data-tab="overdue">Overdue</button>
+            <button class="tab-btn" data-tab="completed">Completed</button>
+            <button class="tab-btn" data-tab="macros">Quick Macros</button>
+            <button class="tab-btn" data-tab="refresh">Auto-Refresh</button>
+        </div>
+
+        <div class="tab-content">
+            <div id="important-tab" class="tab-pane active">
+                <h2>Important Tickets</h2>
+                <ul id="importantTicketsList" class="ticket-list"></ul>
+                <div class="add-ticket">
+                    <h3>Add New Ticket</h3>
+                    <input type="text" id="ticketInput" placeholder="Enter ticket ID or URL">
+                    <input type="text" id="ticketDescription" placeholder="Enter description">
+                    <input type="datetime-local" id="reminderTime">
+                    <button id="addTicket" class="btn">Add Ticket</button>
+                </div>
+            </div>
+
+            <div id="pinned-tab" class="tab-pane">
+                <h2>Pinned Tickets <span id="pinnedTicketsCount"></span><span id="pinnedTicketsLimit">/3</span></h2>
+                <ul id="pinnedTicketsList" class="ticket-list"></ul>
+            </div>
+
+            <div id="overdue-tab" class="tab-pane">
+                <h2>Overdue Tickets</h2>
+                <ul id="overdueTicketsList" class="ticket-list"></ul>
+            </div>
+
+            <div id="completed-tab" class="tab-pane">
+                <h2>Completed Tickets</h2>
+                <ul id="completedTicketsList" class="ticket-list"></ul>
+                <button id="clearCompletedTickets" class="btn">Clear Completed</button>
+            </div>
+
+            <div id="macros-tab" class="tab-pane">
+                <h2>Quick Macros <span id="macrosCount"></span><span id="macrosLimit">/3</span></h2>
+                <div class="add-macro">
+                    <h3>Add New Macro</h3>
+                    <form id="addMacroForm">
+                        <input type="text" id="macroName" placeholder="Enter macro name">
+                        <textarea id="macroContent" placeholder="Enter macro content"></textarea>
+                        <button type="submit" class="btn">Add Macro</button>
+                    </form>
+                </div>
+                <div class="macro-search">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="macroSearch" placeholder="Search macros...">
+                </div>
+                <div class="macros-container">
+                    <ul id="macrosList" class="ticket-list"></ul>
+                </div>
+            </div>
+
+            <div id="refresh-tab" class="tab-pane">
+                <h2>Auto Refresh</h2>
+                <label for="refreshInterval">Auto-Refresh Interval (seconds):</label>
+                <input type="number" id="refreshInterval" value="60">
+                <button id="toggleRefresh">Start Auto-Refresh</button>
+            </div>
+        </div>
     </div>
 
     <!-- Upgrade Modal -->
@@ -185,44 +255,6 @@
             🌙 Enable Dark Mode
         </label>
     </div>
-
-    <!-- Auto Refresh Section -->
-    <h2>Auto Refresh</h2>
-    <label for="refreshInterval">Auto-Refresh Interval (seconds):</label>
-    <input type="number" id="refreshInterval" value="60">
-    <button id="toggleRefresh">Start Auto-Refresh</button>
-
-
-    <!-- Add New Ticket -->
-    <h2>Add New Ticket</h2>
-    <div class="ticket-form-group">
-        <label for="ticketInput">Ticket ID or URL:</label>
-        <input type="text" id="ticketInput" placeholder="e.g. 12345 or full Zendesk URL">
-
-        <label for="ticketDescription">Description:</label>
-        <input type="text" id="ticketDescription" placeholder="Short note or description">
-
-        <label for="reminderTime">Reminder (optional):</label>
-        <input type="datetime-local" id="reminderTime">
-
-        <button id="addTicket">Add Ticket</button>
-    </div>
-
-
-    <!-- Important Tickets Section -->
-    <h2>Important Tickets</h2>
-    <ul id="importantTicketsList"></ul>
-
-    <!-- Completed Tickets Section -->
-    <h2>Completed Tickets</h2>
-    <ul id="completedTicketsList"></ul>
-    <button id="clearCompletedTickets">Clear Completed Tickets</button>
-
-
-    <!-- Overdue Tickets Section -->
-    <h2>Overdue Tickets</h2>
-    <ul id="overdueTicketsList"></ul>
-
 
     <script type="module" src="/src/popup.js"></script>
 </body>

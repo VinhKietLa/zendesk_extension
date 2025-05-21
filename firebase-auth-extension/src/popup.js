@@ -5,6 +5,12 @@
 import { auth, signOut, onAuthStateChanged } from "./firebase.js";
 import { GoogleAuthProvider, signInWithCredential } from "firebase/auth";
 import {
+  checkLicense,
+  initializeLicensing,
+  getLicenseStatus,
+  setTestLicenseStatus,
+} from "./licensing.js";
+import {
   createUserProfile,
   getUserProfile,
   isUserPro,
@@ -16,6 +22,13 @@ import {
   getUserReminders,
   updateProStatus,
 } from "./db.js";
+import {
+  getMacros,
+  addMacro,
+  updateMacro,
+  deleteMacro,
+  copyMacroToClipboard,
+} from "./macros.js";
 
 const clientId = import.meta.env.VITE_OAUTH_CLIENT_ID;
 const CLOUD_FUNCTION_URL = "https://exchangeoauthcode-7ylhtvfxha-uc.a.run.app";
@@ -24,8 +37,16 @@ const CLOUD_FUNCTION_URL = "https://exchangeoauthcode-7ylhtvfxha-uc.a.run.app";
 async function loadReminders(user) {
   if (!user) return;
 
-  const pro = await isUserPro(user.uid);
-  if (pro) {
+  // Check both Google Auth and Chrome Web Store license
+  const [pro, hasLicense] = await Promise.all([
+    isUserPro(user.uid),
+    getLicenseStatus(),
+  ]);
+
+  // User is Pro if they have either Google Auth Pro status or a valid license
+  const isProUser = pro || hasLicense;
+
+  if (isProUser) {
     // Pro: Load from Firestore
     const reminders = await getUserReminders(user.uid);
 
@@ -227,7 +248,28 @@ function getOAuthUrl() {
   return `https://accounts.google.com/o/oauth2/auth?${params.toString()}`;
 }
 
-document.addEventListener("DOMContentLoaded", () => {
+// Initialize the extension
+document.addEventListener("DOMContentLoaded", async () => {
+  // Initialize licensing
+  await initializeLicensing();
+
+  // Add tab switching functionality
+  const tabBtns = document.querySelectorAll(".tab-btn");
+  const tabPanes = document.querySelectorAll(".tab-pane");
+
+  tabBtns.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      // Remove active class from all buttons and panes
+      tabBtns.forEach((b) => b.classList.remove("active"));
+      tabPanes.forEach((p) => p.classList.remove("active"));
+
+      // Add active class to clicked button and corresponding pane
+      btn.classList.add("active");
+      const tabId = btn.getAttribute("data-tab");
+      document.getElementById(`${tabId}-tab`).classList.add("active");
+    });
+  });
+
   const loginBtn = document.getElementById("loginBtn");
   const logoutBtn = document.getElementById("logoutBtn");
   const userInfo = document.getElementById("userInfo");
@@ -236,6 +278,9 @@ document.addEventListener("DOMContentLoaded", () => {
   const modal = document.getElementById("upgradeModal");
   const closeModal = document.getElementsByClassName("close-modal")[0];
   const activateProBtn = document.getElementById("activateProBtn");
+
+  // Load free user data immediately
+  loadFreeUserData();
 
   onAuthStateChanged(auth, async (user) => {
     console.log("🔐 Auth state changed:", user ? "User signed in" : "No user");
@@ -247,9 +292,9 @@ document.addEventListener("DOMContentLoaded", () => {
         displayName: user.displayName,
       });
 
-      loginBtn.style.display = "none";
-      logoutBtn.style.display = "inline-block";
-      userInfo.textContent = `Signed in as ${user.displayName}`;
+      if (loginBtn) loginBtn.style.display = "none";
+      if (logoutBtn) logoutBtn.style.display = "inline-block";
+      if (userInfo) userInfo.textContent = `Signed in as ${user.displayName}`;
 
       try {
         // Check if user profile exists, if not create one
@@ -270,11 +315,36 @@ document.addEventListener("DOMContentLoaded", () => {
         console.log("⭐ Pro status:", isPro);
 
         if (isPro) {
-          proBadge.style.display = "inline-block";
-          upgradeBtn.style.display = "none";
+          if (proBadge) proBadge.style.display = "inline-block";
+          if (upgradeBtn) upgradeBtn.style.display = "none";
+
+          // Check if we need to migrate data
+          const localData = await new Promise((resolve) => {
+            chrome.storage.local.get(
+              [
+                "importantTickets",
+                "completedTickets",
+                "overdueTickets",
+                "pinnedTickets",
+              ],
+              resolve
+            );
+          });
+
+          const hasDataToMigrate =
+            (localData.importantTickets &&
+              localData.importantTickets.length > 0) ||
+            (localData.completedTickets &&
+              localData.completedTickets.length > 0) ||
+            (localData.overdueTickets && localData.overdueTickets.length > 0) ||
+            (localData.pinnedTickets && localData.pinnedTickets.length > 0);
+
+          if (hasDataToMigrate) {
+            await migrateLocalToFirestore(user.uid);
+          }
         } else {
-          proBadge.style.display = "none";
-          upgradeBtn.style.display = "inline-block";
+          if (proBadge) proBadge.style.display = "none";
+          if (upgradeBtn) upgradeBtn.style.display = "inline-block";
         }
 
         // Load reminders based on user type
@@ -283,21 +353,20 @@ document.addEventListener("DOMContentLoaded", () => {
           isPro ? "Pro" : "Free"
         );
         await loadReminders(user);
+        await initializeMacros();
       } catch (error) {
         console.error("❌ Error in auth state change:", error);
       }
     } else {
       console.log("👋 User signed out");
-      loginBtn.style.display = "inline-block";
-      logoutBtn.style.display = "none";
-      userInfo.textContent = "";
-      proBadge.style.display = "none";
-      upgradeBtn.style.display = "none";
+      if (loginBtn) loginBtn.style.display = "inline-block";
+      if (logoutBtn) logoutBtn.style.display = "none";
+      if (userInfo) userInfo.textContent = "";
+      if (proBadge) proBadge.style.display = "none";
+      if (upgradeBtn) upgradeBtn.style.display = "none";
 
-      // Clear UI when logged out
-      displayImportantTickets([]);
-      displayCompletedTickets([]);
-      displayOverdueTickets([]);
+      // Load free user data when signed out
+      loadFreeUserData();
     }
   });
 
@@ -487,49 +556,59 @@ document.addEventListener("DOMContentLoaded", () => {
   migrateSyncToLocal();
 
   // Modal handling
-  upgradeBtn?.addEventListener("click", () => {
-    modal.style.display = "block";
-  });
+  if (upgradeBtn && modal) {
+    upgradeBtn.addEventListener("click", () => {
+      modal.style.display = "block";
+    });
+  }
 
-  closeModal?.addEventListener("click", () => {
-    modal.style.display = "none";
-  });
-
-  window.addEventListener("click", (event) => {
-    if (event.target === modal) {
+  if (closeModal && modal) {
+    closeModal.addEventListener("click", () => {
       modal.style.display = "none";
-    }
-  });
+    });
+  }
 
-  activateProBtn?.addEventListener("click", async () => {
-    const user = auth.currentUser;
-    if (!user) {
-      alert("Please sign in to upgrade to Pro.");
-      return;
-    }
+  if (modal) {
+    window.addEventListener("click", (event) => {
+      if (event.target === modal) {
+        modal.style.display = "none";
+      }
+    });
+  }
 
-    try {
-      console.log("⭐ Upgrading user to Pro");
-      await updateProStatus(user.uid, true);
-      console.log("✅ User upgraded to Pro");
+  if (activateProBtn) {
+    activateProBtn.addEventListener("click", async () => {
+      const user = auth.currentUser;
+      if (!user) {
+        alert("Please sign in to upgrade to Pro.");
+        return;
+      }
 
-      // Close modal
-      modal.style.display = "none";
+      try {
+        console.log("⭐ Upgrading user to Pro");
+        await updateProStatus(user.uid, true);
+        console.log("✅ User upgraded to Pro");
 
-      // Refresh the UI
-      proBadge.style.display = "inline-block";
-      upgradeBtn.style.display = "none";
+        // Close modal
+        if (modal) modal.style.display = "none";
 
-      // Show success message
-      showToast("Successfully upgraded to Pro!");
+        // Refresh the UI
+        const proBadge = document.getElementById("proBadge");
+        const upgradeBtn = document.getElementById("upgradeBtn");
+        if (proBadge) proBadge.style.display = "inline-block";
+        if (upgradeBtn) upgradeBtn.style.display = "none";
 
-      // Reload reminders to use Firestore
-      await loadReminders(user);
-    } catch (error) {
-      console.error("❌ Error upgrading to Pro:", error);
-      alert("Failed to upgrade to Pro. Please try again.");
-    }
-  });
+        // Show success message
+        showToast("Successfully upgraded to Pro!");
+
+        // Reload reminders to use Firestore
+        await loadReminders(user);
+      } catch (error) {
+        console.error("❌ Error upgrading to Pro:", error);
+        alert("Failed to upgrade to Pro. Please try again.");
+      }
+    });
+  }
 
   // Listen for reminder updates from background script
   chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
@@ -540,6 +619,184 @@ document.addEventListener("DOMContentLoaded", () => {
         loadReminders(user);
       }
     }
+  });
+
+  // Show test controls in development
+  // const testControls = document.querySelector(".test-controls");
+  // if (testControls) {
+  //   testControls.style.display = "block";
+  // }
+
+  // Test license controls
+  // document
+  //   .getElementById("testLicenseOn")
+  //   ?.addEventListener("click", async () => {
+  //     await setTestLicenseStatus(true);
+  //     showToast("Test license enabled");
+  //     const user = auth.currentUser;
+  //     if (user) {
+  //       await loadReminders(user);
+  //     }
+  //   });
+
+  // document
+  //   .getElementById("testLicenseOff")
+  //   ?.addEventListener("click", async () => {
+  //     await setTestLicenseStatus(false);
+  //     showToast("Test license disabled");
+  //     const user = auth.currentUser;
+  //     if (user) {
+  //       await loadReminders(user);
+  //     }
+  //   });
+
+  // Burger menu dropdown logic
+  const menuBtn = document.getElementById("menuBtn");
+  const dropdownMenu = document.getElementById("dropdownMenu");
+  const planBadge = document.getElementById("planBadge");
+  const dropdownUser = document.getElementById("dropdownUser");
+  const dropdownSignOut = document.getElementById("dropdownSignOut");
+
+  // Only add event listeners if elements exist
+  if (menuBtn && dropdownMenu) {
+    menuBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      dropdownMenu.classList.toggle("open");
+    });
+
+    document.addEventListener("click", (e) => {
+      if (!dropdownMenu.contains(e.target) && e.target !== menuBtn) {
+        dropdownMenu.classList.remove("open");
+      }
+    });
+  }
+
+  if (dropdownSignOut) {
+    dropdownSignOut.addEventListener("click", () => {
+      signOut(auth);
+      if (dropdownMenu) {
+        dropdownMenu.classList.remove("open");
+      }
+    });
+  }
+
+  // Update dropdown info on auth state change
+  onAuthStateChanged(auth, async (user) => {
+    try {
+      if (user) {
+        const isPro = await isUserPro(user.uid);
+
+        // Update plan badge
+        if (planBadge) {
+          planBadge.textContent = isPro ? "Pro" : "Free";
+          planBadge.className = isPro ? "plan-badge pro" : "plan-badge";
+        }
+
+        // Update user info
+        if (dropdownUser) {
+          dropdownUser.textContent = `Signed in as ${
+            user.displayName || user.email || "User"
+          }`;
+        }
+
+        // Update sign out visibility
+        if (dropdownSignOut) {
+          dropdownSignOut.style.display = "block";
+        }
+
+        // Update login/upgrade buttons
+        const loginBtn = document.getElementById("loginBtn");
+        const upgradeBtn = document.getElementById("upgradeBtn");
+
+        if (loginBtn) {
+          loginBtn.style.display = "none";
+        }
+        if (upgradeBtn) {
+          upgradeBtn.style.display = isPro ? "none" : "inline-block";
+        }
+      } else {
+        // Not signed in state
+        if (planBadge) {
+          planBadge.textContent = "Free";
+          planBadge.className = "plan-badge";
+        }
+        if (dropdownUser) {
+          dropdownUser.textContent = "Not signed in";
+        }
+        if (dropdownSignOut) {
+          dropdownSignOut.style.display = "none";
+        }
+
+        // Update login/upgrade buttons
+        const loginBtn = document.getElementById("loginBtn");
+        const upgradeBtn = document.getElementById("upgradeBtn");
+
+        if (loginBtn) {
+          loginBtn.style.display = "inline-block";
+        }
+        if (upgradeBtn) {
+          upgradeBtn.style.display = "none";
+        }
+      }
+    } catch (error) {
+      console.error("Error updating UI:", error);
+    }
+  });
+
+  // Add macro form submission
+  const addMacroForm = document.getElementById("addMacroForm");
+  addMacroForm?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const nameInput = document.getElementById("macroName");
+    const contentInput = document.getElementById("macroContent");
+
+    const name = nameInput.value.trim();
+    const content = contentInput.value.trim();
+
+    if (!name || !content) {
+      showToast("Please fill in all fields", "error");
+      return;
+    }
+
+    const user = auth.currentUser;
+    if (!user) {
+      showToast("Please sign in to add macros", "error");
+      return;
+    }
+
+    try {
+      const newMacro = await addMacro(user, name, content);
+
+      const macrosList = document.getElementById("macrosList");
+      if (macrosList) {
+        const macroElement = createMacroElement(newMacro);
+        macrosList.appendChild(macroElement);
+      }
+
+      nameInput.value = "";
+      contentInput.value = "";
+      showToast("Macro added successfully", "success");
+    } catch (error) {
+      console.error("Error adding macro:", error);
+      showToast(error.message || "Error adding macro", "error");
+    }
+  });
+
+  // Add search functionality for macros
+  const macroSearch = document.getElementById("macroSearch");
+  macroSearch?.addEventListener("input", (e) => {
+    const searchTerm = e.target.value.toLowerCase();
+    const macroItems = document.querySelectorAll(".macro-item");
+
+    macroItems.forEach((item) => {
+      const name = item.querySelector(".macro-name").textContent.toLowerCase();
+      const content = item
+        .querySelector(".macro-content")
+        .textContent.toLowerCase();
+      const matches = name.includes(searchTerm) || content.includes(searchTerm);
+      item.style.display = matches ? "block" : "none";
+    });
   });
 });
 
@@ -591,55 +848,92 @@ function clearUI() {
   document.getElementById("overdueTicketsList").innerHTML = "";
 }
 
-function displayImportantTickets(tickets) {
+// Helper to get IDs of pinned tickets
+async function getPinnedTicketIds(user, isPro) {
+  const pinned = await getPinnedTickets(user, isPro);
+  return pinned.map((t) => t.ticketId);
+}
+
+// Update displayImportantTickets to exclude pinned tickets
+async function displayImportantTickets(tickets) {
   const list = document.getElementById("importantTicketsList");
   if (!list) return;
   list.innerHTML = "";
-
+  const user = auth.currentUser;
+  let isPro = false;
+  let pinnedIds = [];
+  if (user) {
+    isPro = await isUserPro(user.uid);
+    pinnedIds = await getPinnedTicketIds(user, isPro);
+  }
   chrome.storage.sync.get("zendeskDomain", (data) => {
     const zendeskDomain =
       data.zendeskDomain || "https://your_zendesk_domain.com";
+    tickets
+      .filter(({ ticketId }) => !pinnedIds.includes(ticketId))
+      .forEach(({ ticketId, description, reminderTime }) => {
+        const li = document.createElement("li");
+        const link = document.createElement("a");
+        link.href = `${zendeskDomain}/agent/tickets/${ticketId}`;
+        link.target = "_blank";
+        link.textContent = `Ticket #${ticketId} - ${description}`;
+        li.appendChild(link);
+        if (reminderTime) {
+          const reminder = document.createElement("div");
+          reminder.className = "reminder";
+          reminder.textContent = `Reminder: ${new Date(
+            reminderTime
+          ).toLocaleString()}`;
+          li.appendChild(reminder);
+        }
 
-    tickets.forEach(({ ticketId, description, reminderTime }) => {
-      const li = document.createElement("li");
-      const link = document.createElement("a");
-      link.href = `${zendeskDomain}/agent/tickets/${ticketId}`;
-      link.target = "_blank";
-      link.textContent = `Ticket #${ticketId} - ${description}`;
-      li.appendChild(link);
+        // Add action buttons container
+        const actionsDiv = document.createElement("div");
+        actionsDiv.className = "ticket-actions";
 
-      if (reminderTime) {
-        const reminder = document.createElement("div");
-        reminder.className = "reminder";
-        reminder.textContent = `Reminder: ${new Date(
-          reminderTime
-        ).toLocaleString()}`;
-        li.appendChild(reminder);
-      }
+        // Add pin button if not pinned
+        if (user && !pinnedIds.includes(ticketId)) {
+          const pinBtn = document.createElement("button");
+          pinBtn.textContent = "Pin";
+          pinBtn.className = "action-btn";
+          pinBtn.addEventListener("click", async () => {
+            try {
+              await pinTicket(user, isPro, { ticketId, description });
+              showToast("Ticket pinned");
+              await loadReminders(user);
+            } catch (error) {
+              showToast(error.message || "Failed to pin ticket.");
+            }
+          });
+          actionsDiv.appendChild(pinBtn);
+        }
 
-      const actions = document.createElement("div");
-      actions.className = "action-buttons";
+        // Add edit button
+        const editBtn = document.createElement("button");
+        editBtn.textContent = "Edit";
+        editBtn.className = "action-btn";
+        editBtn.addEventListener("click", () => {
+          const newDescription = prompt("Edit description:", description);
+          if (newDescription && newDescription !== description) {
+            updateTicketDescription(user, isPro, ticketId, newDescription);
+          }
+        });
+        actionsDiv.appendChild(editBtn);
 
-      const copyBtn = document.createElement("button");
-      copyBtn.textContent = "Copy Link";
-      copyBtn.className = "copy-btn";
-      copyBtn.addEventListener("click", () => {
-        navigator.clipboard.writeText(
-          `${zendeskDomain}/agent/tickets/${ticketId}`
-        );
-        showToast(`Copied ticket #${ticketId}`);
+        // Add delete button
+        const deleteBtn = document.createElement("button");
+        deleteBtn.textContent = "Delete";
+        deleteBtn.className = "action-btn delete";
+        deleteBtn.addEventListener("click", () => {
+          if (confirm("Are you sure you want to delete this ticket?")) {
+            deleteTicket(user, isPro, ticketId);
+          }
+        });
+        actionsDiv.appendChild(deleteBtn);
+
+        li.appendChild(actionsDiv);
+        list.appendChild(li);
       });
-
-      const doneBtn = document.createElement("button");
-      doneBtn.textContent = "Done";
-      doneBtn.className = "done-btn markAsDone";
-      doneBtn.setAttribute("data-ticket-id", ticketId);
-
-      actions.appendChild(copyBtn);
-      actions.appendChild(doneBtn);
-      li.appendChild(actions);
-      list.appendChild(li);
-    });
   });
 }
 
@@ -717,4 +1011,583 @@ function showToast(message) {
   toast.textContent = message;
   document.body.appendChild(toast);
   setTimeout(() => toast.remove(), 2500);
+}
+
+// =========================
+// Updated Pinned Tickets Logic (Option 2)
+// =========================
+
+// Pin a ticket
+async function pinTicket(user, isPro, ticket) {
+  if (isPro) {
+    // Pro: Add to Firestore as a 'pinned' reminder, remove from 'important'
+    // Remove from important
+    const reminders = await getUserReminders(user.uid);
+    const important = reminders.find(
+      (r) => r.type === "important" && r.ticketId === ticket.ticketId
+    );
+    if (important) {
+      await deleteReminder(important.id);
+    }
+    // Add to pinned
+    await createReminder(user.uid, {
+      ticketId: ticket.ticketId,
+      description: ticket.description,
+      type: "pinned",
+      pinnedAt: Date.now(),
+    });
+  } else {
+    // Free: Remove from importantTickets, add to pinnedTickets (max 3)
+    const [importantTickets, pinnedTickets] = await Promise.all([
+      new Promise((resolve) =>
+        chrome.storage.local.get({ importantTickets: [] }, (data) =>
+          resolve(data.importantTickets || [])
+        )
+      ),
+      getPinnedTickets(user, false),
+    ]);
+    if (pinnedTickets.length >= 3) {
+      showToast(
+        "Free users can only pin up to 3 tickets. Upgrade to Pro for unlimited pins."
+      );
+      return;
+    }
+    if (pinnedTickets.some((t) => t.ticketId === ticket.ticketId)) {
+      showToast("This ticket is already pinned.");
+      return;
+    }
+    // Remove from important
+    const updatedImportant = importantTickets.filter(
+      (t) => t.ticketId !== ticket.ticketId
+    );
+    // Add to pinned
+    pinnedTickets.push({
+      ticketId: ticket.ticketId,
+      description: ticket.description,
+      pinnedAt: Date.now(),
+    });
+    await Promise.all([
+      chrome.storage.local.set({ importantTickets: updatedImportant }),
+      chrome.storage.local.set({ pinnedTickets }),
+    ]);
+  }
+}
+
+// Unpin a ticket
+async function unpinTicket(user, isPro, ticket) {
+  const { ticketId, description, reminderTime, pinnedAt } = ticket;
+  if (isPro) {
+    // Pro: Remove from Firestore 'pinned', add back to 'important' with original properties
+    const reminders = await getUserReminders(user.uid);
+    const pinned = reminders.find(
+      (r) => r.type === "pinned" && r.ticketId === ticketId
+    );
+    if (pinned) {
+      await deleteReminder(pinned.id);
+    }
+    // Add back to important (if not completed/overdue)
+    const alreadyCompletedOrOverdue = reminders.some(
+      (r) =>
+        (r.type === "completed" || r.type === "overdue") &&
+        r.ticketId === ticketId
+    );
+    if (!alreadyCompletedOrOverdue) {
+      await createReminder(user.uid, {
+        ticketId,
+        description,
+        reminderTime: pinned.reminderTime || null,
+        type: "important",
+      });
+    }
+  } else {
+    // Free: Remove from pinnedTickets, add back to importantTickets with all properties
+    const [pinnedTickets, importantTickets, completedTickets, overdueTickets] =
+      await Promise.all([
+        getPinnedTickets(user, false),
+        new Promise((resolve) =>
+          chrome.storage.local.get({ importantTickets: [] }, (data) =>
+            resolve(data.importantTickets || [])
+          )
+        ),
+        new Promise((resolve) =>
+          chrome.storage.local.get({ completedTickets: [] }, (data) =>
+            resolve(data.completedTickets || [])
+          )
+        ),
+        new Promise((resolve) =>
+          chrome.storage.local.get({ overdueTickets: [] }, (data) =>
+            resolve(data.overdueTickets || [])
+          )
+        ),
+      ]);
+    const updatedPinned = pinnedTickets.filter((t) => t.ticketId !== ticketId);
+    // Only add back if not completed/overdue
+    const isCompletedOrOverdue = [...completedTickets, ...overdueTickets].some(
+      (t) => t.ticketId === ticketId
+    );
+    if (!isCompletedOrOverdue) {
+      importantTickets.push({
+        ticketId,
+        description,
+        reminderTime: ticket.reminderTime || null,
+      });
+    }
+    await Promise.all([
+      chrome.storage.local.set({ pinnedTickets: updatedPinned }),
+      chrome.storage.local.set({ importantTickets }),
+    ]);
+  }
+}
+
+// Update displayPinnedTickets to pass the full ticket object to unpinTicket
+async function displayPinnedTickets(user, isPro) {
+  const list = document.getElementById("pinnedTicketsList");
+  const count = document.getElementById("pinnedTicketsCount");
+  const limit = document.getElementById("pinnedTicketsLimit");
+  if (!list || !count || !limit) return;
+  const tickets = await getPinnedTickets(user, isPro);
+  list.innerHTML = "";
+  count.textContent = `(${tickets.length}${!isPro ? "/3" : ""})`;
+  limit.style.display = isPro ? "none" : "inline";
+  chrome.storage.sync.get("zendeskDomain", (data) => {
+    const zendeskDomain =
+      data.zendeskDomain || "https://your_zendesk_domain.com";
+    tickets.forEach((ticket) => {
+      const { ticketId, description, pinnedAt } = ticket;
+      const li = document.createElement("li");
+      const link = document.createElement("a");
+      link.href = `${zendeskDomain}/agent/tickets/${ticketId}`;
+      link.target = "_blank";
+      link.textContent = `Ticket #${ticketId} - ${description}`;
+      li.appendChild(link);
+      const pinnedDate = document.createElement("div");
+      pinnedDate.className = "reminder";
+      pinnedDate.textContent = `Pinned: ${new Date(pinnedAt).toLocaleString()}`;
+      li.appendChild(pinnedDate);
+      const unpinBtn = document.createElement("button");
+      unpinBtn.textContent = "Unpin";
+      unpinBtn.className = "done-btn";
+      unpinBtn.addEventListener("click", async () => {
+        try {
+          await unpinTicket(user, isPro, ticket);
+          showToast("Ticket unpinned");
+          await loadReminders(user); // Refresh all lists
+        } catch (error) {
+          alert(error.message || "Failed to unpin ticket.");
+        }
+      });
+      li.appendChild(unpinBtn);
+      list.appendChild(li);
+    });
+  });
+}
+
+// Get pinned tickets
+async function getPinnedTickets(user, isPro) {
+  if (isPro) {
+    // Pro: Store in Firestore as reminders with type 'pinned'
+    const reminders = await getUserReminders(user.uid);
+    return reminders
+      .filter((r) => r.type === "pinned")
+      .map((r) => ({
+        ticketId: r.ticketId,
+        description: r.description,
+        pinnedAt: r.pinnedAt || r.createdAt || Date.now(),
+        id: r.id,
+      }));
+  } else {
+    // Free: Store in local storage
+    return new Promise((resolve) => {
+      chrome.storage.local.get({ pinnedTickets: [] }, (data) => {
+        resolve(data.pinnedTickets || []);
+      });
+    });
+  }
+}
+
+// Add pin buttons to ticket lists
+function addPinButtonsToTickets(user, isPro) {
+  // For each ticket in important, overdue, completed lists
+  [
+    "importantTicketsList",
+    "overdueTicketsList",
+    "completedTicketsList",
+  ].forEach((listId) => {
+    const list = document.getElementById(listId);
+    if (!list) return;
+    Array.from(list.children).forEach(async (li) => {
+      const link = li.querySelector("a");
+      if (!link) return;
+      const ticketIdMatch = link.href.match(/tickets\/(\d+)/);
+      if (!ticketIdMatch) return;
+      const ticketId = ticketIdMatch[1];
+      const description = link.textContent.split(" - ").slice(1).join(" - ");
+      // Only add pin button if not already pinned
+      if (!(await isTicketPinned(user, isPro, ticketId))) {
+        const pinBtn = document.createElement("button");
+        pinBtn.textContent = "Pin";
+        pinBtn.className = "copy-btn";
+        pinBtn.style.marginLeft = "8px";
+        pinBtn.addEventListener("click", async () => {
+          try {
+            await pinTicket(user, isPro, { ticketId, description });
+            showToast("Ticket pinned");
+            await displayPinnedTickets(user, isPro);
+            addPinButtonsToTickets(user, isPro);
+          } catch (error) {
+            alert(error.message || "Failed to pin ticket.");
+          }
+        });
+        li.appendChild(pinBtn);
+      }
+    });
+  });
+}
+
+// Check if a ticket is pinned
+async function isTicketPinned(user, isPro, ticketId) {
+  const pinnedTickets = await getPinnedTickets(user, isPro);
+  return pinnedTickets.some((t) => t.ticketId === ticketId);
+}
+
+// Update pinned tickets on auth state change
+onAuthStateChanged(auth, async (user) => {
+  if (user) {
+    const isPro = await isUserPro(user.uid);
+    await displayPinnedTickets(user, isPro);
+    addPinButtonsToTickets(user, isPro);
+  } else {
+    displayPinnedTickets({ uid: "" }, false);
+  }
+});
+
+// Also update after reminders are loaded
+async function afterRemindersLoaded(user) {
+  const isPro = await isUserPro(user.uid);
+  await displayPinnedTickets(user, isPro);
+  addPinButtonsToTickets(user, isPro);
+}
+
+// Patch loadReminders to call afterRemindersLoaded
+const origLoadReminders = loadReminders;
+loadReminders = async function (user) {
+  await origLoadReminders(user);
+  await afterRemindersLoaded(user);
+};
+
+// Add new function to load free user data
+async function loadFreeUserData() {
+  chrome.storage.local.get(
+    ["importantTickets", "completedTickets", "overdueTickets", "pinnedTickets"],
+    (data) => {
+      displayImportantTickets(data.importantTickets || []);
+      displayCompletedTickets(data.completedTickets || []);
+      displayOverdueTickets(data.overdueTickets || []);
+      displayPinnedTickets({ uid: "" }, false);
+    }
+  );
+}
+
+// Add migration function for Pro users
+async function migrateLocalToFirestore(userId) {
+  try {
+    // First check if we need to migrate
+    const localData = await new Promise((resolve) => {
+      chrome.storage.local.get(
+        [
+          "importantTickets",
+          "completedTickets",
+          "overdueTickets",
+          "pinnedTickets",
+        ],
+        resolve
+      );
+    });
+
+    // Check if there's any data to migrate
+    const hasDataToMigrate =
+      (localData.importantTickets && localData.importantTickets.length > 0) ||
+      (localData.completedTickets && localData.completedTickets.length > 0) ||
+      (localData.overdueTickets && localData.overdueTickets.length > 0) ||
+      (localData.pinnedTickets && localData.pinnedTickets.length > 0);
+
+    if (!hasDataToMigrate) {
+      console.log("No data to migrate");
+      return;
+    }
+
+    // Migrate important tickets
+    for (const ticket of localData.importantTickets || []) {
+      await createReminder(userId, {
+        ...ticket,
+        type: "important",
+        status: "active",
+      });
+    }
+
+    // Migrate completed tickets
+    for (const ticket of localData.completedTickets || []) {
+      await createReminder(userId, {
+        ...ticket,
+        type: "completed",
+        status: "completed",
+      });
+    }
+
+    // Migrate overdue tickets
+    for (const ticket of localData.overdueTickets || []) {
+      await createReminder(userId, {
+        ...ticket,
+        type: "overdue",
+        status: "active",
+      });
+    }
+
+    // Migrate pinned tickets
+    for (const ticket of localData.pinnedTickets || []) {
+      await createReminder(userId, {
+        ...ticket,
+        type: "pinned",
+        status: "active",
+      });
+    }
+
+    // Clear local storage after successful migration
+    await chrome.storage.local.remove([
+      "importantTickets",
+      "completedTickets",
+      "overdueTickets",
+      "pinnedTickets",
+    ]);
+
+    showToast("Successfully migrated your data to Pro!");
+  } catch (error) {
+    console.error("Migration failed:", error);
+    showToast("Failed to migrate data. Please try again.");
+  }
+}
+
+// Add update ticket description function
+async function updateTicketDescription(user, isPro, ticketId, newDescription) {
+  try {
+    if (isPro) {
+      const reminders = await getUserReminders(user.uid);
+      const reminder = reminders.find((r) => r.ticketId === ticketId);
+      if (reminder) {
+        await updateReminder(reminder.id, { description: newDescription });
+      }
+    } else {
+      const data = await new Promise((resolve) => {
+        chrome.storage.local.get(
+          [
+            "importantTickets",
+            "completedTickets",
+            "overdueTickets",
+            "pinnedTickets",
+          ],
+          resolve
+        );
+      });
+
+      // Update in all relevant lists
+      const updateList = (list) => {
+        return list.map((ticket) =>
+          ticket.ticketId === ticketId
+            ? { ...ticket, description: newDescription }
+            : ticket
+        );
+      };
+
+      await chrome.storage.local.set({
+        importantTickets: updateList(data.importantTickets || []),
+        completedTickets: updateList(data.completedTickets || []),
+        overdueTickets: updateList(data.overdueTickets || []),
+        pinnedTickets: updateList(data.pinnedTickets || []),
+      });
+    }
+
+    showToast("Ticket updated successfully");
+    await loadReminders(user);
+  } catch (error) {
+    console.error("Error updating ticket:", error);
+    showToast("Failed to update ticket");
+  }
+}
+
+// Add delete ticket function
+async function deleteTicket(user, isPro, ticketId) {
+  try {
+    if (isPro) {
+      const reminders = await getUserReminders(user.uid);
+      const reminder = reminders.find((r) => r.ticketId === ticketId);
+      if (reminder) {
+        await deleteReminder(reminder.id);
+      }
+    } else {
+      const data = await new Promise((resolve) => {
+        chrome.storage.local.get(
+          [
+            "importantTickets",
+            "completedTickets",
+            "overdueTickets",
+            "pinnedTickets",
+          ],
+          resolve
+        );
+      });
+
+      // Remove from all lists
+      const removeFromList = (list) => {
+        return list.filter((ticket) => ticket.ticketId !== ticketId);
+      };
+
+      await chrome.storage.local.set({
+        importantTickets: removeFromList(data.importantTickets || []),
+        completedTickets: removeFromList(data.completedTickets || []),
+        overdueTickets: removeFromList(data.overdueTickets || []),
+        pinnedTickets: removeFromList(data.pinnedTickets || []),
+      });
+    }
+
+    showToast("Ticket deleted successfully");
+    await loadReminders(user);
+  } catch (error) {
+    console.error("Error deleting ticket:", error);
+    showToast("Failed to delete ticket");
+  }
+}
+
+// Initialize macros
+async function initializeMacros() {
+  const user = auth.currentUser;
+  if (!user) return;
+
+  try {
+    const macros = await getMacros(user);
+    const macrosList = document.getElementById("macrosList");
+    if (!macrosList) return;
+
+    macrosList.innerHTML = "";
+    macros.forEach((macro) => {
+      const macroElement = createMacroElement(macro);
+      macrosList.appendChild(macroElement);
+    });
+  } catch (error) {
+    console.error("Error loading macros:", error);
+    showToast("Error loading macros", "error");
+  }
+}
+
+// Update createMacroElement to include icons and better structure
+function createMacroElement(macro) {
+  const div = document.createElement("div");
+  div.className = "macro-item";
+  div.innerHTML = `
+    <div class="macro-header">
+      <span class="macro-name">${macro.name}</span>
+      <div class="macro-actions">
+        <button class="copy-btn" title="Copy to clipboard">
+          <i class="fas fa-copy"></i> Copy
+        </button>
+        <button class="edit-btn" title="Edit macro">
+          <i class="fas fa-edit"></i> Edit
+        </button>
+        <button class="delete-btn" title="Delete macro">
+          <i class="fas fa-trash"></i> Delete
+        </button>
+      </div>
+    </div>
+    <div class="macro-content">${macro.content}</div>
+  `;
+
+  // Add event listeners
+  const copyBtn = div.querySelector(".copy-btn");
+  const editBtn = div.querySelector(".edit-btn");
+  const deleteBtn = div.querySelector(".delete-btn");
+
+  copyBtn.addEventListener("click", async () => {
+    const success = await copyMacroToClipboard(macro.content);
+    if (success) {
+      showToast("Macro copied to clipboard!", "success");
+    } else {
+      showToast("Failed to copy macro", "error");
+    }
+  });
+
+  editBtn.addEventListener("click", () => {
+    showEditMacroModal(macro);
+  });
+
+  deleteBtn.addEventListener("click", async () => {
+    if (confirm("Are you sure you want to delete this macro?")) {
+      try {
+        await deleteMacro(auth.currentUser, macro.id);
+        div.remove();
+        showToast("Macro deleted successfully", "success");
+      } catch (error) {
+        console.error("Error deleting macro:", error);
+        showToast("Error deleting macro", "error");
+      }
+    }
+  });
+
+  return div;
+}
+
+// Show edit macro modal
+function showEditMacroModal(macro) {
+  const modal = document.createElement("div");
+  modal.className = "modal";
+  modal.innerHTML = `
+    <div class="modal-content">
+      <h2>Edit Macro</h2>
+      <input type="text" id="editMacroName" value="${macro.name}" placeholder="Macro Name">
+      <textarea id="editMacroContent" placeholder="Macro Content">${macro.content}</textarea>
+      <div class="modal-actions">
+        <button id="saveMacroBtn">Save</button>
+        <button id="cancelMacroBtn">Cancel</button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  const saveBtn = modal.querySelector("#saveMacroBtn");
+  const cancelBtn = modal.querySelector("#cancelMacroBtn");
+  const nameInput = modal.querySelector("#editMacroName");
+  const contentInput = modal.querySelector("#editMacroContent");
+
+  saveBtn.addEventListener("click", async () => {
+    const name = nameInput.value.trim();
+    const content = contentInput.value.trim();
+
+    if (!name || !content) {
+      showToast("Please fill in all fields", "error");
+      return;
+    }
+
+    try {
+      await updateMacro(auth.currentUser, macro.id, name, content);
+      macro.name = name;
+      macro.content = content;
+
+      const macroElement = document.querySelector(
+        `[data-macro-id="${macro.id}"]`
+      );
+      if (macroElement) {
+        macroElement.querySelector(".macro-name").textContent = name;
+        macroElement.querySelector(".macro-content").textContent = content;
+      }
+
+      modal.remove();
+      showToast("Macro updated successfully", "success");
+    } catch (error) {
+      console.error("Error updating macro:", error);
+      showToast("Error updating macro", "error");
+    }
+  });
+
+  cancelBtn.addEventListener("click", () => {
+    modal.remove();
+  });
 }
