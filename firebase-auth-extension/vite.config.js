@@ -40,6 +40,7 @@ export default defineConfig({
       input: {
         popup: resolve(__dirname, "src/popup.html"),
         background: resolve(__dirname, "src/background.js"),
+        copyTicketId: resolve(__dirname, "src/content/copyTicketId.js"),
       },
       output: {
         entryFileNames: "assets/[name]-[hash].js",
@@ -74,11 +75,23 @@ export default defineConfig({
           throw new Error("❌ Background script not found in build output.");
         }
 
+        const copyTicketIdScript = files.find(
+          (f) => f.startsWith("copyTicketId") && f.endsWith(".js")
+        );
+        if (!copyTicketIdScript) {
+          throw new Error("❌ Copy Ticket ID script not found in build output.");
+        }
+
         // Read and process manifest.json
         const manifestContent = fs.readFileSync(manifestSrc, "utf-8");
         const manifest = JSON.parse(manifestContent);
         manifest.background.service_worker = `assets/${bgScript}`;
         manifest.action.default_popup = "popup.html";
+        
+        // Update content script path
+        if (manifest.content_scripts && manifest.content_scripts.length > 0) {
+          manifest.content_scripts[0].js = [`assets/${copyTicketIdScript}`];
+        }
 
         fs.writeFileSync(manifestDest, JSON.stringify(manifest, null, 2));
 

@@ -8,7 +8,8 @@
     "notifications",
     "scripting",
     "identity",
-    "enterprise.deviceAttributes"
+    "enterprise.deviceAttributes",
+    "clipboardWrite"
   ],
   "host_permissions": [
     "*://*.zendesk.com/*",
@@ -38,6 +39,13 @@
   "externally_connectable": {
     "matches": ["*://*.googleusercontent.com/*"]
   },
+  "content_scripts": [
+    {
+      "matches": ["*://*.zendesk.com/*"],
+      "js": ["assets/copyTicketId.js"],
+      "run_at": "document_end"
+    }
+  ],
   "web_accessible_resources": [
     {
       "resources": [
