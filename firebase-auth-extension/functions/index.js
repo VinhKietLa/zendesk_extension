@@ -2,7 +2,7 @@ const { onRequest } = require("firebase-functions/v2/https");
 const axios = require("axios");
 const functions = require("firebase-functions");
 
-// Apply CORS middleware
+// Apply CORS middleware - Updated for new extension ID
 exports.exchangeOAuthCode = onRequest(
   {
     region: "us-central1",
@@ -11,6 +11,8 @@ exports.exchangeOAuthCode = onRequest(
     cors: [
       "https://fhoemdooiakglcaagjginiofpddbhakf.chromiumapp.org",
       "chrome-extension://fhoemdooiakglcaagjginiofpddbhakf",
+      "https://dijhibnhmmkdemodngbigpdpbfcjccfd.chromiumapp.org",
+      "chrome-extension://dijhibnhmmkdemodngbigpdpbfcjccfd",
     ],
     invoker: "public",
   },
@@ -30,6 +32,8 @@ exports.exchangeOAuthCode = onRequest(
     const allowedOrigins = [
       "https://fhoemdooiakglcaagjginiofpddbhakf.chromiumapp.org",
       "chrome-extension://fhoemdooiakglcaagjginiofpddbhakf",
+      "https://dijhibnhmmkdemodngbigpdpbfcjccfd.chromiumapp.org",
+      "chrome-extension://dijhibnhmmkdemodngbigpdpbfcjccfd",
     ];
 
     if (!allowedOrigins.includes(req.headers.origin)) {

@@ -231,6 +231,15 @@ async function clearCompletedTickets(user) {
 
 function getOAuthUrl() {
   const redirectUri = chrome.identity.getRedirectURL();
+  
+  // Send to service worker console with more details
+  chrome.runtime.sendMessage({ 
+    action: "logRedirectUri", 
+    redirectUri: redirectUri,
+    redirectUriLength: redirectUri.length,
+    redirectUriEndsWithSlash: redirectUri.endsWith('/')
+  });
+  
   const scopes = ["profile", "email"];
   const state = Math.random().toString(36).substring(2);
 
@@ -245,7 +254,15 @@ function getOAuthUrl() {
     include_granted_scopes: "true",
   });
 
-  return `https://accounts.google.com/o/oauth2/auth?${params.toString()}`;
+  const fullUrl = `https://accounts.google.com/o/oauth2/auth?${params.toString()}`;
+  
+  // Log the full URL after it's constructed
+  chrome.runtime.sendMessage({ 
+    action: "logOAuthUrl", 
+    oauthUrl: fullUrl 
+  });
+
+  return fullUrl;
 }
 
 // Initialize the extension
@@ -501,13 +518,35 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     const user = auth.currentUser;
-    if (!user) {
-      alert("Please sign in to add reminders.");
-      return;
-    }
 
     try {
-      await addReminder(user, ticketId, description, reminderTime);
+      if (user) {
+        // Pro user: Use addReminder function
+        await addReminder(user, ticketId, description, reminderTime);
+      } else {
+        // Free user: Save directly to local storage
+        const data = await new Promise((resolve) => {
+          chrome.storage.local.get({ importantTickets: [] }, resolve);
+        });
+
+        const currentTickets = [...data.importantTickets];
+        const isDuplicate = currentTickets.some(
+          (ticket) => ticket.ticketId === ticketId
+        );
+
+        if (isDuplicate) {
+          throw new Error(
+            `Ticket ID #${ticketId} already exists. Please enter a unique ID.`
+          );
+        }
+
+        const updatedTickets = [
+          ...currentTickets,
+          { ticketId, description, reminderTime },
+        ];
+        await chrome.storage.local.set({ importantTickets: updatedTickets });
+        displayImportantTickets(updatedTickets);
+      }
 
       // Clear form
       document.getElementById("ticketInput").value = "";
@@ -523,12 +562,54 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (e.target.classList.contains("markAsDone")) {
       const ticketId = e.target.getAttribute("data-ticket-id");
       const user = auth.currentUser;
-      if (!user) {
-        alert("Please sign in to mark tickets as done.");
-        return;
-      }
+      
       try {
-        await markReminderAsDone(user, ticketId);
+        if (user) {
+          // Pro user: Use markReminderAsDone function
+          await markReminderAsDone(user, ticketId);
+        } else {
+          // Free user: Update local storage directly
+          const data = await new Promise((resolve) => {
+            chrome.storage.local.get(
+              ["importantTickets", "completedTickets", "overdueTickets"],
+              resolve
+            );
+          });
+
+          const importantTickets = data.importantTickets || [];
+          const overdueTickets = data.overdueTickets || [];
+          const completedTickets = data.completedTickets || [];
+
+          // Check both important and overdue tickets
+          const ticket =
+            importantTickets.find((t) => t.ticketId === ticketId) ||
+            overdueTickets.find((t) => t.ticketId === ticketId);
+
+          if (ticket) {
+            // Remove from both lists (only one will actually have the ticket)
+            const updatedImportantTickets = importantTickets.filter(
+              (t) => t.ticketId !== ticketId
+            );
+            const updatedOverdueTickets = overdueTickets.filter(
+              (t) => t.ticketId !== ticketId
+            );
+
+            const updatedCompletedTickets = [
+              ...completedTickets,
+              { ticketId: ticket.ticketId, description: ticket.description },
+            ];
+
+            await chrome.storage.local.set({
+              importantTickets: updatedImportantTickets,
+              overdueTickets: updatedOverdueTickets,
+              completedTickets: updatedCompletedTickets,
+            });
+
+            displayImportantTickets(updatedImportantTickets);
+            displayOverdueTickets(updatedOverdueTickets);
+            displayCompletedTickets(updatedCompletedTickets);
+          }
+        }
       } catch (error) {
         console.error("Error marking ticket as done:", error);
         alert("Failed to mark ticket as done. Please try again.");
@@ -540,12 +621,16 @@ document.addEventListener("DOMContentLoaded", async () => {
     .getElementById("clearCompletedTickets")
     ?.addEventListener("click", async () => {
       const user = auth.currentUser;
-      if (!user) {
-        alert("Please sign in to clear completed tickets.");
-        return;
-      }
+      
       try {
-        await clearCompletedTickets(user);
+        if (user) {
+          // Pro user: Use clearCompletedTickets function
+          await clearCompletedTickets(user);
+        } else {
+          // Free user: Clear from local storage directly
+          await chrome.storage.local.set({ completedTickets: [] });
+          displayCompletedTickets([]);
+        }
       } catch (error) {
         console.error("Error clearing completed tickets:", error);
         alert("Failed to clear completed tickets. Please try again.");
@@ -622,39 +707,40 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
   // Show test controls in development
-  // const testControls = document.querySelector(".test-controls");
-  // if (testControls) {
-  //   testControls.style.display = "block";
-  // }
+  const testControls = document.querySelector(".test-controls");
+  if (testControls) {
+    testControls.style.display = "block";
+  }
 
   // Test license controls
-  // document
-  //   .getElementById("testLicenseOn")
-  //   ?.addEventListener("click", async () => {
-  //     await setTestLicenseStatus(true);
-  //     showToast("Test license enabled");
-  //     const user = auth.currentUser;
-  //     if (user) {
-  //       await loadReminders(user);
-  //     }
-  //   });
+  document
+    .getElementById("testLicenseOn")
+    ?.addEventListener("click", async () => {
+      await setTestLicenseStatus(true);
+      showToast("Test license enabled");
+      const user = auth.currentUser;
+      if (user) {
+        await loadReminders(user);
+      }
+    });
 
-  // document
-  //   .getElementById("testLicenseOff")
-  //   ?.addEventListener("click", async () => {
-  //     await setTestLicenseStatus(false);
-  //     showToast("Test license disabled");
-  //     const user = auth.currentUser;
-  //     if (user) {
-  //       await loadReminders(user);
-  //     }
-  //   });
+  document
+    .getElementById("testLicenseOff")
+    ?.addEventListener("click", async () => {
+      await setTestLicenseStatus(false);
+      showToast("Test license disabled");
+      const user = auth.currentUser;
+      if (user) {
+        await loadReminders(user);
+      }
+    });
 
   // Burger menu dropdown logic
   const menuBtn = document.getElementById("menuBtn");
   const dropdownMenu = document.getElementById("dropdownMenu");
   const planBadge = document.getElementById("planBadge");
   const dropdownUser = document.getElementById("dropdownUser");
+  const dropdownSignIn = document.getElementById("dropdownSignIn");
   const dropdownSignOut = document.getElementById("dropdownSignOut");
 
   // Only add event listeners if elements exist
@@ -667,6 +753,86 @@ document.addEventListener("DOMContentLoaded", async () => {
     document.addEventListener("click", (e) => {
       if (!dropdownMenu.contains(e.target) && e.target !== menuBtn) {
         dropdownMenu.classList.remove("open");
+      }
+    });
+  }
+
+  if (dropdownSignIn) {
+    dropdownSignIn.addEventListener("click", async () => {
+      try {
+        // Use Chrome's identity API for proper OAuth flow
+        chrome.identity.launchWebAuthFlow(
+          {
+            url: getOAuthUrl(),
+            interactive: true,
+          },
+          async (redirectUrl) => {
+            if (chrome.runtime.lastError) {
+              console.error("❌ Auth error:", chrome.runtime.lastError);
+              showToast("Authentication failed: " + chrome.runtime.lastError.message, "error");
+              return;
+            }
+
+            if (!redirectUrl) {
+              console.error("❌ No redirect URL received");
+              showToast("Authentication failed: No redirect URL received", "error");
+              return;
+            }
+
+            const url = new URL(redirectUrl);
+            const code = url.searchParams.get("code");
+            const error = url.searchParams.get("error");
+            const errorDescription = url.searchParams.get("error_description");
+
+            if (error) {
+              console.error("❌ OAuth error:", error);
+              console.error("❌ Error description:", errorDescription);
+              showToast("Authentication failed: " + (errorDescription || error), "error");
+              return;
+            }
+
+            if (!code) {
+              console.error("❌ No code received");
+              showToast("Authentication failed: No authorization code received", "error");
+              return;
+            }
+
+            try {
+              console.log("🔄 Exchanging code for token");
+              const redirectUri = chrome.identity.getRedirectURL();
+
+              const response = await fetch(CLOUD_FUNCTION_URL, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ code, redirectUri }),
+              });
+
+              if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || "Token exchange failed");
+              }
+
+              const { idToken, accessToken } = await response.json();
+              console.log("✅ Token exchange successful");
+
+              const credential = GoogleAuthProvider.credential(idToken, accessToken);
+              await signInWithCredential(auth, credential);
+              
+              showToast("Successfully signed in!", "success");
+            } catch (error) {
+              console.error("❌ Error exchanging code for token:", error);
+              showToast("Authentication failed: " + error.message, "error");
+            }
+          }
+        );
+        
+        // Close the dropdown
+        if (dropdownMenu) {
+          dropdownMenu.classList.remove("open");
+        }
+      } catch (error) {
+        console.error("Error starting sign-in:", error);
+        showToast("Failed to start sign-in process", "error");
       }
     });
   }
@@ -699,20 +865,12 @@ document.addEventListener("DOMContentLoaded", async () => {
           }`;
         }
 
-        // Update sign out visibility
+        // Update sign in/out visibility
+        if (dropdownSignIn) {
+          dropdownSignIn.style.display = "none";
+        }
         if (dropdownSignOut) {
           dropdownSignOut.style.display = "block";
-        }
-
-        // Update login/upgrade buttons
-        const loginBtn = document.getElementById("loginBtn");
-        const upgradeBtn = document.getElementById("upgradeBtn");
-
-        if (loginBtn) {
-          loginBtn.style.display = "none";
-        }
-        if (upgradeBtn) {
-          upgradeBtn.style.display = isPro ? "none" : "inline-block";
         }
       } else {
         // Not signed in state
@@ -723,19 +881,11 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (dropdownUser) {
           dropdownUser.textContent = "Not signed in";
         }
+        if (dropdownSignIn) {
+          dropdownSignIn.style.display = "block";
+        }
         if (dropdownSignOut) {
           dropdownSignOut.style.display = "none";
-        }
-
-        // Update login/upgrade buttons
-        const loginBtn = document.getElementById("loginBtn");
-        const upgradeBtn = document.getElementById("upgradeBtn");
-
-        if (loginBtn) {
-          loginBtn.style.display = "inline-block";
-        }
-        if (upgradeBtn) {
-          upgradeBtn.style.display = "none";
         }
       }
     } catch (error) {
@@ -760,13 +910,31 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     const user = auth.currentUser;
-    if (!user) {
-      showToast("Please sign in to add macros", "error");
-      return;
-    }
 
     try {
-      const newMacro = await addMacro(user, name, content);
+      let newMacro;
+      if (user) {
+        // Pro user: Use addMacro function
+        newMacro = await addMacro(user, name, content);
+      } else {
+        // Free user: Save directly to local storage
+        const data = await new Promise((resolve) => {
+          chrome.storage.local.get({ macros: [] }, resolve);
+        });
+
+        const currentMacros = data.macros || [];
+
+        if (currentMacros.length >= 3) {
+          throw new Error(
+            "Free users can only save up to 3 macros. Upgrade to Pro for unlimited macros."
+          );
+        }
+
+        newMacro = { id: Date.now().toString(), name, content };
+        const updatedMacros = [...currentMacros, newMacro];
+
+        await chrome.storage.local.set({ macros: updatedMacros });
+      }
 
       const macrosList = document.getElementById("macrosList");
       if (macrosList) {
@@ -1407,7 +1575,14 @@ async function updateTicketDescription(user, isPro, ticketId, newDescription) {
     }
 
     showToast("Ticket updated successfully");
-    await loadReminders(user);
+    
+    // Refresh the UI based on user type
+    if (user) {
+      await loadReminders(user);
+    } else {
+      // For Free users, refresh from local storage
+      loadFreeUserData();
+    }
   } catch (error) {
     console.error("Error updating ticket:", error);
     showToast("Failed to update ticket");
@@ -1450,7 +1625,14 @@ async function deleteTicket(user, isPro, ticketId) {
     }
 
     showToast("Ticket deleted successfully");
-    await loadReminders(user);
+    
+    // Refresh the UI based on user type
+    if (user) {
+      await loadReminders(user);
+    } else {
+      // For Free users, refresh from local storage
+      loadFreeUserData();
+    }
   } catch (error) {
     console.error("Error deleting ticket:", error);
     showToast("Failed to delete ticket");
@@ -1460,12 +1642,21 @@ async function deleteTicket(user, isPro, ticketId) {
 // Initialize macros
 async function initializeMacros() {
   const user = auth.currentUser;
-  if (!user) return;
+  const macrosList = document.getElementById("macrosList");
+  if (!macrosList) return;
 
   try {
-    const macros = await getMacros(user);
-    const macrosList = document.getElementById("macrosList");
-    if (!macrosList) return;
+    let macros = [];
+    if (user) {
+      // Pro user: Get from Firestore
+      macros = await getMacros(user);
+    } else {
+      // Free user: Get from local storage
+      const data = await new Promise((resolve) => {
+        chrome.storage.local.get({ macros: [] }, resolve);
+      });
+      macros = data.macros || [];
+    }
 
     macrosList.innerHTML = "";
     macros.forEach((macro) => {
@@ -1521,7 +1712,18 @@ function createMacroElement(macro) {
   deleteBtn.addEventListener("click", async () => {
     if (confirm("Are you sure you want to delete this macro?")) {
       try {
-        await deleteMacro(auth.currentUser, macro.id);
+        const user = auth.currentUser;
+        if (user) {
+          // Pro user: Use deleteMacro function
+          await deleteMacro(user, macro.id);
+        } else {
+          // Free user: Delete from local storage
+          const data = await new Promise((resolve) => {
+            chrome.storage.local.get({ macros: [] }, resolve);
+          });
+          const updatedMacros = data.macros.filter((m) => m.id !== macro.id);
+          await chrome.storage.local.set({ macros: updatedMacros });
+        }
         div.remove();
         showToast("Macro deleted successfully", "success");
       } catch (error) {
@@ -1567,7 +1769,21 @@ function showEditMacroModal(macro) {
     }
 
     try {
-      await updateMacro(auth.currentUser, macro.id, name, content);
+      const user = auth.currentUser;
+      if (user) {
+        // Pro user: Use updateMacro function
+        await updateMacro(user, macro.id, name, content);
+      } else {
+        // Free user: Update in local storage
+        const data = await new Promise((resolve) => {
+          chrome.storage.local.get({ macros: [] }, resolve);
+        });
+        const updatedMacros = data.macros.map((m) =>
+          m.id === macro.id ? { ...m, name, content } : m
+        );
+        await chrome.storage.local.set({ macros: updatedMacros });
+      }
+      
       macro.name = name;
       macro.content = content;
 

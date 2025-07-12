@@ -24,6 +24,14 @@ function throttleWriteData(dataToWrite) {
 chrome.runtime.onMessage.addListener((request) => {
   if (request.action === "startRefresh") {
     setRefreshInterval(request.interval);
+  } else if (request.action === "logRedirectUri") {
+    console.log("🔗 Redirect URI from popup:", request.redirectUri);
+    console.log("🔗 Redirect URI length:", request.redirectUriLength);
+    console.log("🔗 Ends with slash:", request.redirectUriEndsWithSlash);
+  } else if (request.action === "logOAuthUrl") {
+    console.log("🔗 Full OAuth URL:", request.oauthUrl);
+  } else if (request.action === "logAuthUrl") {
+    console.log("🔗 Auth URL being opened:", request.authUrl);
   }
 });
 

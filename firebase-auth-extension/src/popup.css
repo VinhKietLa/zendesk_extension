@@ -753,6 +753,21 @@ h2 {
   font-size: 0.9em;
 }
 
+.dropdown-signin {
+  width: 100%;
+  text-align: left;
+  padding: 8px 16px;
+  background: none;
+  border: none;
+  color: #0984e3;
+  cursor: pointer;
+  font-size: 0.9em;
+}
+
+.dropdown-signin:hover {
+  background-color: #f8f9fa;
+}
+
 .dropdown-signout {
   width: 100%;
   text-align: left;
@@ -779,9 +794,19 @@ body.dark-mode .dropdown-user {
   color: #e0e0e0;
 }
 
+body.dark-mode .dropdown-signin {
+  color: #74b9ff;
+}
+
+body.dark-mode .dropdown-signin:hover {
+  background-color: #3c3c3c;
+}
+
 body.dark-mode .dropdown-signout:hover {
   background-color: #3c3c3c;
 }
+
+
 
 /* Remove old user-controls/pro-badge styles from header */
 .user-controls,
