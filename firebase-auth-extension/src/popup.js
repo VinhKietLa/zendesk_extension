@@ -21,6 +21,7 @@ import {
   deleteReminder,
   getUserReminders,
   updateProStatus,
+  updateUserSettings,
 } from "./db.js";
 import {
   getMacros,
@@ -267,15 +268,30 @@ function getOAuthUrl() {
 
 // Initialize the extension
 document.addEventListener("DOMContentLoaded", async () => {
+  console.log("🚀 DOMContentLoaded event fired");
+  
   // Initialize licensing
   await initializeLicensing();
 
   // Add tab switching functionality
   const tabBtns = document.querySelectorAll(".tab-btn");
   const tabPanes = document.querySelectorAll(".tab-pane");
+  
+  console.log("🔘 Found tab buttons:", tabBtns.length);
+  console.log("🔘 Found tab panes:", tabPanes.length);
+  
+  if (tabBtns.length === 0) {
+    console.error("❌ No tab buttons found!");
+  } else {
+    tabBtns.forEach((btn, index) => {
+      console.log(`🔘 Tab ${index}:`, btn.getAttribute("data-tab"), "active:", btn.classList.contains("active"));
+    });
+  }
 
   tabBtns.forEach((btn) => {
-    btn.addEventListener("click", () => {
+    btn.addEventListener("click", async () => {
+      console.log("🔘 Tab button clicked:", btn.getAttribute("data-tab"));
+      
       // Remove active class from all buttons and panes
       tabBtns.forEach((b) => b.classList.remove("active"));
       tabPanes.forEach((p) => p.classList.remove("active"));
@@ -284,6 +300,15 @@ document.addEventListener("DOMContentLoaded", async () => {
       btn.classList.add("active");
       const tabId = btn.getAttribute("data-tab");
       document.getElementById(`${tabId}-tab`).classList.add("active");
+      
+      console.log("📋 Switched to tab:", tabId);
+      
+      // Update settings UI when settings tab is opened
+      if (tabId === "settings") {
+        console.log("⚙️ Settings tab clicked, initializing settings...");
+        await initializeSettings();
+        console.log("✅ Settings initialization complete");
+      }
     });
   });
 
@@ -330,6 +355,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         // Check pro status and load appropriate data
         const isPro = await isUserPro(user.uid);
         console.log("⭐ Pro status:", isPro);
+        
+        // Debug: Log the full user profile to see what's stored
+        console.log("📋 Full user profile:", userProfile);
 
         if (isPro) {
           if (proBadge) proBadge.style.display = "inline-block";
@@ -371,6 +399,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         );
         await loadReminders(user);
         await initializeMacros();
+        
+        // Update settings UI
+        await updateSettingsUI();
       } catch (error) {
         console.error("❌ Error in auth state change:", error);
       }
@@ -384,6 +415,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 
       // Load free user data when signed out
       loadFreeUserData();
+      
+      // Update settings UI
+      await updateSettingsUI();
     }
   });
 
@@ -464,19 +498,26 @@ document.addEventListener("DOMContentLoaded", async () => {
     signOut(auth);
   });
 
-  chrome.storage.sync.get("darkMode", (data) => {
-    const isDark = data.darkMode === true;
-    const darkToggle = document.getElementById("darkModeToggle");
-    if (darkToggle) darkToggle.checked = isDark;
-    document.body.classList.toggle("dark-mode", isDark);
+  // Popup UI Dark Mode Toggle Logic
+  const darkModeToggle = document.getElementById('darkModeToggle');
+
+  // Load saved setting for popup UI
+  chrome.storage.sync.get(['darkMode'], (result) => {
+    if (result.darkMode) {
+      darkModeToggle.checked = true;
+      document.body.classList.add('dark-mode');
+    } else {
+      document.body.classList.remove('dark-mode');
+    }
   });
 
-  const darkModeCheckbox = document.getElementById("darkModeToggle");
-  darkModeCheckbox?.addEventListener("change", (e) => {
-    const isDark = e.target.checked;
-    document.body.classList.toggle("dark-mode", isDark);
+  darkModeToggle.addEventListener('change', (e) => {
+    const isDark = darkModeToggle.checked;
     chrome.storage.sync.set({ darkMode: isDark });
+    document.body.classList.toggle('dark-mode', isDark);
   });
+
+  // Remove Zendesk UI dark mode toggle logic
 
   chrome.storage.local.get({ refreshInterval: 60 }, (data) => {
     const refreshInput = document.getElementById("refreshInterval");
@@ -966,6 +1007,42 @@ document.addEventListener("DOMContentLoaded", async () => {
       item.style.display = matches ? "block" : "none";
     });
   });
+
+  // Check if settings tab is already active and initialize if needed
+  const activeTab = document.querySelector(".tab-btn.active");
+  if (activeTab && activeTab.getAttribute("data-tab") === "settings") {
+    console.log("⚙️ Settings tab is already active, initializing settings...");
+    await initializeSettings();
+  }
+  
+  // Add direct event listener to email alerts toggle as a fallback
+  const emailAlertsToggle = document.getElementById("emailAlertsToggle");
+  if (emailAlertsToggle) {
+    console.log("🔧 Adding direct event listener to email alerts toggle");
+    emailAlertsToggle.addEventListener("change", async (e) => {
+      const enabled = e.target.checked;
+      console.log("🔄 Direct email alerts toggle changed to:", enabled);
+      
+      const user = auth.currentUser;
+      if (enabled && user) {
+        console.log("🔍 Checking Pro status for email alerts...");
+        const isPro = await isUserPro(user.uid);
+        console.log("⭐ Email alerts Pro check result:", isPro);
+        
+        if (!isPro) {
+          console.log("❌ User is not Pro, showing error message");
+          showToast("Email alerts are only available for Pro users", "error");
+          e.target.checked = false;
+          return;
+        }
+        console.log("✅ User is Pro, proceeding to save setting");
+      }
+      
+      console.log("💾 Saving email alerts setting:", enabled);
+      await saveSetting("emailAlertsEnabled", enabled);
+      showToast(`Email alerts ${enabled ? "enabled" : "disabled"}`, "success");
+    });
+  }
 });
 
 console.log("👋 popup.js loaded");
@@ -1734,6 +1811,329 @@ function createMacroElement(macro) {
   });
 
   return div;
+}
+
+// Initialize Settings Tab
+async function initializeSettings() {
+  // Load current settings
+  await loadSettings();
+  
+  // Set up event listeners for settings
+  setupSettingsEventListeners();
+  
+  // Update UI based on user status
+  updateSettingsUI();
+}
+
+// Load settings from storage
+async function loadSettings() {
+  const user = auth.currentUser;
+  
+  if (user) {
+    // Pro user: Load from Firestore
+    try {
+      const userProfile = await getUserProfile(user.uid);
+      if (userProfile?.settings) {
+        applySettings(userProfile.settings);
+      }
+    } catch (error) {
+      console.error("Error loading settings from Firestore:", error);
+    }
+  } else {
+    // Free user: Load from local storage
+    chrome.storage.local.get({
+      emailAlertsEnabled: false,
+      chromeNotificationsEnabled: true,
+      soundAlertsEnabled: true,
+      autoRefreshEnabled: false,
+      refreshInterval: 60,
+      workingHoursEnabled: false,
+      workStartTime: "09:00",
+      workEndTime: "17:00"
+    }, (data) => {
+      applySettings(data);
+    });
+  }
+}
+
+// Apply settings to UI
+function applySettings(settings) {
+  // Notifications
+  const emailAlertsToggle = document.getElementById("emailAlertsToggle");
+  const chromeNotificationsToggle = document.getElementById("chromeNotificationsToggle");
+  const soundAlertsToggle = document.getElementById("soundAlertsToggle");
+  
+  if (emailAlertsToggle) emailAlertsToggle.checked = settings.emailAlertsEnabled || false;
+  if (chromeNotificationsToggle) chromeNotificationsToggle.checked = settings.chromeNotificationsEnabled !== false;
+  if (soundAlertsToggle) soundAlertsToggle.checked = settings.soundAlertsEnabled !== false;
+  
+  // Auto-refresh
+  const autoRefreshToggle = document.getElementById("autoRefreshToggle");
+  const refreshInterval = document.getElementById("refreshInterval");
+  
+  if (autoRefreshToggle) autoRefreshToggle.checked = settings.autoRefreshEnabled || false;
+  if (refreshInterval) refreshInterval.value = settings.refreshInterval || 60;
+  
+  // Working hours
+  const workingHoursToggle = document.getElementById("workingHoursToggle");
+  const workStartTime = document.getElementById("workStartTime");
+  const workEndTime = document.getElementById("workEndTime");
+  
+  if (workingHoursToggle) workingHoursToggle.checked = settings.workingHoursEnabled || false;
+  if (workStartTime) workStartTime.value = settings.workStartTime || "09:00";
+  if (workEndTime) workEndTime.value = settings.workEndTime || "17:00";
+}
+
+// Set up event listeners for settings
+function setupSettingsEventListeners() {
+  const user = auth.currentUser;
+  console.log("🔧 Setting up settings event listeners...");
+  
+  // Email alerts toggle (Pro only)
+  const emailAlertsToggle = document.getElementById("emailAlertsToggle");
+  console.log("🔧 Email alerts toggle element found:", !!emailAlertsToggle);
+  if (emailAlertsToggle) {
+    console.log("🔧 Adding event listener to email alerts toggle");
+    emailAlertsToggle.addEventListener("change", async (e) => {
+    const enabled = e.target.checked;
+    console.log("🔄 Email alerts toggle changed to:", enabled);
+    
+    if (enabled && user) {
+      // Check if user is Pro before saving
+      console.log("🔍 Checking Pro status for email alerts...");
+      console.log("👤 Current user:", user.uid);
+      const isPro = await isUserPro(user.uid);
+      console.log("⭐ Email alerts Pro check result:", isPro);
+      
+      if (!isPro) {
+        console.log("❌ User is not Pro, showing error message");
+        showToast("Email alerts are only available for Pro users", "error");
+        e.target.checked = false;
+        return;
+      }
+      console.log("✅ User is Pro, proceeding to save setting");
+    }
+    
+    console.log("💾 Saving email alerts setting:", enabled);
+    await saveSetting("emailAlertsEnabled", enabled);
+    showToast(`Email alerts ${enabled ? "enabled" : "disabled"}`, "success");
+  });
+  }
+  
+  // Chrome notifications toggle
+  const chromeNotificationsToggle = document.getElementById("chromeNotificationsToggle");
+  chromeNotificationsToggle?.addEventListener("change", async (e) => {
+    const enabled = e.target.checked;
+    await saveSetting("chromeNotificationsEnabled", enabled);
+    showToast(`Chrome notifications ${enabled ? "enabled" : "disabled"}`, "success");
+  });
+  
+  // Sound alerts toggle
+  const soundAlertsToggle = document.getElementById("soundAlertsToggle");
+  soundAlertsToggle?.addEventListener("change", async (e) => {
+    const enabled = e.target.checked;
+    await saveSetting("soundAlertsEnabled", enabled);
+    showToast(`Sound alerts ${enabled ? "enabled" : "disabled"}`, "success");
+  });
+  
+  // Auto-refresh toggle
+  const autoRefreshToggle = document.getElementById("autoRefreshToggle");
+  autoRefreshToggle?.addEventListener("change", async (e) => {
+    const enabled = e.target.checked;
+    await saveSetting("autoRefreshEnabled", enabled);
+    
+    if (enabled) {
+      const interval = parseInt(document.getElementById("refreshInterval").value);
+      chrome.runtime.sendMessage({ action: "startRefresh", interval });
+    } else {
+      chrome.runtime.sendMessage({ action: "stopRefresh" });
+    }
+    
+    showToast(`Auto-refresh ${enabled ? "enabled" : "disabled"}`, "success");
+  });
+  
+  // Refresh interval change
+  const refreshInterval = document.getElementById("refreshInterval");
+  refreshInterval?.addEventListener("change", async (e) => {
+    const interval = parseInt(e.target.value);
+    await saveSetting("refreshInterval", interval);
+    
+    // If auto-refresh is enabled, restart with new interval
+    const autoRefreshToggle = document.getElementById("autoRefreshToggle");
+    if (autoRefreshToggle?.checked) {
+      chrome.runtime.sendMessage({ action: "startRefresh", interval });
+    }
+    
+    showToast(`Refresh interval updated to ${interval} seconds`, "success");
+  });
+  
+  // Working hours toggle (Pro only)
+  const workingHoursToggle = document.getElementById("workingHoursToggle");
+  workingHoursToggle?.addEventListener("change", async (e) => {
+    const enabled = e.target.checked;
+    
+    if (enabled && user) {
+      // Check if user is Pro before saving
+      const isPro = await isUserPro(user.uid);
+      if (!isPro) {
+        showToast("Working hours mode is only available for Pro users", "error");
+        e.target.checked = false;
+        return;
+      }
+    }
+    
+    await saveSetting("workingHoursEnabled", enabled);
+    showToast(`Working hours mode ${enabled ? "enabled" : "disabled"}`, "success");
+  });
+  
+  // Working hours time changes
+  const workStartTime = document.getElementById("workStartTime");
+  const workEndTime = document.getElementById("workEndTime");
+  
+  workStartTime?.addEventListener("change", async (e) => {
+    await saveSetting("workStartTime", e.target.value);
+    showToast("Work start time updated", "success");
+  });
+  
+  workEndTime?.addEventListener("change", async (e) => {
+    await saveSetting("workEndTime", e.target.value);
+    showToast("Work end time updated", "success");
+  });
+  
+  // Upgrade plan button
+  const upgradePlanBtn = document.getElementById("upgradePlanBtn");
+  upgradePlanBtn?.addEventListener("click", () => {
+    const modal = document.getElementById("upgradeModal");
+    if (modal) modal.style.display = "block";
+  });
+  
+  // Sign out button
+  const signOutBtn = document.getElementById("signOutBtn");
+  signOutBtn?.addEventListener("click", () => {
+    signOut(auth);
+  });
+  
+  // Test email button
+  const testEmailBtn = document.getElementById("testEmailBtn");
+  testEmailBtn?.addEventListener("click", async () => {
+    const user = auth.currentUser;
+    if (!user) {
+      showToast("Please sign in to test email alerts", "error");
+      return;
+    }
+    
+    try {
+      const idToken = await user.getIdToken();
+      const response = await fetch("https://us-central1-zendesk-chrome-tool.cloudfunctions.net/testEmail", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          idToken,
+        }),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to send test email");
+      }
+      
+      const result = await response.json();
+      showToast(`Test email sent to ${result.sentTo}`, "success");
+    } catch (error) {
+      console.error("Error sending test email:", error);
+      showToast(error.message || "Failed to send test email", "error");
+    }
+  });
+}
+
+// Save setting to storage
+async function saveSetting(key, value) {
+  const user = auth.currentUser;
+  
+  if (user) {
+    // Pro user: Save to Firestore
+    try {
+      const userProfile = await getUserProfile(user.uid);
+      const updatedSettings = {
+        ...userProfile?.settings,
+        [key]: value
+      };
+      
+      // Update user profile with new settings
+      // Note: You'll need to add this function to db.js
+      await updateUserSettings(user.uid, updatedSettings);
+    } catch (error) {
+      console.error("Error saving setting to Firestore:", error);
+      showToast("Failed to save setting", "error");
+    }
+  } else {
+    // Free user: Save to local storage
+    chrome.storage.local.set({ [key]: value });
+  }
+}
+
+// Update settings UI based on user status
+async function updateSettingsUI() {
+  const user = auth.currentUser;
+  const currentPlanDisplay = document.getElementById("currentPlanDisplay");
+  const workingHoursSection = document.getElementById("workingHoursSection");
+  const emailAlertsToggle = document.getElementById("emailAlertsToggle");
+  
+  console.log("🔄 Updating settings UI for user:", user?.uid);
+  
+  if (user) {
+    const isPro = await isUserPro(user.uid);
+    console.log("⭐ User Pro status:", isPro);
+    
+    // Update plan display
+    if (currentPlanDisplay) {
+      currentPlanDisplay.textContent = isPro ? "Pro" : "Free";
+      currentPlanDisplay.className = `plan-display ${isPro ? "pro" : "free"}`;
+      console.log("📋 Updated plan display to:", isPro ? "Pro" : "Free");
+    }
+    
+    // Enable/disable Pro-only features
+    if (workingHoursSection) {
+      workingHoursSection.classList.toggle("available", isPro);
+      console.log("⏰ Working hours section available:", isPro);
+    }
+    
+    if (emailAlertsToggle) {
+      emailAlertsToggle.disabled = !isPro;
+      if (!isPro) {
+        emailAlertsToggle.checked = false;
+      } else {
+        // Load current settings to restore checkbox state
+        try {
+          const userProfile = await getUserProfile(user.uid);
+          const emailAlertsEnabled = userProfile?.settings?.emailAlertsEnabled || false;
+          emailAlertsToggle.checked = emailAlertsEnabled;
+          console.log("📧 Restored email alerts setting:", emailAlertsEnabled);
+        } catch (error) {
+          console.error("Error loading email alerts setting:", error);
+        }
+      }
+      console.log("📧 Email alerts toggle disabled:", !isPro);
+    }
+  } else {
+    console.log("👤 No user signed in");
+    // Not signed in
+    if (currentPlanDisplay) {
+      currentPlanDisplay.textContent = "Free";
+      currentPlanDisplay.className = "plan-display free";
+    }
+    
+    if (workingHoursSection) {
+      workingHoursSection.classList.remove("available");
+    }
+    
+    if (emailAlertsToggle) {
+      emailAlertsToggle.disabled = true;
+      emailAlertsToggle.checked = false;
+    }
+  }
 }
 
 // Show edit macro modal

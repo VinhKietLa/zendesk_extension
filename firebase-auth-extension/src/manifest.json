@@ -52,7 +52,7 @@
         "redirect.html",
         "assets/*"
       ],
-      "matches": ["<all_urls>"]
+      "matches": ["*://*.zendesk.com/*"]
     }
   ]
 }

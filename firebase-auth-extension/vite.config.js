@@ -41,6 +41,7 @@ export default defineConfig({
         popup: resolve(__dirname, "src/popup.html"),
         background: resolve(__dirname, "src/background.js"),
         copyTicketId: resolve(__dirname, "src/content/copyTicketId.js"),
+        // darkmode.css will be copied as an asset
       },
       output: {
         entryFileNames: "assets/[name]-[hash].js",
@@ -67,19 +68,16 @@ export default defineConfig({
           return;
         }
 
+        // Find the built content scripts
         const files = fs.readdirSync(assetsDir);
         const bgScript = files.find(
           (f) => f.startsWith("background") && f.endsWith(".js")
         );
-        if (!bgScript) {
-          throw new Error("❌ Background script not found in build output.");
-        }
-
         const copyTicketIdScript = files.find(
           (f) => f.startsWith("copyTicketId") && f.endsWith(".js")
         );
-        if (!copyTicketIdScript) {
-          throw new Error("❌ Copy Ticket ID script not found in build output.");
+        if (!bgScript) {
+          throw new Error("❌ Background script not found in build output.");
         }
 
         // Read and process manifest.json
@@ -87,11 +85,16 @@ export default defineConfig({
         const manifest = JSON.parse(manifestContent);
         manifest.background.service_worker = `assets/${bgScript}`;
         manifest.action.default_popup = "popup.html";
-        
-        // Update content script path
-        if (manifest.content_scripts && manifest.content_scripts.length > 0) {
-          manifest.content_scripts[0].js = [`assets/${copyTicketIdScript}`];
-        }
+        // Ensure both content scripts are included for Zendesk
+        manifest.content_scripts = [
+          {
+            matches: ["*://*.zendesk.com/*"],
+            js: [
+              `assets/${copyTicketIdScript}`
+            ].filter(Boolean),
+            run_at: "document_end"
+          }
+        ];
 
         fs.writeFileSync(manifestDest, JSON.stringify(manifest, null, 2));
 

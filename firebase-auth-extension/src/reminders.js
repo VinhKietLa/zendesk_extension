@@ -1,5 +1,53 @@
 import { auth } from "./firebase.js";
-import { getUserReminders, updateReminder, isUserPro } from "./db.js";
+import { getUserReminders, updateReminder, isUserPro, getUserProfile } from "./db.js";
+
+// Cloud Function URL for sending emails
+const EMAIL_FUNCTION_URL = "https://us-central1-zendesk-chrome-tool.cloudfunctions.net/sendReminderEmail";
+
+// Send email reminder
+async function sendEmailReminder(userId, reminderData) {
+  try {
+    const user = auth.currentUser;
+    if (!user) {
+      console.log("❌ No authenticated user for email reminder");
+      return;
+    }
+
+    // Get user's ID token
+    const idToken = await user.getIdToken();
+    
+    // Get user profile to check email alerts setting
+    const userProfile = await getUserProfile(userId);
+    if (!userProfile?.settings?.emailAlertsEnabled) {
+      console.log("📧 Email alerts disabled for user");
+      return;
+    }
+
+    console.log("📧 Sending email reminder for ticket #", reminderData.ticketId);
+
+    const response = await fetch(EMAIL_FUNCTION_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        idToken,
+        reminderData,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error("❌ Email function error:", errorData);
+      return;
+    }
+
+    const result = await response.json();
+    console.log("✅ Email sent successfully:", result);
+  } catch (error) {
+    console.error("❌ Error sending email reminder:", error);
+  }
+}
 
 // Check Reminders in the Background
 export async function checkManualReminders() {
@@ -68,6 +116,13 @@ async function checkFirestoreReminders(userId) {
         } catch (error) {
           console.error("❌ Error creating notification:", error);
         }
+
+        // Send email reminder (Pro users only)
+        await sendEmailReminder(userId, {
+          ticketId: reminder.ticketId,
+          description: reminder.description,
+          reminderTime: reminder.reminderTime,
+        });
 
         // Update reminder status in Firestore
         await updateReminder(reminder.id, {

@@ -206,3 +206,14 @@ export async function syncFirestoreToLocal(userId) {
     overdueTickets,
   });
 }
+
+// Settings operations
+export async function updateUserSettings(userId, settings) {
+  console.log("📝 Updating user settings for:", userId);
+  const userRef = doc(db, USERS_COLLECTION, userId);
+  await updateDoc(userRef, {
+    settings,
+    updatedAt: serverTimestamp(),
+  });
+  console.log("✅ User settings updated");
+}

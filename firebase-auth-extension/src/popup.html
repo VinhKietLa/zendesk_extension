@@ -37,7 +37,7 @@
             <button class="tab-btn" data-tab="overdue">Overdue</button>
             <button class="tab-btn" data-tab="completed">Completed</button>
             <button class="tab-btn" data-tab="macros">Quick Macros</button>
-            <button class="tab-btn" data-tab="refresh">Auto-Refresh</button>
+            <button class="tab-btn" data-tab="settings">Settings</button>
         </div>
 
         <div class="tab-content">
@@ -88,11 +88,96 @@
                 </div>
             </div>
 
-            <div id="refresh-tab" class="tab-pane">
-                <h2>Auto Refresh</h2>
-                <label for="refreshInterval">Auto-Refresh Interval (seconds):</label>
-                <input type="number" id="refreshInterval" value="60">
-                <button id="toggleRefresh">Start Auto-Refresh</button>
+            <div id="settings-tab" class="tab-pane">
+                <h2>Settings</h2>
+                
+                <!-- Account & Plan Section -->
+                <div class="settings-section">
+                    <h3>Account & Plan</h3>
+                    <div class="setting-item">
+                        <label>Current Plan:</label>
+                        <span id="currentPlanDisplay" class="plan-display">Free</span>
+                        <button id="upgradePlanBtn" class="btn btn-secondary">Upgrade to Pro</button>
+                    </div>
+                    <div class="setting-item">
+                        <button id="signOutBtn" class="btn btn-outline">Sign Out</button>
+                    </div>
+                </div>
+
+                <!-- Notifications Section -->
+                <div class="settings-section">
+                    <h3>Notifications</h3>
+                    <div class="setting-item">
+                        <label for="emailAlertsToggle">
+                            <input type="checkbox" id="emailAlertsToggle" />
+                            Email Alerts (Pro only)
+                        </label>
+                        <span class="setting-description">Receive email notifications for reminders</span>
+                        <button id="testEmailBtn" class="btn btn-secondary" style="margin-top: 8px;">Test Email Alert</button>
+                    </div>
+                    <div class="setting-item">
+                        <label for="chromeNotificationsToggle">
+                            <input type="checkbox" id="chromeNotificationsToggle" checked />
+                            Chrome Notifications
+                        </label>
+                        <span class="setting-description">Show browser notifications for reminders</span>
+                    </div>
+                    <div class="setting-item">
+                        <label for="soundAlertsToggle">
+                            <input type="checkbox" id="soundAlertsToggle" checked />
+                            Sound Alerts
+                        </label>
+                        <span class="setting-description">Play sound when notifications appear</span>
+                    </div>
+                </div>
+
+                <!-- Appearance Section -->
+                <div class="settings-section">
+                    <h3>Appearance</h3>
+                    <div class="setting-item">
+                        <label for="darkModeToggle">
+                            <input type="checkbox" id="darkModeToggle" />
+                            Dark Mode
+                        </label>
+                        <span class="setting-description">Enable dark theme for the extension</span>
+                    </div>
+                </div>
+
+                <!-- Auto-Refresh Section -->
+                <div class="settings-section">
+                    <h3>Auto-Refresh</h3>
+                    <div class="setting-item">
+                        <label for="autoRefreshToggle">
+                            <input type="checkbox" id="autoRefreshToggle" />
+                            Enable Auto-Refresh
+                        </label>
+                        <span class="setting-description">Automatically refresh Zendesk tickets</span>
+                    </div>
+                    <div class="setting-item">
+                        <label for="refreshInterval">Refresh Interval (seconds):</label>
+                        <input type="number" id="refreshInterval" value="60" min="30" max="300">
+                    </div>
+                </div>
+
+                <!-- Working Hours Section (Pro only) -->
+                <div class="settings-section pro-only" id="workingHoursSection">
+                    <h3>Working Hours (Pro)</h3>
+                    <div class="setting-item">
+                        <label for="workingHoursToggle">
+                            <input type="checkbox" id="workingHoursToggle" />
+                            Enable Working Hours Mode
+                        </label>
+                        <span class="setting-description">Only show notifications during working hours</span>
+                    </div>
+                    <div class="setting-item">
+                        <label for="workStartTime">Start Time:</label>
+                        <input type="time" id="workStartTime" value="09:00">
+                    </div>
+                    <div class="setting-item">
+                        <label for="workEndTime">End Time:</label>
+                        <input type="time" id="workEndTime" value="17:00">
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -256,13 +341,7 @@
         <button id="testLicenseOff" class="btn">Disable Test License</button>
     </div>
 
-    <!-- Dark Mode Section -->
-    <div class="dark-mode-toggle">
-        <label>
-            <input type="checkbox" id="darkModeToggle" />
-            🌙 Enable Dark Mode
-        </label>
-    </div>
+
 
     <script type="module" src="/src/popup.js"></script>
 </body>
