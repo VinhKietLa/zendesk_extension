@@ -700,6 +700,44 @@ h2 {
   color: #2d3436;
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.header-icon-btn {
+  background: none;
+  border: none;
+  padding: 6px;
+  border-radius: 6px;
+  cursor: pointer;
+  color: #6b7280;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.header-icon-btn:hover {
+  background-color: #f3f4f6;
+  color: #374151;
+}
+
+.header-icon-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+body.dark-mode .header-icon-btn {
+  color: #9ca3af;
+}
+
+body.dark-mode .header-icon-btn:hover {
+  background-color: #374151;
+  color: #e5e7eb;
+}
+
 .menu-wrapper {
   position: relative;
   z-index: 1000;
