@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agent Hero Settings</title>
+    <link rel="stylesheet" href="options.css">
+</head>
+<body>
+    <div class="options-container">
+        <!-- Header -->
+        <header class="options-header">
+            <div class="header-content">
+                <div class="header-left">
+                    <h1 class="header-title">Agent Hero Settings</h1>
+                    <p class="header-subtitle">Configure your Zendesk productivity tools</p>
+                </div>
+                <div class="header-right">
+                    <button class="header-btn" id="helpBtn" title="Help">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                        </svg>
+                    </button>
+                    <button class="header-btn" id="closeBtn" title="Close">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="options-content">
+            <!-- Account Section -->
+            <section class="options-section">
+                <h2 class="section-title">Account & Plan</h2>
+                <div class="section-content">
+                    <div class="setting-group">
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <label class="setting-label">Current Plan</label>
+                                <span class="setting-value" id="currentPlan">Free</span>
+                            </div>
+                            <button class="btn btn-primary" id="upgradeBtn">Upgrade to Pro</button>
+                        </div>
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <label class="setting-label">Account Status</label>
+                                <span class="setting-value" id="accountStatus">Not signed in</span>
+                            </div>
+                            <button class="btn btn-secondary" id="signInBtn">Sign In</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Notifications Section -->
+            <section class="options-section">
+                <h2 class="section-title">Notifications</h2>
+                <div class="section-content">
+                    <div class="setting-group">
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <label class="setting-label">Email Alerts</label>
+                                <span class="setting-description">Receive email notifications for reminders (Pro only)</span>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="emailAlertsToggle" disabled>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <label class="setting-label">Chrome Notifications</label>
+                                <span class="setting-description">Show browser notifications for reminders</span>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="chromeNotificationsToggle" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <label class="setting-label">Sound Alerts</label>
+                                <span class="setting-description">Play sound when notifications appear</span>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="soundAlertsToggle" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Auto-Refresh Section -->
+            <section class="options-section">
+                <h2 class="section-title">Auto-Refresh</h2>
+                <div class="section-content">
+                    <div class="setting-group">
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <label class="setting-label">Enable Auto-Refresh</label>
+                                <span class="setting-description">Automatically refresh Zendesk tickets</span>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="autoRefreshToggle">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <label class="setting-label">Refresh Interval</label>
+                                <span class="setting-description">How often to refresh tickets (seconds)</span>
+                            </div>
+                            <input type="number" id="refreshInterval" value="60" min="30" max="300" class="number-input">
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Working Hours Section (Pro only) -->
+            <section class="options-section pro-only" id="workingHoursSection">
+                <h2 class="section-title">Working Hours (Pro)</h2>
+                <div class="section-content">
+                    <div class="setting-group">
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <label class="setting-label">Enable Working Hours Mode</label>
+                                <span class="setting-description">Only show notifications during working hours</span>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="workingHoursToggle" disabled>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <label class="setting-label">Start Time</label>
+                                <span class="setting-description">When your workday begins</span>
+                            </div>
+                            <input type="time" id="workStartTime" value="09:00" class="time-input" disabled>
+                        </div>
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <label class="setting-label">End Time</label>
+                                <span class="setting-description">When your workday ends</span>
+                            </div>
+                            <input type="time" id="workEndTime" value="17:00" class="time-input" disabled>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Appearance Section -->
+            <section class="options-section">
+                <h2 class="section-title">Appearance</h2>
+                <div class="section-content">
+                    <div class="setting-group">
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <label class="setting-label">Dark Mode</label>
+                                <span class="setting-description">Enable dark theme for the extension</span>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="darkModeToggle">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="options-footer">
+            <div class="footer-content">
+                <p class="footer-text">Agent Hero v1.5 - Made with ❤️ for Zendesk users</p>
+                <div class="footer-links">
+                    <a href="https://github.com/VinhKietLa/zendesk_extension" target="_blank" class="footer-link">GitHub</a>
+                    <a href="#" id="privacyLink" class="footer-link">Privacy</a>
+                    <a href="#" id="termsLink" class="footer-link">Terms</a>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Help Modal -->
+    <div id="helpModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Help & Support</h2>
+                <button class="modal-close" id="closeHelpModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <h3>Getting Started</h3>
+                <p>Agent Hero helps you manage Zendesk tickets more efficiently with reminders, macros, and productivity tools.</p>
+                
+                <h3>Key Features</h3>
+                <ul>
+                    <li><strong>Important Tickets:</strong> Add tickets to your important list with reminders</li>
+                    <li><strong>Pinned Tickets:</strong> Keep frequently accessed tickets at the top</li>
+                    <li><strong>Quick Macros:</strong> Save and use common responses</li>
+                    <li><strong>Auto-Refresh:</strong> Keep tickets updated automatically</li>
+                    <li><strong>Notifications:</strong> Get alerts for important tickets</li>
+                </ul>
+
+                <h3>Pro Features</h3>
+                <ul>
+                    <li>Unlimited pinned tickets and macros</li>
+                    <li>Email reminders</li>
+                    <li>Working hours mode</li>
+                    <li>Cloud sync across devices</li>
+                    <li>Priority support</li>
+                </ul>
+
+                <h3>Need Help?</h3>
+                <p>Visit our <a href="https://github.com/VinhKietLa/zendesk_extension" target="_blank">GitHub repository</a> for documentation and support.</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="options.js"></script>
+</body>
+</html> 

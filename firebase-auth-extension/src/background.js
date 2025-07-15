@@ -3,11 +3,43 @@ import { checkManualReminders } from "./reminders.js";
 
 let refreshIntervalId = null;
 let refreshInterval = 60000; // Default refresh interval (60 seconds)
+let autoRefreshEnabled = false; // Default auto-refresh state
 
-// On startup, check for a saved interval and start the refresh if present
-chrome.storage.local.get("refreshInterval", (data) => {
-  if (data.refreshInterval) {
-    setRefreshInterval(data.refreshInterval);
+// Load settings from chrome.storage.sync on startup
+chrome.storage.sync.get({
+  autoRefresh: false,
+  refreshInterval: 60
+}, (data) => {
+  autoRefreshEnabled = data.autoRefresh;
+  refreshInterval = data.refreshInterval * 1000; // Convert seconds to ms
+  
+  if (autoRefreshEnabled) {
+    setRefreshInterval(refreshInterval);
+  }
+});
+
+// Listen for storage changes to update settings in real-time
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === 'sync') {
+    if (changes.autoRefresh) {
+      autoRefreshEnabled = changes.autoRefresh.newValue;
+      if (autoRefreshEnabled) {
+        // Get the current refresh interval
+        chrome.storage.sync.get({ refreshInterval: 60 }, (data) => {
+          setRefreshInterval(data.refreshInterval);
+        });
+      } else {
+        // Stop auto-refresh
+        if (refreshIntervalId) {
+          clearInterval(refreshIntervalId);
+          refreshIntervalId = null;
+        }
+      }
+    }
+    
+    if (changes.refreshInterval && autoRefreshEnabled) {
+      setRefreshInterval(changes.refreshInterval.newValue);
+    }
   }
 });
 
@@ -22,9 +54,7 @@ function throttleWriteData(dataToWrite) {
 
 // Listener for messages from popup.js
 chrome.runtime.onMessage.addListener((request) => {
-  if (request.action === "startRefresh") {
-    setRefreshInterval(request.interval);
-  } else if (request.action === "logRedirectUri") {
+  if (request.action === "logRedirectUri") {
     console.log("🔗 Redirect URI from popup:", request.redirectUri);
     console.log("🔗 Redirect URI length:", request.redirectUriLength);
     console.log("🔗 Ends with slash:", request.redirectUriEndsWithSlash);
@@ -36,20 +66,29 @@ chrome.runtime.onMessage.addListener((request) => {
 });
 
 // Set refresh interval
-function setRefreshInterval(interval) {
-  refreshInterval = interval * 1000; // Convert seconds to ms
+function setRefreshInterval(intervalSeconds) {
+  console.log(`🔄 Setting refresh interval to ${intervalSeconds} seconds`);
+  
+  // Clear existing interval
   if (refreshIntervalId) {
+    console.log("🔄 Clearing existing refresh interval");
     clearInterval(refreshIntervalId);
+    refreshIntervalId = null;
   }
 
-  // Save interval to storage
-  chrome.storage.local.set({ refreshInterval: interval });
-
-  refreshIntervalId = setInterval(refreshZendesk, refreshInterval);
+  // Only start the interval if auto-refresh is enabled
+  if (autoRefreshEnabled) {
+    const intervalMs = intervalSeconds * 1000; // Convert seconds to ms
+    refreshIntervalId = setInterval(refreshZendesk, intervalMs);
+    console.log(`🔄 Auto-refresh started with ${intervalSeconds} second interval (${intervalMs}ms)`);
+  } else {
+    console.log("🔄 Auto-refresh is disabled, not starting interval");
+  }
 }
 
 // Auto-refresh function
 function refreshZendesk() {
+  console.log("🔄 Auto-refresh function called");
   chrome.tabs.query({ url: "*://*.zendesk.com/*" }, (tabs) => {
     if (tabs.length === 0) {
       return;

@@ -41,6 +41,7 @@ export default defineConfig({
         popup: resolve(__dirname, "src/popup.html"),
         background: resolve(__dirname, "src/background.js"),
         copyTicketId: resolve(__dirname, "src/content/copyTicketId.js"),
+        options: resolve(__dirname, "options.html"),
         // darkmode.css will be copied as an asset
       },
       output: {
@@ -106,6 +107,16 @@ export default defineConfig({
           const dest = resolve(__dirname, "dist", file);
           if (fs.existsSync(src)) {
             fs.renameSync(src, dest);
+          }
+        });
+
+        // Copy options page files
+        const optionsFiles = ["options.html", "options.css", "options.js"];
+        optionsFiles.forEach((file) => {
+          const src = resolve(__dirname, file);
+          const dest = resolve(__dirname, "dist", file);
+          if (fs.existsSync(src)) {
+            fs.copyFileSync(src, dest);
           }
         });
 
