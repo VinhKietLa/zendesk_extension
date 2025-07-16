@@ -150,14 +150,10 @@ async function handleSignInFromBackground(sendResponse) {
           return;
         }
 
-        console.log("🔍 Background parsing redirect URL...");
-        const url = new URL(redirectUrl);
+                const url = new URL(redirectUrl);
         const code = url.searchParams.get("code");
         const error = url.searchParams.get("error");
         const errorDescription = url.searchParams.get("error_description");
-
-        console.log("🔍 Background URL parameters:", { code: !!code, error, errorDescription });
-        console.log("🔍 Background full redirect URL:", redirectUrl);
 
         if (error) {
           console.error("❌ Background OAuth error:", error);
@@ -198,9 +194,6 @@ async function handleSignInFromBackground(sendResponse) {
           console.log("📡 Background cloud function response data:", responseData);
           
           const { idToken, accessToken } = responseData;
-          console.log("✅ Background token exchange successful");
-          console.log("🔐 Background ID Token length:", idToken ? idToken.length : 0);
-          console.log("🔐 Background Access Token length:", accessToken ? accessToken.length : 0);
 
           // Store the tokens and notify popup to handle the sign-in
           await chrome.storage.local.set({ 
@@ -216,25 +209,17 @@ async function handleSignInFromBackground(sendResponse) {
           }, (response) => {
             if (chrome.runtime.lastError) {
               console.log("Popup not available, will handle on next popup open");
-            } else {
-              console.log("✅ Background sign-in completion message sent successfully");
             }
           });
-
-          console.log("✅ Background sign-in tokens stored, popup will handle completion");
           sendResponse({ success: true });
         } catch (error) {
-          console.error("❌ Background error exchanging code for token:", error);
-          console.error("❌ Background error stack:", error.stack);
-          console.error("❌ Background error name:", error.name);
-          console.error("❌ Background error message:", error.message);
+                  console.error("Background error exchanging code for token:", error);
           sendResponse({ success: false, error: error.message });
         }
       }
     );
   } catch (error) {
-    console.error("❌ Background error in handleSignInFromBackground:", error);
-    console.error("❌ Background error stack:", error.stack);
+    console.error("Background error in handleSignInFromBackground:", error);
     sendResponse({ success: false, error: error.message });
   }
 }
@@ -242,7 +227,6 @@ async function handleSignInFromBackground(sendResponse) {
 // New: Full sign-in flow in background
 async function startSignInFlow(sendResponse) {
   try {
-    console.log("🔐 [BG] Starting full sign-in flow");
     const clientId = "469337959937-4hh07g3u8499rk3t5gd14cjcbpem6umm.apps.googleusercontent.com";
     const redirectUri = chrome.identity.getRedirectURL();
     const scopes = ["profile", "email"];
@@ -258,32 +242,31 @@ async function startSignInFlow(sendResponse) {
       include_granted_scopes: "true",
     });
     const authUrl = `https://accounts.google.com/o/oauth2/auth?${params.toString()}`;
-    console.log("🔗 [BG] OAuth URL:", authUrl);
     chrome.identity.launchWebAuthFlow({ url: authUrl, interactive: true }, async (redirectUrl) => {
-      if (chrome.runtime.lastError) {
-        console.error("❌ [BG] Auth error:", chrome.runtime.lastError);
-        sendResponse({ success: false, error: chrome.runtime.lastError.message });
-        return;
-      }
-      if (!redirectUrl) {
-        console.error("❌ [BG] No redirect URL received");
-        sendResponse({ success: false, error: "No redirect URL received" });
-        return;
-      }
-      const url = new URL(redirectUrl);
-      const code = url.searchParams.get("code");
-      const error = url.searchParams.get("error");
-      const errorDescription = url.searchParams.get("error_description");
-      if (error) {
-        console.error("❌ [BG] OAuth error:", error, errorDescription);
-        sendResponse({ success: false, error: errorDescription || error });
-        return;
-      }
-      if (!code) {
-        console.error("❌ [BG] No code received");
-        sendResponse({ success: false, error: "No authorization code received" });
-        return;
-      }
+              if (chrome.runtime.lastError) {
+          console.error("Auth error:", chrome.runtime.lastError);
+          sendResponse({ success: false, error: chrome.runtime.lastError.message });
+          return;
+        }
+        if (!redirectUrl) {
+          console.error("No redirect URL received");
+          sendResponse({ success: false, error: "No redirect URL received" });
+          return;
+        }
+        const url = new URL(redirectUrl);
+        const code = url.searchParams.get("code");
+        const error = url.searchParams.get("error");
+        const errorDescription = url.searchParams.get("error_description");
+        if (error) {
+          console.error("OAuth error:", error, errorDescription);
+          sendResponse({ success: false, error: errorDescription || error });
+          return;
+        }
+        if (!code) {
+          console.error("No code received");
+          sendResponse({ success: false, error: "No authorization code received" });
+          return;
+        }
       try {
         // Exchange code for tokens
         const response = await fetch("https://exchangeoauthcode-7ylhtvfxha-uc.a.run.app", {
@@ -293,12 +276,11 @@ async function startSignInFlow(sendResponse) {
         });
         if (!response.ok) {
           const errorData = await response.json();
-          console.error("❌ [BG] Cloud function error:", errorData);
+          console.error("Cloud function error:", errorData);
           sendResponse({ success: false, error: errorData.error || "Token exchange failed" });
           return;
         }
         const { idToken, accessToken } = await response.json();
-        console.log("✅ [BG] Token exchange successful");
         
         // Store tokens and notify popup to handle Firebase sign-in
         await chrome.storage.local.set({
@@ -315,8 +297,6 @@ async function startSignInFlow(sendResponse) {
         }, (response) => {
           if (chrome.runtime.lastError) {
             console.log("Popup not available, will handle on next popup open");
-          } else {
-            console.log("✅ Background sign-in completion message sent successfully");
           }
         });
         
@@ -336,12 +316,12 @@ async function startSignInFlow(sendResponse) {
           chrome.action.openPopup();
         }, 2000);
       } catch (err) {
-        console.error("❌ [BG] Error in token exchange or Firebase sign-in:", err);
+        console.error("Error in token exchange or Firebase sign-in:", err);
         sendResponse({ success: false, error: err.message });
       }
     });
   } catch (err) {
-    console.error("❌ [BG] Error in startSignInFlow:", err);
+    console.error("Error in startSignInFlow:", err);
     sendResponse({ success: false, error: err.message });
   }
 }
@@ -384,7 +364,6 @@ function isWithinWorkingHours() {
 
 // Auto-refresh function
 function refreshZendesk() {
-  console.log("🔄 Auto-refresh function called");
   chrome.tabs.query({ url: "*://*.zendesk.com/*" }, (tabs) => {
     if (tabs.length === 0) {
       return;

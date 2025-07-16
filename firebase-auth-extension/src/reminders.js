@@ -42,7 +42,7 @@ async function sendEmailReminder(userId, reminderData) {
   try {
     const user = auth.currentUser;
     if (!user) {
-      console.log("❌ No authenticated user for email reminder");
+      console.log("No authenticated user for email reminder");
       return;
     }
 
@@ -76,7 +76,7 @@ async function sendEmailReminder(userId, reminderData) {
     }
 
     const result = await response.json();
-    console.log("✅ Email sent successfully:", result);
+    
   } catch (error) {
     console.error("❌ Error sending email reminder:", error);
   }
@@ -84,7 +84,7 @@ async function sendEmailReminder(userId, reminderData) {
 
 // Check Reminders in the Background
 export async function checkManualReminders() {
-  console.log("🔍 Checking manual reminders...");
+  
 
   // Get current user
   const user = auth.currentUser;
@@ -96,7 +96,7 @@ export async function checkManualReminders() {
 
   // Check if user is Pro
   const isPro = await isUserPro(user.uid);
-  console.log("⭐ Checking reminders for", isPro ? "Pro" : "Free", "user");
+  
 
   if (isPro) {
     await checkFirestoreReminders(user.uid);
@@ -145,7 +145,6 @@ async function checkFirestoreReminders(userId) {
                     chrome.runtime.lastError
                   );
                 } else {
-                  console.log("✅ Notification created:", notificationId);
                   notificationsCreated = true;
                 }
               }
@@ -231,7 +230,6 @@ function checkLocalReminders() {
                           chrome.runtime.lastError
                         );
                       } else {
-                        console.log("✅ Notification created:", notificationId);
                         notificationsCreated = true;
                       }
                     }

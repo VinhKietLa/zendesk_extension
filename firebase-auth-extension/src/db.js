@@ -18,7 +18,6 @@ const REMINDERS_COLLECTION = "reminders";
 
 // User data operations
 export async function createUserProfile(userId, userData) {
-  console.log("📝 Creating user profile for:", userId);
   const userRef = doc(db, USERS_COLLECTION, userId);
   await setDoc(userRef, {
     ...userData,
@@ -26,31 +25,25 @@ export async function createUserProfile(userId, userData) {
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });
-  console.log("✅ User profile created");
 }
 
 export async function getUserProfile(userId) {
-  console.log("🔍 Getting user profile for:", userId);
   const userRef = doc(db, USERS_COLLECTION, userId);
   const userSnap = await getDoc(userRef);
   const profile = userSnap.exists() ? userSnap.data() : null;
-  console.log("📋 User profile:", profile);
   return profile;
 }
 
 export async function updateUserProfile(userId, userData) {
-  console.log("📝 Updating user profile for:", userId);
   const userRef = doc(db, USERS_COLLECTION, userId);
   await updateDoc(userRef, {
     ...userData,
     updatedAt: serverTimestamp(),
   });
-  console.log("✅ User profile updated");
 }
 
 // Reminder operations
 export async function createReminder(userId, reminderData) {
-  console.log("📝 Creating reminder for user:", userId);
   const reminderRef = doc(collection(db, REMINDERS_COLLECTION));
   await setDoc(reminderRef, {
     ...reminderData,
@@ -59,12 +52,10 @@ export async function createReminder(userId, reminderData) {
     updatedAt: serverTimestamp(),
     status: "active",
   });
-  console.log("✅ Reminder created with ID:", reminderRef.id);
   return reminderRef.id;
 }
 
 export async function getUserReminders(userId) {
-  console.log("🔍 Getting reminders for user:", userId);
   const remindersQuery = query(
     collection(db, REMINDERS_COLLECTION),
     where("userId", "==", userId)
@@ -74,44 +65,35 @@ export async function getUserReminders(userId) {
     id: doc.id,
     ...doc.data(),
   }));
-  console.log("📋 Found reminders:", reminders);
   return reminders;
 }
 
 export async function updateReminder(reminderId, reminderData) {
-  console.log("📝 Updating reminder:", reminderId);
   const reminderRef = doc(db, REMINDERS_COLLECTION, reminderId);
   await updateDoc(reminderRef, {
     ...reminderData,
     updatedAt: serverTimestamp(),
   });
-  console.log("✅ Reminder updated");
 }
 
 export async function deleteReminder(reminderId) {
-  console.log("🗑️ Deleting reminder:", reminderId);
   const reminderRef = doc(db, REMINDERS_COLLECTION, reminderId);
   await deleteDoc(reminderRef);
-  console.log("✅ Reminder deleted");
 }
 
 // Pro status operations
 export async function updateProStatus(userId, isPro) {
-  console.log("⭐ Updating pro status for user:", userId, "to:", isPro);
   const userRef = doc(db, USERS_COLLECTION, userId);
   await updateDoc(userRef, {
     isPro,
     updatedAt: serverTimestamp(),
   });
-  console.log("✅ Pro status updated");
 }
 
 // Helper function to check if user is pro
 export async function isUserPro(userId) {
-  console.log("🔍 Checking pro status for user:", userId);
   const userProfile = await getUserProfile(userId);
   const isPro = userProfile?.isPro || false;
-  console.log("⭐ Pro status:", isPro);
   return isPro;
 }
 
@@ -209,11 +191,9 @@ export async function syncFirestoreToLocal(userId) {
 
 // Settings operations
 export async function updateUserSettings(userId, settings) {
-  console.log("📝 Updating user settings for:", userId);
   const userRef = doc(db, USERS_COLLECTION, userId);
   await updateDoc(userRef, {
     settings,
     updatedAt: serverTimestamp(),
   });
-  console.log("✅ User settings updated");
 }

@@ -275,7 +275,7 @@ async function completeSignInFromBackground(idToken, accessToken) {
     const userCred = await signInWithCredential(auth, credential);
     const user = userCred.user;
     
-    console.log("✅ Sign-in completed successfully from background");
+    
     showToast("Successfully signed in!", "success");
     
     // Store user data in local storage for options page
@@ -314,22 +314,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Add tab switching functionality
   const tabBtns = document.querySelectorAll(".tab-btn");
   const tabPanes = document.querySelectorAll(".tab-pane");
-  
-  console.log("🔘 Found tab buttons:", tabBtns.length);
-  console.log("🔘 Found tab panes:", tabPanes.length);
-  
-  if (tabBtns.length === 0) {
-    console.error("❌ No tab buttons found!");
-  } else {
-    tabBtns.forEach((btn, index) => {
-      console.log(`🔘 Tab ${index}:`, btn.getAttribute("data-tab"), "active:", btn.classList.contains("active"));
-    });
-  }
 
   tabBtns.forEach((btn) => {
     btn.addEventListener("click", async () => {
-      console.log("🔘 Tab button clicked:", btn.getAttribute("data-tab"));
-      
       // Remove active class from all buttons and panes
       tabBtns.forEach((b) => b.classList.remove("active"));
       tabPanes.forEach((p) => p.classList.remove("active"));
@@ -339,7 +326,19 @@ document.addEventListener("DOMContentLoaded", async () => {
       const tabId = btn.getAttribute("data-tab");
       document.getElementById(`${tabId}-tab`).classList.add("active");
       
-      console.log("📋 Switched to tab:", tabId);
+      // Load content for specific tabs
+      if (tabId === "pinned") {
+        // Get current user and pro status
+        const currentUser = auth.currentUser;
+        
+        if (currentUser) {
+          const isPro = await isUserPro(currentUser.uid);
+          await displayPinnedTickets(currentUser, isPro);
+        } else {
+          // For free users, load from local storage
+          await displayPinnedTickets({ uid: "" }, false);
+        }
+      }
       
       // Settings are now controlled by the options page
     });
@@ -357,62 +356,47 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Load free user data immediately
   loadFreeUserData();
 
-  onAuthStateChanged(auth, async (user) => {
-    console.log("🔐 Auth state changed:", user ? "User signed in" : "No user");
-
-    // Notify options page of auth state change
-    try {
-      chrome.runtime.sendMessage({ 
-        action: 'authStateChanged', 
-        user: user ? { email: user.email, uid: user.uid } : null 
-      });
-    } catch (error) {
-      console.log("Options page not available for auth state update");
-    }
-
-    if (user) {
-      console.log("👤 User details:", {
-        uid: user.uid,
-        email: user.email,
-        displayName: user.displayName,
-      });
-
-      if (loginBtn) loginBtn.style.display = "none";
-      if (logoutBtn) logoutBtn.style.display = "inline-block";
-      if (userInfo) userInfo.textContent = `Signed in as ${user.displayName}`;
-
+      onAuthStateChanged(auth, async (user) => {
+      // Notify options page of auth state change
       try {
-        // Check if user profile exists, if not create one
-        const userProfile = await getUserProfile(user.uid);
-        console.log("📋 User profile:", userProfile);
-
-        if (!userProfile) {
-          console.log("🆕 Creating new user profile");
-          await createUserProfile(user.uid, {
-            email: user.email,
-            displayName: user.displayName,
-            photoURL: user.photoURL,
-          });
-        }
-
-        // Check pro status and load appropriate data
-        const isPro = await isUserPro(user.uid);
-        console.log("⭐ Pro status:", isPro);
-        
-        // Store user data and pro status in local storage for options page
-        await chrome.storage.local.set({ 
-          user: {
-            uid: user.uid,
-            email: user.email,
-            displayName: user.displayName,
-            photoURL: user.photoURL
-          },
-          userProStatus: isPro 
+        chrome.runtime.sendMessage({ 
+          action: 'authStateChanged', 
+          user: user ? { email: user.email, uid: user.uid } : null 
         });
-        console.log("💾 Stored user data and pro status in local storage:", isPro);
-        
-        // Debug: Log the full user profile to see what's stored
-        console.log("📋 Full user profile:", userProfile);
+      } catch (error) {
+        console.log("Options page not available for auth state update");
+      }
+
+      if (user) {
+        if (loginBtn) loginBtn.style.display = "none";
+        if (logoutBtn) logoutBtn.style.display = "inline-block";
+        if (userInfo) userInfo.textContent = `Signed in as ${user.displayName}`;
+
+        try {
+          // Check if user profile exists, if not create one
+          const userProfile = await getUserProfile(user.uid);
+
+          if (!userProfile) {
+            await createUserProfile(user.uid, {
+              email: user.email,
+              displayName: user.displayName,
+              photoURL: user.photoURL,
+            });
+          }
+
+          // Check pro status and load appropriate data
+          const isPro = await isUserPro(user.uid);
+          
+          // Store user data and pro status in local storage for options page
+          await chrome.storage.local.set({ 
+            user: {
+              uid: user.uid,
+              email: user.email,
+              displayName: user.displayName,
+              photoURL: user.photoURL
+            },
+            userProStatus: isPro 
+          });
 
         if (isPro) {
           if (proBadge) proBadge.style.display = "inline-block";
@@ -448,17 +432,12 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
 
         // Load reminders based on user type
-        console.log(
-          "📥 Loading reminders for user type:",
-          isPro ? "Pro" : "Free"
-        );
         await loadReminders(user);
         await initializeMacros();
       } catch (error) {
-        console.error("❌ Error in auth state change:", error);
+        console.error("Error in auth state change:", error);
       }
     } else {
-      console.log("👋 User signed out");
       if (loginBtn) loginBtn.style.display = "inline-block";
       if (logoutBtn) logoutBtn.style.display = "none";
       if (userInfo) userInfo.textContent = "";
@@ -474,23 +453,20 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
   loginBtn?.addEventListener("click", () => {
-    console.log("🔑 Login button clicked");
     chrome.identity.launchWebAuthFlow(
       {
         url: getOAuthUrl(),
         interactive: true,
       },
       async (redirectUrl) => {
-        console.log("🔄 Auth flow redirect URL:", redirectUrl);
-
         if (chrome.runtime.lastError) {
-          console.error("❌ Auth error:", chrome.runtime.lastError);
+          console.error("Auth error:", chrome.runtime.lastError);
           alert("Authentication failed: " + chrome.runtime.lastError.message);
           return;
         }
 
         if (!redirectUrl) {
-          console.error("❌ No redirect URL received");
+          console.error("No redirect URL received");
           alert("Authentication failed: No redirect URL received");
           return;
         }
@@ -501,20 +477,19 @@ document.addEventListener("DOMContentLoaded", async () => {
         const errorDescription = url.searchParams.get("error_description");
 
         if (error) {
-          console.error("❌ OAuth error:", error);
-          console.error("❌ Error description:", errorDescription);
+          console.error("OAuth error:", error);
+          console.error("Error description:", errorDescription);
           alert("Authentication failed: " + (errorDescription || error));
           return;
         }
 
         if (!code) {
-          console.error("❌ No code received");
+          console.error("No code received");
           alert("Authentication failed: No authorization code received");
           return;
         }
 
         try {
-          console.log("🔄 Exchanging code for token");
           const redirectUri = chrome.identity.getRedirectURL();
 
           const response = await fetch(CLOUD_FUNCTION_URL, {
@@ -529,17 +504,14 @@ document.addEventListener("DOMContentLoaded", async () => {
           }
 
           const { idToken, accessToken } = await response.json();
-          console.log("✅ Token exchange successful");
 
           const credential = GoogleAuthProvider.credential(
             idToken,
             accessToken
           );
-          console.log("🔐 Signing in with credential");
           await signInWithCredential(auth, credential);
-          console.log("✅ Sign in successful");
         } catch (err) {
-          console.error("❌ Token exchange or sign-in failed:", err);
+          console.error("Token exchange or sign-in failed:", err);
           alert("Authentication failed: " + err.message);
         }
       }
@@ -754,9 +726,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
 
       try {
-        console.log("⭐ Upgrading user to Pro");
         await updateProStatus(user.uid, true);
-        console.log("✅ User upgraded to Pro");
 
         // Close modal
         if (modal) modal.style.display = "none";
@@ -773,7 +743,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         // Reload reminders to use Firestore
         await loadReminders(user);
       } catch (error) {
-        console.error("❌ Error upgrading to Pro:", error);
+        console.error("Error upgrading to Pro:", error);
         alert("Failed to upgrade to Pro. Please try again.");
       }
     });
@@ -782,13 +752,13 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Listen for reminder updates from background script
   chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === "remindersUpdated") {
-      console.log("🔄 Reminders updated, refreshing display");
+
       const user = auth.currentUser;
       if (user) {
         loadReminders(user);
       }
         } else if (request.action === "completeSignIn") {
-      console.log("🔐 Completing sign-in from background script");
+
       completeSignInFromBackground(request.idToken, request.accessToken);
     }
   });
@@ -799,7 +769,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       const timeDiff = Date.now() - data.signInTimestamp;
       // Only process if less than 5 minutes old
       if (timeDiff < 5 * 60 * 1000) {
-        console.log("🔐 Found pending sign-in, completing...");
+
         completeSignInFromBackground(data.pendingSignIn.idToken, data.pendingSignIn.accessToken);
         // Clear the pending sign-in
         chrome.storage.local.remove(['pendingSignIn', 'signInTimestamp']);
@@ -857,12 +827,12 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (dropdownSignIn) {
     dropdownSignIn.addEventListener("click", async () => {
       try {
-        console.log("🔑 Sign-in button clicked, sending startSignIn to background...");
+
         showToast("Signing in...", "info");
         // Send message to background to start sign-in
         chrome.runtime.sendMessage({ action: "startSignIn" }, (response) => {
           if (chrome.runtime.lastError) {
-            console.error("❌ Error sending startSignIn message:", chrome.runtime.lastError);
+            console.error("Error sending startSignIn message:", chrome.runtime.lastError);
             showToast("Failed to start sign-in process", "error");
             return;
           }
@@ -878,7 +848,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           dropdownMenu.classList.remove("open");
         }
       } catch (error) {
-        console.error("❌ Error starting sign-in:", error);
+        console.error("Error starting sign-in:", error);
         showToast("Failed to start sign-in process", "error");
       }
     });
@@ -1028,31 +998,24 @@ document.addEventListener("DOMContentLoaded", async () => {
     console.log("🔧 Adding direct event listener to email alerts toggle");
     emailAlertsToggle.addEventListener("change", async (e) => {
       const enabled = e.target.checked;
-      console.log("🔄 Direct email alerts toggle changed to:", enabled);
       
       const user = auth.currentUser;
       if (enabled && user) {
-        console.log("🔍 Checking Pro status for email alerts...");
         const isPro = await isUserPro(user.uid);
-        console.log("⭐ Email alerts Pro check result:", isPro);
         
         if (!isPro) {
-          console.log("❌ User is not Pro, showing error message");
           showToast("Email alerts are only available for Pro users", "error");
           e.target.checked = false;
           return;
         }
-        console.log("✅ User is Pro, proceeding to save setting");
       }
-      
-      console.log("💾 Saving email alerts setting:", enabled);
       await saveSetting("emailAlertsEnabled", enabled);
       showToast(`Email alerts ${enabled ? "enabled" : "disabled"}`, "success");
     });
   }
 });
 
-console.log("👋 popup.js loaded");
+
 
 function extractTicketId(input) {
   const urlMatch = input.match(/\/agent\/tickets\/(\d+)/);
@@ -1076,7 +1039,7 @@ function migrateSyncToLocal() {
         ["importantTickets", "completedTickets", "overdueTickets"],
         (syncData) => {
           chrome.storage.local.set(syncData, () => {
-            console.log("✅ Migration complete:", syncData);
+            // Migration complete
           });
         }
       );
@@ -1089,7 +1052,7 @@ function throttleWriteData(dataToWrite) {
   clearTimeout(writeTimeout);
   writeTimeout = setTimeout(() => {
     chrome.storage.local.set(dataToWrite, () => {
-      console.log("✅ Batched write to local:", dataToWrite);
+      // Data written to local storage
     });
   }, 1000);
 }
@@ -1460,45 +1423,80 @@ async function unpinTicket(user, isPro, ticket) {
 
 // Update displayPinnedTickets to pass the full ticket object to unpinTicket
 async function displayPinnedTickets(user, isPro) {
-  const list = document.getElementById("pinnedTicketsList");
-  const count = document.getElementById("pinnedTicketsCount");
-  const limit = document.getElementById("pinnedTicketsLimit");
-  if (!list || !count || !limit) return;
-  const tickets = await getPinnedTickets(user, isPro);
-  list.innerHTML = "";
-  count.textContent = `(${tickets.length}${!isPro ? "/3" : ""})`;
-  limit.style.display = isPro ? "none" : "inline";
-  chrome.storage.sync.get("zendeskDomain", (data) => {
-    const zendeskDomain =
-      data.zendeskDomain || "https://your_zendesk_domain.com";
-    tickets.forEach((ticket) => {
-      const { ticketId, description, pinnedAt } = ticket;
-      const li = document.createElement("li");
-      const link = document.createElement("a");
-      link.href = `${zendeskDomain}/agent/tickets/${ticketId}`;
-      link.target = "_blank";
-      link.textContent = `Ticket #${ticketId} - ${description}`;
-      li.appendChild(link);
-      const pinnedDate = document.createElement("div");
-      pinnedDate.className = "reminder";
-      pinnedDate.textContent = `Pinned: ${new Date(pinnedAt).toLocaleString()}`;
-      li.appendChild(pinnedDate);
-      const unpinBtn = document.createElement("button");
-      unpinBtn.textContent = "Unpin";
-      unpinBtn.className = "done-btn";
-      unpinBtn.addEventListener("click", async () => {
-        try {
-          await unpinTicket(user, isPro, ticket);
-          showToast("Ticket unpinned");
-          await loadReminders(user); // Refresh all lists
-        } catch (error) {
-          alert(error.message || "Failed to unpin ticket.");
+    const userId = user?.uid;
+    
+    if (!userId) {
+        return;
+    }
+    
+    try {
+        const tickets = await getPinnedTickets(user, isPro);
+        
+        // Get Zendesk domain from storage
+        const zendeskDomain = await new Promise((resolve) => {
+            chrome.storage.sync.get("zendeskDomain", (data) => {
+                resolve(data.zendeskDomain || "https://your_zendesk_domain.com");
+            });
+        });
+        
+        const pinnedTicketsList = document.getElementById('pinnedTicketsList');
+        
+        if (!pinnedTicketsList) {
+            return;
         }
-      });
-      li.appendChild(unpinBtn);
-      list.appendChild(li);
-    });
-  });
+        
+        // Clear existing tickets
+        pinnedTicketsList.innerHTML = '';
+        
+        tickets.forEach((ticket) => {
+            const ticketElement = document.createElement('li');
+            ticketElement.className = 'ticket-card';
+            
+            const pinnedDate = new Date(ticket.pinnedAt).toLocaleString('en-GB');
+            
+            ticketElement.innerHTML = `
+                <div class="ticket-header">
+                    <div class="ticket-id-badge">#${ticket.ticketId}</div>
+                    <div class="ticket-datetime">Pinned: ${pinnedDate}</div>
+                    <button class="ticket-menu-btn"><i class="fas fa-ellipsis-v"></i></button>
+                </div>
+                <div class="ticket-description">${ticket.description}</div>
+                <div class="ticket-menu-dropdown">
+                    <div class="menu-option" onclick="window.open('${zendeskDomain}/agent/tickets/${ticket.ticketId}', '_blank')">
+                        <i class="fas fa-external-link-alt"></i> Open Ticket
+                    </div>
+                    <div class="menu-option delete" onclick="unpinTicketFromMenu('${ticket.ticketId}')">
+                        <i class="fas fa-thumbtack"></i> Unpin
+                    </div>
+                </div>
+            `;
+            
+            pinnedTicketsList.appendChild(ticketElement);
+        });
+        
+        // Update count
+        const countElement = document.getElementById('pinnedTicketsCount');
+        if (countElement) {
+            countElement.textContent = tickets.length;
+        }
+        
+        // Add global function for unpinning from menu
+        window.unpinTicketFromMenu = async (ticketId) => {
+            try {
+                const ticket = tickets.find(t => t.ticketId === ticketId);
+                if (ticket) {
+                    await unpinTicket(user, isPro, ticket);
+                    showToast("Ticket unpinned");
+                    await displayPinnedTickets(user, isPro);
+                }
+            } catch (error) {
+                console.error('Error unpinning ticket:', error);
+                showToast(error.message || "Failed to unpin ticket.");
+            }
+        };
+    } catch (error) {
+        console.error('Error loading pinned tickets:', error);
+    }
 }
 
 // Get pinned tickets
@@ -1506,7 +1504,7 @@ async function getPinnedTickets(user, isPro) {
   if (isPro) {
     // Pro: Store in Firestore as reminders with type 'pinned'
     const reminders = await getUserReminders(user.uid);
-    return reminders
+    const pinnedTickets = reminders
       .filter((r) => r.type === "pinned")
       .map((r) => ({
         ticketId: r.ticketId,
@@ -1514,6 +1512,7 @@ async function getPinnedTickets(user, isPro) {
         pinnedAt: r.pinnedAt || r.createdAt || Date.now(),
         id: r.id,
       }));
+    return pinnedTickets;
   } else {
     // Free: Store in local storage
     return new Promise((resolve) => {
@@ -1972,10 +1971,8 @@ chrome.storage.onChanged.addListener((changes, area) => {
 // Listen for sign-in completion from background
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === "completeSignIn") {
-    console.log("🔐 Completing sign-in with tokens from background");
     completeSignInFromBackground(request.idToken, request.accessToken);
   } else if (request.action === "signInComplete") {
-    console.log("✅ Sign-in complete message received from background", request.user);
     showToast("Successfully signed in!", "success");
     // Update UI with the user data
     if (request.user) {
@@ -2002,7 +1999,7 @@ chrome.storage.local.get(['pendingSignIn', 'signInTimestamp', 'shouldReopenPopup
     const timeDiff = Date.now() - data.signInTimestamp;
     // Only process if less than 5 minutes old
     if (timeDiff < 5 * 60 * 1000) {
-      console.log("🔐 Found pending sign-in, completing...");
+
       completeSignInFromBackground(data.pendingSignIn.idToken, data.pendingSignIn.accessToken);
       // Clear the pending sign-in
       chrome.storage.local.remove(['pendingSignIn', 'signInTimestamp', 'shouldReopenPopup']);
@@ -2021,7 +2018,6 @@ chrome.storage.local.get(['pendingSignIn', 'signInTimestamp', 'shouldReopenPopup
 // Check for stored user data on popup load
 chrome.storage.local.get(['user'], (data) => {
   if (data.user) {
-    console.log("🔍 Found stored user data:", data.user);
     // Update UI to show signed in state
     const userInfo = document.getElementById("userInfo");
     const loginBtn = document.getElementById("loginBtn");
