@@ -115,7 +115,7 @@ function loadSettings() {
         'soundAlerts',
         'autoRefresh',
         'refreshInterval',
-        'workingHours',
+        'workingHoursEnabled',
         'workStartTime',
         'workEndTime',
         'darkMode',
@@ -147,7 +147,7 @@ function loadSettings() {
         }
         
         if (workingHoursToggle) {
-            workingHoursToggle.checked = result.workingHours || false;
+            workingHoursToggle.checked = result.workingHoursEnabled || false;
         }
         
         if (darkModeToggle) {
@@ -186,7 +186,7 @@ function saveSettings() {
         soundAlerts: document.getElementById('soundAlertsToggle')?.checked || false,
         autoRefresh: document.getElementById('autoRefreshToggle')?.checked || false,
         refreshInterval: parseInt(document.getElementById('refreshInterval')?.value) || 60,
-        workingHours: document.getElementById('workingHoursToggle')?.checked || false,
+        workingHoursEnabled: document.getElementById('workingHoursToggle')?.checked || false,
         workStartTime: document.getElementById('workStartTime')?.value || '09:00',
         workEndTime: document.getElementById('workEndTime')?.value || '17:00',
         darkMode: document.getElementById('darkModeToggle')?.checked || false

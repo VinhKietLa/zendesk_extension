@@ -4,6 +4,37 @@ import { getUserReminders, updateReminder, isUserPro, getUserProfile } from "./d
 // Cloud Function URL for sending emails
 const EMAIL_FUNCTION_URL = "https://us-central1-zendesk-chrome-tool.cloudfunctions.net/sendReminderEmail";
 
+// Check if current time is within working hours
+async function isWithinWorkingHours() {
+  return new Promise((resolve) => {
+    chrome.storage.sync.get({
+      workingHoursEnabled: false,
+      workStartTime: "09:00",
+      workEndTime: "17:00"
+    }, (data) => {
+      if (!data.workingHoursEnabled) {
+        resolve(true); // If working hours mode is disabled, always allow notifications
+        return;
+      }
+
+      const now = new Date();
+      const currentTime = now.toTimeString().slice(0, 5); // Get HH:MM format
+      
+      const startTime = data.workStartTime;
+      const endTime = data.workEndTime;
+      
+      // Handle overnight shifts (e.g., 22:00 to 06:00)
+      if (startTime > endTime) {
+        // Overnight shift: current time should be >= start OR <= end
+        resolve(currentTime >= startTime || currentTime <= endTime);
+      } else {
+        // Regular shift: current time should be between start and end
+        resolve(currentTime >= startTime && currentTime <= endTime);
+      }
+    });
+  });
+}
+
 // Send email reminder
 async function sendEmailReminder(userId, reminderData) {
   try {
@@ -89,32 +120,39 @@ async function checkFirestoreReminders(userId) {
       if (reminderTimestamp && reminderTimestamp <= now) {
         console.log(`⏰ Reminder due for ticket #${reminder.ticketId}`);
 
-        // Create notification
-        try {
-          chrome.notifications.create(
-            `reminder-${reminder.ticketId}`,
-            {
-              type: "basic",
-              iconUrl: chrome.runtime.getURL("icon128.png"),
-              title: `Reminder for Ticket #${reminder.ticketId}`,
-              message: reminder.description,
-              priority: 2,
-              requireInteraction: true,
-            },
-            (notificationId) => {
-              if (chrome.runtime.lastError) {
-                console.error(
-                  "❌ Notification error:",
-                  chrome.runtime.lastError
-                );
-              } else {
-                console.log("✅ Notification created:", notificationId);
-                notificationsCreated = true;
+        // Check working hours before creating notification
+        const withinWorkingHours = await isWithinWorkingHours();
+        
+        if (withinWorkingHours) {
+          // Create notification
+          try {
+            chrome.notifications.create(
+              `reminder-${reminder.ticketId}`,
+              {
+                type: "basic",
+                iconUrl: chrome.runtime.getURL("icon128.png"),
+                title: `Reminder for Ticket #${reminder.ticketId}`,
+                message: reminder.description,
+                priority: 2,
+                requireInteraction: true,
+              },
+              (notificationId) => {
+                if (chrome.runtime.lastError) {
+                  console.error(
+                    "❌ Notification error:",
+                    chrome.runtime.lastError
+                  );
+                } else {
+                  console.log("✅ Notification created:", notificationId);
+                  notificationsCreated = true;
+                }
               }
-            }
-          );
-        } catch (error) {
-          console.error("❌ Error creating notification:", error);
+            );
+          } catch (error) {
+            console.error("❌ Error creating notification:", error);
+          }
+        } else {
+          console.log(`🕐 Outside working hours - skipping notification for ticket #${reminder.ticketId}`);
         }
 
         // Send email reminder (Pro users only)
@@ -170,32 +208,39 @@ function checkLocalReminders() {
           if (reminderTimestamp && reminderTimestamp <= now) {
             console.log(`⏰ Reminder due for ticket #${ticketId}`);
 
-            try {
-              chrome.notifications.create(
-                `reminder-${ticketId}`,
-                {
-                  type: "basic",
-                  iconUrl: chrome.runtime.getURL("icon128.png"),
-                  title: `Reminder for Ticket #${ticketId}`,
-                  message: description,
-                  priority: 2,
-                  requireInteraction: true,
-                },
-                (notificationId) => {
-                  if (chrome.runtime.lastError) {
-                    console.error(
-                      "❌ Notification error:",
-                      chrome.runtime.lastError
-                    );
-                  } else {
-                    console.log("✅ Notification created:", notificationId);
-                    notificationsCreated = true;
-                  }
+            // Check working hours before creating notification
+            isWithinWorkingHours().then((withinWorkingHours) => {
+              if (withinWorkingHours) {
+                try {
+                  chrome.notifications.create(
+                    `reminder-${ticketId}`,
+                    {
+                      type: "basic",
+                      iconUrl: chrome.runtime.getURL("icon128.png"),
+                      title: `Reminder for Ticket #${ticketId}`,
+                      message: description,
+                      priority: 2,
+                      requireInteraction: true,
+                    },
+                    (notificationId) => {
+                      if (chrome.runtime.lastError) {
+                        console.error(
+                          "❌ Notification error:",
+                          chrome.runtime.lastError
+                        );
+                      } else {
+                        console.log("✅ Notification created:", notificationId);
+                        notificationsCreated = true;
+                      }
+                    }
+                  );
+                } catch (error) {
+                  console.error("❌ Error creating notification:", error);
                 }
-              );
-            } catch (error) {
-              console.error("❌ Error creating notification:", error);
-            }
+              } else {
+                console.log(`🕐 Outside working hours - skipping notification for ticket #${ticketId}`);
+              }
+            });
 
             if (
               !overdueTickets.some((ticket) => ticket.ticketId === ticketId)

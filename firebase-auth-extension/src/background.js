@@ -5,13 +5,24 @@ let refreshIntervalId = null;
 let refreshInterval = 60000; // Default refresh interval (60 seconds)
 let autoRefreshEnabled = false; // Default auto-refresh state
 
+// Working hours settings
+let workingHoursEnabled = false;
+let workStartTime = "09:00";
+let workEndTime = "17:00";
+
 // Load settings from chrome.storage.sync on startup
 chrome.storage.sync.get({
   autoRefresh: false,
-  refreshInterval: 60
+  refreshInterval: 60,
+  workingHoursEnabled: false,
+  workStartTime: "09:00",
+  workEndTime: "17:00"
 }, (data) => {
   autoRefreshEnabled = data.autoRefresh;
   refreshInterval = data.refreshInterval * 1000; // Convert seconds to ms
+  workingHoursEnabled = data.workingHoursEnabled;
+  workStartTime = data.workStartTime;
+  workEndTime = data.workEndTime;
   
   if (autoRefreshEnabled) {
     setRefreshInterval(refreshInterval);
@@ -39,6 +50,22 @@ chrome.storage.onChanged.addListener((changes, area) => {
     
     if (changes.refreshInterval && autoRefreshEnabled) {
       setRefreshInterval(changes.refreshInterval.newValue);
+    }
+
+    // Handle working hours changes
+    if (changes.workingHoursEnabled) {
+      workingHoursEnabled = changes.workingHoursEnabled.newValue;
+      console.log("🕐 Working hours enabled:", workingHoursEnabled);
+    }
+    
+    if (changes.workStartTime) {
+      workStartTime = changes.workStartTime.newValue;
+      console.log("🕐 Work start time updated:", workStartTime);
+    }
+    
+    if (changes.workEndTime) {
+      workEndTime = changes.workEndTime.newValue;
+      console.log("🕐 Work end time updated:", workEndTime);
     }
   }
 });
@@ -83,6 +110,29 @@ function setRefreshInterval(intervalSeconds) {
     console.log(`🔄 Auto-refresh started with ${intervalSeconds} second interval (${intervalMs}ms)`);
   } else {
     console.log("🔄 Auto-refresh is disabled, not starting interval");
+  }
+}
+
+// Check if current time is within working hours
+function isWithinWorkingHours() {
+  if (!workingHoursEnabled) {
+    return true; // If working hours mode is disabled, always allow notifications
+  }
+
+  const now = new Date();
+  const currentTime = now.toTimeString().slice(0, 5); // Get HH:MM format
+  
+  // Convert times to comparable format
+  const startTime = workStartTime;
+  const endTime = workEndTime;
+  
+  // Handle overnight shifts (e.g., 22:00 to 06:00)
+  if (startTime > endTime) {
+    // Overnight shift: current time should be >= start OR <= end
+    return currentTime >= startTime || currentTime <= endTime;
+  } else {
+    // Regular shift: current time should be between start and end
+    return currentTime >= startTime && currentTime <= endTime;
   }
 }
 
