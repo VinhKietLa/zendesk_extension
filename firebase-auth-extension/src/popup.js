@@ -272,16 +272,28 @@ async function completeSignInFromBackground(idToken, accessToken) {
     console.log("🔐 Completing sign-in with tokens from background");
     
     const credential = GoogleAuthProvider.credential(idToken, accessToken);
-    await signInWithCredential(auth, credential);
+    const userCred = await signInWithCredential(auth, credential);
+    const user = userCred.user;
     
     console.log("✅ Sign-in completed successfully from background");
     showToast("Successfully signed in!", "success");
+    
+    // Store user data in local storage for options page
+    await chrome.storage.local.set({
+      user: {
+        uid: user.uid,
+        email: user.email,
+        displayName: user.displayName,
+        photoURL: user.photoURL,
+      }
+    });
+    console.log("💾 Stored user data in local storage:", user.email);
     
     // Notify options page of auth state change
     try {
       chrome.runtime.sendMessage({ 
         action: 'authStateChanged', 
-        user: { email: auth.currentUser?.email, uid: auth.currentUser?.uid } 
+        user: { email: user.email, uid: user.uid } 
       });
     } catch (error) {
       console.log("Options page not available for auth state update");
@@ -387,6 +399,18 @@ document.addEventListener("DOMContentLoaded", async () => {
         const isPro = await isUserPro(user.uid);
         console.log("⭐ Pro status:", isPro);
         
+        // Store user data and pro status in local storage for options page
+        await chrome.storage.local.set({ 
+          user: {
+            uid: user.uid,
+            email: user.email,
+            displayName: user.displayName,
+            photoURL: user.photoURL
+          },
+          userProStatus: isPro 
+        });
+        console.log("💾 Stored user data and pro status in local storage:", isPro);
+        
         // Debug: Log the full user profile to see what's stored
         console.log("📋 Full user profile:", userProfile);
 
@@ -440,6 +464,9 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (userInfo) userInfo.textContent = "";
       if (proBadge) proBadge.style.display = "none";
       if (upgradeBtn) upgradeBtn.style.display = "none";
+
+      // Clear user data and pro status from storage
+      chrome.storage.local.remove(['user', 'userProStatus']);
 
       // Load free user data when signed out
       loadFreeUserData();

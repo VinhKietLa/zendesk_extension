@@ -23,17 +23,42 @@ function initializeOptions() {
             checkAuthState();
         }
     });
+    
+    // Listen for storage changes to update when pro status changes
+    chrome.storage.onChanged.addListener((changes, area) => {
+        if (area === 'local' && (changes.user || changes.userProStatus)) {
+            console.log('User or pro status changed, updating options page');
+            checkAuthState();
+        }
+    });
 }
 
 function checkAuthState() {
     // Check if user is signed in by looking for user data in storage
-    chrome.storage.local.get(['userProfile', 'hasProLicense'], (data) => {
-        if (data.userProfile || data.hasProLicense) {
-            // User appears to be signed in
-            updateAccountInfo('Pro', data.userProfile?.email || 'Pro User');
-            updateProFeaturesVisibility('Pro');
+    chrome.storage.local.get(null, (allData) => {
+        console.log('🔍 Options page checking ALL storage data:', allData);
+        
+        const user = allData.user;
+        const pendingSignIn = allData.pendingSignIn;
+        const userProStatus = allData.userProStatus;
+        
+        console.log('🔍 Extracted data:', { user, pendingSignIn, userProStatus });
+        
+        if (user) {
+            // User is signed in, check pro status from storage
+            const isPro = userProStatus || false;
+            const plan = isPro ? 'Pro' : 'Free';
+            console.log('👤 User signed in:', user.email, 'Pro status:', isPro, 'Plan:', plan);
+            updateAccountInfo(plan, user.email);
+            updateProFeaturesVisibility(plan);
+        } else if (pendingSignIn) {
+            // Sign-in in progress
+            console.log('⏳ Sign-in in progress...');
+            updateAccountInfo('Signing in...', null);
+            updateProFeaturesVisibility('Free');
         } else {
             // User is not signed in
+            console.log('❌ User not signed in');
             updateAccountInfo('Free', null);
             updateProFeaturesVisibility('Free');
         }
@@ -111,6 +136,14 @@ function setupEventListeners() {
     // Add event listeners for buttons
     if (upgradeBtn) {
         upgradeBtn.addEventListener('click', handleUpgrade);
+    }
+    
+    const refreshAuthBtn = document.getElementById('refreshAuthBtn');
+    if (refreshAuthBtn) {
+        refreshAuthBtn.addEventListener('click', () => {
+            console.log('🔄 Manual refresh of auth state requested');
+            checkAuthState();
+        });
     }
     // Removed signInBtn event listener
     
@@ -194,11 +227,8 @@ function loadSettings() {
             workEndTime.value = result.workEndTime || '17:00';
         }
         
-        // Update account info
-        updateAccountInfo(result.userPlan, result.userEmail);
-        
-        // Update Pro features visibility
-        updateProFeaturesVisibility(result.userPlan);
+        // Account info is handled by checkAuthState() which reads from local storage
+        // Don't override with sync storage data here
     });
 }
 
@@ -250,32 +280,42 @@ function updateProFeaturesVisibility(plan) {
     const proOnlyElements = document.querySelectorAll('.pro-only');
     const isPro = plan === 'Pro';
     
+    // Handle elements inside .pro-only sections
     proOnlyElements.forEach(element => {
         if (isPro) {
             element.classList.add('available');
             element.style.opacity = '1';
             
-            // Enable Pro-only inputs
-            const inputs = element.querySelectorAll('input[disabled]');
+            // Enable all Pro-only inputs
+            const inputs = element.querySelectorAll('input');
             inputs.forEach(input => {
-                input.disabled = false;
+                if (input.id === 'workingHoursToggle' || 
+                    input.id === 'workStartTime' || 
+                    input.id === 'workEndTime') {
+                    input.disabled = false;
+                }
             });
         } else {
             element.classList.remove('available');
             element.style.opacity = '0.6';
             
-            // Disable Pro-only inputs
-            const inputs = element.querySelectorAll('input:not([disabled])');
+            // Disable all Pro-only inputs
+            const inputs = element.querySelectorAll('input');
             inputs.forEach(input => {
                 if (input.id === 'workingHoursToggle' || 
                     input.id === 'workStartTime' || 
-                    input.id === 'workEndTime' ||
-                    input.id === 'emailAlertsToggle') {
+                    input.id === 'workEndTime') {
                     input.disabled = true;
                 }
             });
         }
     });
+    
+    // Handle Pro-only inputs that are not inside .pro-only sections
+    const emailAlertsToggle = document.getElementById('emailAlertsToggle');
+    if (emailAlertsToggle) {
+        emailAlertsToggle.disabled = !isPro;
+    }
 }
 
 function handleUpgrade() {
