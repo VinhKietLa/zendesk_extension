@@ -789,34 +789,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   });
 
-  // Show test controls in development
-  const testControls = document.querySelector(".test-controls");
-  if (testControls) {
-    testControls.style.display = "block";
-  }
 
-  // Test license controls
-  document
-    .getElementById("testLicenseOn")
-    ?.addEventListener("click", async () => {
-      await setTestLicenseStatus(true);
-      showToast("Test license enabled");
-      const user = auth.currentUser;
-      if (user) {
-        await loadReminders(user);
-      }
-    });
-
-  document
-    .getElementById("testLicenseOff")
-    ?.addEventListener("click", async () => {
-      await setTestLicenseStatus(false);
-      showToast("Test license disabled");
-      const user = auth.currentUser;
-      if (user) {
-        await loadReminders(user);
-      }
-    });
 
 
 

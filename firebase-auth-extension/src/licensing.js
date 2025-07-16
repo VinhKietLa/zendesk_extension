@@ -1,7 +1,7 @@
 // Chrome Web Store Licensing Module
 
-// Test mode flag - set to true for local development
-const TEST_MODE = true;
+// Test mode flag - set to false for production
+const TEST_MODE = false;
 
 /**
  * Check if the user has a valid Pro license

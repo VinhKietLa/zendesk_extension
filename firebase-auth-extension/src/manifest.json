@@ -8,7 +8,8 @@
     "notifications",
     "identity",
     "enterprise.deviceAttributes",
-    "clipboardWrite"
+    "clipboardWrite",
+    "scripting"
   ],
   "host_permissions": [
     "*://*.zendesk.com/*",
