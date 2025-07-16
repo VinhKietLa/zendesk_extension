@@ -756,6 +756,24 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   }
 
+  // Settings button - open options page
+  const settingsBtn = document.getElementById("settingsBtn");
+  if (settingsBtn) {
+    settingsBtn.addEventListener("click", function() {
+      chrome.runtime.openOptionsPage();
+    });
+  }
+
+  // Help button - open GitHub README
+  const helpBtn = document.getElementById("helpBtn");
+  if (helpBtn) {
+    helpBtn.addEventListener("click", function() {
+      chrome.tabs.create({
+        url: 'https://github.com/VinhKietLa/zendesk_extension#readme'
+      });
+    });
+  }
+
   if (dropdownSignIn) {
     dropdownSignIn.addEventListener("click", async () => {
       try {

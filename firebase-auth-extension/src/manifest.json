@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Agent Hero for Zendesk",
-  "version": "1.5",
+  "version": "1.6",
   "description": "An extension to manage Zendesk tickets efficiently.",
   "permissions": [
     "storage",
