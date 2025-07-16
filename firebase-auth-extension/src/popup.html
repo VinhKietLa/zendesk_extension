@@ -72,16 +72,53 @@
 
         <div class="tab-content">
             <div id="important-tab" class="tab-pane active">
-                <h2>Important Tickets</h2>
-                <ul id="importantTicketsList" class="ticket-list"></ul>
-                <div class="add-ticket">
-                    <h3>Add New Ticket</h3>
-                    <input type="text" id="ticketInput" placeholder="Enter ticket ID or URL">
-                    <input type="text" id="ticketDescription" placeholder="Enter description">
-                    <input type="datetime-local" id="reminderTime">
-                    <button id="addTicket" class="btn">Add Ticket</button>
+                <div class="important-header">
+                    <div class="important-title">
+                        <i class="fas fa-exclamation-triangle warning-icon"></i>
+                        <h2>Important Tickets</h2>
+                    </div>
+                    <div class="important-badge">1</div>
                 </div>
-            </div>
+                <div class="add-ticket-card">
+                    <div class="add-ticket-header">
+                        <i class="fas fa-plus"></i>
+                        <h3>Add New Ticket</h3>
+                    </div>
+                    <div class="add-ticket-form">
+                        <div class="form-group">
+                            <label for="ticketInput">Ticket ID or URL</label>
+                            <input type="text" id="ticketInput" placeholder="Enter ticket ID or URL">
+                        </div>
+                        <div class="form-group">
+                            <label for="ticketDescription">Description</label>
+                            <textarea id="ticketDescription" placeholder="Enter description" rows="3"></textarea>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="reminderDate">Date</label>
+                                <div class="input-with-icon">
+                                    <input type="date" id="reminderDate" placeholder="dd/mm/yyyy">
+                                    <i class="fas fa-calendar"></i>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="reminderTime">Time</label>
+                                <div class="input-with-icon">
+                                    <input type="time" id="reminderTime" placeholder="--:--">
+                                    <i class="fas fa-clock"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <button id="addTicket" class="add-ticket-btn">
+                            <i class="fas fa-plus"></i>
+                            Add Ticket
+                        </button>
+                    </div>
+                    <div class="your-tickets-section">
+                        <div class="your-tickets-heading">Your Tickets</div>
+                        <ul id="importantTicketsList" class="ticket-list"></ul>
+                    </div>
+                </div>
 
             <div id="pinned-tab" class="tab-pane">
                 <h2>Pinned Tickets <span id="pinnedTicketsCount"></span><span id="pinnedTicketsLimit">/3</span></h2>

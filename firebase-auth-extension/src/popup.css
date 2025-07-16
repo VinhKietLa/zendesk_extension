@@ -656,27 +656,160 @@ li:last-child {
   margin-bottom: 0;
 }
 
-.add-ticket {
-  margin-top: 18px;
-  padding: 12px;
+/* Important Tickets Header */
+.important-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding: 0 20px;
+}
+
+.important-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-left: 2px;
+}
+
+.warning-icon {
+  color: #ff6b35;
+  font-size: 18px;
+}
+
+.important-badge {
+  background-color: #6c757d;
+  color: white;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* Add Ticket Card */
+.add-ticket-card {
+  background-color: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  margin-top: 16px;
+  overflow: hidden;
+}
+
+.add-ticket-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 20px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.add-ticket-header i {
+  color: #333;
+  font-size: 16px;
+}
+
+.add-ticket-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+}
+
+.add-ticket-form {
+  padding: 20px;
+}
+
+.form-group {
+  margin-bottom: 16px;
+}
+
+.form-group label {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 6px;
+}
+
+.form-group input,
+.form-group textarea {
+  width: 100%;
+  padding: 10px 12px;
   border: 1px solid #e0e0e0;
   border-radius: 8px;
-  background: #fafbfc;
+  font-size: 14px;
+  background-color: #ffffff;
+  transition: border-color 0.2s ease;
+  box-sizing: border-box;
 }
 
-.add-ticket h3 {
-  margin-top: 0;
-  margin-bottom: 10px;
-  font-size: 1.1em;
+.form-group input:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: #007bff;
 }
 
-.add-ticket input {
+.form-group textarea {
+  resize: vertical;
+  min-height: 80px;
+  font-family: inherit;
+}
+
+.form-row {
+  display: flex;
+  gap: 12px;
+}
+
+.form-row .form-group {
+  flex: 1;
+}
+
+.input-with-icon {
+  position: relative;
+}
+
+.input-with-icon input {
+  padding-right: 40px;
+}
+
+.input-with-icon i {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #6c757d;
+  font-size: 14px;
+  pointer-events: none;
+}
+
+.add-ticket-btn {
   width: 100%;
-  margin-bottom: 6px;
-  padding: 7px 10px;
-  border: 1px solid #dfe6e9;
-  border-radius: 5px;
-  font-size: 0.98em;
+  background-color: #000000;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.add-ticket-btn:hover {
+  background-color: #333333;
+}
+
+.add-ticket-btn i {
+  font-size: 12px;
 }
 
 #addTicket {
@@ -947,6 +1080,52 @@ body.dark-mode .add-ticket {
   background: #23272b;
   border-color: #333;
 }
+
+/* Dark mode styles for new Important Tickets components */
+body.dark-mode .important-badge {
+  background-color: #495057;
+}
+
+body.dark-mode .add-ticket-card {
+  background-color: #2c2c2c;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+body.dark-mode .add-ticket-header {
+  border-bottom-color: #404040;
+}
+
+body.dark-mode .add-ticket-header h3 {
+  color: #e0e0e0;
+}
+
+body.dark-mode .form-group label {
+  color: #e0e0e0;
+}
+
+body.dark-mode .form-group input,
+body.dark-mode .form-group textarea {
+  background-color: #404040;
+  border-color: #555;
+  color: #e0e0e0;
+}
+
+body.dark-mode .form-group input:focus,
+body.dark-mode .form-group textarea:focus {
+  border-color: #007bff;
+}
+
+body.dark-mode .input-with-icon i {
+  color: #adb5bd;
+}
+
+body.dark-mode .add-ticket-btn {
+  background-color: #007bff;
+}
+
+body.dark-mode .add-ticket-btn:hover {
+  background-color: #0056b3;
+}
 body.dark-mode h2 {
   border-bottom: 1px solid #333;
   color: #fff;
@@ -1158,4 +1337,211 @@ body.dark-mode .macros-container::-webkit-scrollbar-thumb {
 
 body.dark-mode .macros-container::-webkit-scrollbar-thumb:hover {
   background: #555;
+}
+
+.your-tickets-section {
+  margin-top: 18px;
+  padding-top: 8px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.your-tickets-heading {
+  font-size: 13px;
+  font-weight: 500;
+  color: #888;
+  margin-bottom: 8px;
+  margin-left: 2px;
+}
+
+.add-ticket-card .ticket-list {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+body.dark-mode .your-tickets-section {
+  border-top: 1px solid #333;
+}
+
+body.dark-mode .your-tickets-heading {
+  color: #aaa;
+}
+
+/* New Ticket Card Design */
+.ticket-card {
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.ticket-card:hover {
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  transform: translateY(-1px);
+}
+
+.ticket-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.ticket-id-badge {
+  background: #f0f0f0;
+  color: #333;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.ticket-datetime {
+  color: #666;
+  font-size: 12px;
+  margin-left: 8px;
+}
+
+.ticket-description {
+  font-weight: 600;
+  color: #333;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.ticket-menu-btn {
+  background: none;
+  border: none;
+  color: #666;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+  position: relative;
+  z-index: 10;
+}
+
+.ticket-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  position: relative;
+}
+
+.ticket-menu-btn:hover {
+  background-color: #f0f0f0;
+}
+
+.ticket-menu-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  min-width: 120px;
+  z-index: 9999;
+  display: none;
+  overflow: hidden;
+}
+
+/* When there's not enough space below, show above */
+.ticket-menu-dropdown.above {
+  top: auto;
+  bottom: calc(100% + 4px);
+}
+
+.ticket-menu-dropdown.open {
+  display: block;
+}
+
+.menu-option {
+  width: 100%;
+  text-align: left;
+  padding: 8px 12px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 13px;
+  color: #333;
+  transition: background-color 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.menu-option:hover {
+  background-color: #f8f9fa;
+}
+
+.menu-option.delete {
+  color: #dc3545;
+}
+
+.menu-option.delete:hover {
+  background-color: #fff5f5;
+}
+
+.menu-option i {
+  font-size: 12px;
+  width: 14px;
+}
+
+/* Dark mode styles for ticket cards */
+body.dark-mode .ticket-card {
+  background: #2c2c2c;
+  border-color: #444;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+body.dark-mode .ticket-card:hover {
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+body.dark-mode .ticket-id-badge {
+  background: #404040;
+  color: #e0e0e0;
+}
+
+body.dark-mode .ticket-datetime {
+  color: #aaa;
+}
+
+body.dark-mode .ticket-description {
+  color: #e0e0e0;
+}
+
+body.dark-mode .ticket-menu-btn {
+  color: #aaa;
+}
+
+body.dark-mode .ticket-menu-btn:hover {
+  background-color: #404040;
+}
+
+body.dark-mode .ticket-menu-dropdown {
+  background: #2c2c2c;
+  border-color: #444;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+body.dark-mode .menu-option {
+  color: #e0e0e0;
+}
+
+body.dark-mode .menu-option:hover {
+  background-color: #404040;
+}
+
+body.dark-mode .menu-option.delete {
+  color: #ff6b6b;
+}
+
+body.dark-mode .menu-option.delete:hover {
+  background-color: #3a2a2a;
 }
