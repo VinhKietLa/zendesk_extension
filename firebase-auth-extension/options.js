@@ -68,7 +68,7 @@ function setupEventListeners() {
     
     // Buttons
     const upgradeBtn = document.getElementById('upgradeBtn');
-    const signInBtn = document.getElementById('signInBtn');
+    // Removed signInBtn logic
     
     // Add event listeners for toggles
     if (emailAlertsToggle) {
@@ -112,10 +112,7 @@ function setupEventListeners() {
     if (upgradeBtn) {
         upgradeBtn.addEventListener('click', handleUpgrade);
     }
-    
-    if (signInBtn) {
-        signInBtn.addEventListener('click', handleSignIn);
-    }
+    // Removed signInBtn event listener
     
     // Help modal
     const closeHelpModal = document.getElementById('closeHelpModal');
@@ -287,12 +284,6 @@ function handleUpgrade() {
         url: 'https://github.com/VinhKietLa/zendesk_extension#upgrade'
     });
 }
-
-function handleSignIn() {
-    // Open the popup to handle sign-in (simpler approach)
-    chrome.action.openPopup();
-}
-
 
 
 function showHelpModal() {

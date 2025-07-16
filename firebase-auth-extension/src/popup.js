@@ -266,6 +266,32 @@ function getOAuthUrl() {
   return fullUrl;
 }
 
+// Complete sign-in from background script tokens
+async function completeSignInFromBackground(idToken, accessToken) {
+  try {
+    console.log("🔐 Completing sign-in with tokens from background");
+    
+    const credential = GoogleAuthProvider.credential(idToken, accessToken);
+    await signInWithCredential(auth, credential);
+    
+    console.log("✅ Sign-in completed successfully from background");
+    showToast("Successfully signed in!", "success");
+    
+    // Notify options page of auth state change
+    try {
+      chrome.runtime.sendMessage({ 
+        action: 'authStateChanged', 
+        user: { email: auth.currentUser?.email, uid: auth.currentUser?.uid } 
+      });
+    } catch (error) {
+      console.log("Options page not available for auth state update");
+    }
+  } catch (error) {
+    console.error("❌ Error completing sign-in from background:", error);
+    showToast("Sign-in failed: " + error.message, "error");
+  }
+}
+
 // Initialize the extension
 document.addEventListener("DOMContentLoaded", async () => {
   console.log("🚀 DOMContentLoaded event fired");
@@ -495,6 +521,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   logoutBtn?.addEventListener("click", () => {
     signOut(auth);
+    showToast("Successfully signed out!", "success");
   });
 
   // Popup UI Dark Mode Sync with Options Page
@@ -712,6 +739,26 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (user) {
         loadReminders(user);
       }
+    } else if (request.action === "completeSignIn") {
+      console.log("🔐 Completing sign-in from background script");
+      completeSignInFromBackground(request.idToken, request.accessToken);
+    }
+  });
+
+  // Check for pending sign-in on popup load
+  chrome.storage.local.get(['pendingSignIn', 'signInTimestamp'], (data) => {
+    if (data.pendingSignIn && data.signInTimestamp) {
+      const timeDiff = Date.now() - data.signInTimestamp;
+      // Only process if less than 5 minutes old
+      if (timeDiff < 5 * 60 * 1000) {
+        console.log("🔐 Found pending sign-in, completing...");
+        completeSignInFromBackground(data.pendingSignIn.idToken, data.pendingSignIn.accessToken);
+        // Clear the pending sign-in
+        chrome.storage.local.remove(['pendingSignIn', 'signInTimestamp']);
+      } else {
+        // Clear old pending sign-in
+        chrome.storage.local.remove(['pendingSignIn', 'signInTimestamp']);
+      }
     }
   });
 
@@ -787,78 +834,28 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (dropdownSignIn) {
     dropdownSignIn.addEventListener("click", async () => {
       try {
-        // Use Chrome's identity API for proper OAuth flow
-        chrome.identity.launchWebAuthFlow(
-          {
-            url: getOAuthUrl(),
-            interactive: true,
-          },
-          async (redirectUrl) => {
-            if (chrome.runtime.lastError) {
-              console.error("❌ Auth error:", chrome.runtime.lastError);
-              showToast("Authentication failed: " + chrome.runtime.lastError.message, "error");
-              return;
-            }
-
-            if (!redirectUrl) {
-              console.error("❌ No redirect URL received");
-              showToast("Authentication failed: No redirect URL received", "error");
-              return;
-            }
-
-            const url = new URL(redirectUrl);
-            const code = url.searchParams.get("code");
-            const error = url.searchParams.get("error");
-            const errorDescription = url.searchParams.get("error_description");
-
-            if (error) {
-              console.error("❌ OAuth error:", error);
-              console.error("❌ Error description:", errorDescription);
-              showToast("Authentication failed: " + (errorDescription || error), "error");
-              return;
-            }
-
-            if (!code) {
-              console.error("❌ No code received");
-              showToast("Authentication failed: No authorization code received", "error");
-              return;
-            }
-
-            try {
-              console.log("🔄 Exchanging code for token");
-              const redirectUri = chrome.identity.getRedirectURL();
-
-              const response = await fetch(CLOUD_FUNCTION_URL, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ code, redirectUri }),
-              });
-
-              if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || "Token exchange failed");
-              }
-
-              const { idToken, accessToken } = await response.json();
-              console.log("✅ Token exchange successful");
-
-              const credential = GoogleAuthProvider.credential(idToken, accessToken);
-              await signInWithCredential(auth, credential);
-              
-              showToast("Successfully signed in!", "success");
-            } catch (error) {
-              console.error("❌ Error exchanging code for token:", error);
-              showToast("Authentication failed: " + error.message, "error");
-            }
+        console.log("🔑 Sign-in button clicked, sending startSignIn to background...");
+        showToast("Signing in...", "info");
+        // Send message to background to start sign-in
+        chrome.runtime.sendMessage({ action: "startSignIn" }, (response) => {
+          if (chrome.runtime.lastError) {
+            console.error("❌ Error sending startSignIn message:", chrome.runtime.lastError);
+            showToast("Failed to start sign-in process", "error");
+            return;
           }
-        );
-        
+          if (response && response.success === false) {
+            showToast("Sign-in failed: " + (response.error || "Unknown error"), "error");
+          } else {
+            // Wait for signInComplete message or storage update
+            showToast("Waiting for sign-in to complete...", "info");
+          }
+        });
         // Close the dropdown
         if (dropdownMenu) {
           dropdownMenu.classList.remove("open");
         }
       } catch (error) {
-        console.error("Error starting sign-in:", error);
+        console.error("❌ Error starting sign-in:", error);
         showToast("Failed to start sign-in process", "error");
       }
     });
@@ -867,6 +864,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (dropdownSignOut) {
     dropdownSignOut.addEventListener("click", () => {
       signOut(auth);
+      showToast("Successfully signed out!", "success");
       if (dropdownMenu) {
         dropdownMenu.classList.remove("open");
       }
@@ -1878,5 +1876,69 @@ chrome.storage.onChanged.addListener((changes, area) => {
   if (area === 'sync' && changes.darkMode) {
     const isDark = changes.darkMode.newValue;
     document.body.classList.toggle('dark-mode', isDark);
+  }
+});
+
+// Listen for sign-in completion from background
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.action === "completeSignIn") {
+    console.log("🔐 Completing sign-in with tokens from background");
+    completeSignInFromBackground(request.idToken, request.accessToken);
+  } else if (request.action === "signInComplete") {
+    console.log("✅ Sign-in complete message received from background", request.user);
+    showToast("Successfully signed in!", "success");
+    // Update UI with the user data
+    if (request.user) {
+      // Update the UI to show signed in state
+      const userInfo = document.getElementById("userInfo");
+      const loginBtn = document.getElementById("loginBtn");
+      const logoutBtn = document.getElementById("logoutBtn");
+      const proBadge = document.getElementById("proBadge");
+      const upgradeBtn = document.getElementById("upgradeBtn");
+      
+      if (userInfo) userInfo.textContent = `Signed in as ${request.user.displayName || request.user.email}`;
+      if (loginBtn) loginBtn.style.display = "none";
+      if (logoutBtn) logoutBtn.style.display = "inline-block";
+      
+      // Reload the page to update all UI elements
+      window.location.reload();
+    }
+  }
+});
+
+// Check for pending sign-in on popup load
+chrome.storage.local.get(['pendingSignIn', 'signInTimestamp', 'shouldReopenPopup'], (data) => {
+  if (data.pendingSignIn && data.signInTimestamp) {
+    const timeDiff = Date.now() - data.signInTimestamp;
+    // Only process if less than 5 minutes old
+    if (timeDiff < 5 * 60 * 1000) {
+      console.log("🔐 Found pending sign-in, completing...");
+      completeSignInFromBackground(data.pendingSignIn.idToken, data.pendingSignIn.accessToken);
+      // Clear the pending sign-in
+      chrome.storage.local.remove(['pendingSignIn', 'signInTimestamp', 'shouldReopenPopup']);
+    } else {
+      // Clear old pending sign-in
+      chrome.storage.local.remove(['pendingSignIn', 'signInTimestamp', 'shouldReopenPopup']);
+    }
+  }
+  
+  // If popup was reopened to show success message, clear the flag
+  if (data.shouldReopenPopup) {
+    chrome.storage.local.remove(['shouldReopenPopup']);
+  }
+});
+
+// Check for stored user data on popup load
+chrome.storage.local.get(['user'], (data) => {
+  if (data.user) {
+    console.log("🔍 Found stored user data:", data.user);
+    // Update UI to show signed in state
+    const userInfo = document.getElementById("userInfo");
+    const loginBtn = document.getElementById("loginBtn");
+    const logoutBtn = document.getElementById("logoutBtn");
+    
+    if (userInfo) userInfo.textContent = `Signed in as ${data.user.displayName || data.user.email}`;
+    if (loginBtn) loginBtn.style.display = "none";
+    if (logoutBtn) logoutBtn.style.display = "inline-block";
   }
 });

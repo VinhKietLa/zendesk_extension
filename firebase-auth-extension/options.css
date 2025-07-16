@@ -1,6 +1,41 @@
 /* Options Page Styles - AdBlock-style professional design */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
+/* Force correct colors in light mode - MUST BE FIRST */
+@media (prefers-color-scheme: light), not all and (prefers-color-scheme: dark) {
+  .setting-label,
+  .setting-value,
+  .setting-description {
+    color: #0f172a !important;
+    opacity: 1 !important;
+  }
+  .pro-only .setting-label,
+  .pro-only .setting-value,
+  .pro-only .setting-description,
+  input:disabled ~ .setting-label,
+  input:disabled ~ .setting-description {
+    color: #94a3b8 !important;
+    opacity: 1 !important;
+  }
+}
+
+/* Force light mode colors regardless of system preference */
+.setting-label,
+.setting-value,
+.setting-description {
+  color: #0f172a !important;
+  opacity: 1 !important;
+}
+
+.pro-only .setting-label,
+.pro-only .setting-value,
+.pro-only .setting-description,
+input:disabled ~ .setting-label,
+input:disabled ~ .setting-description {
+  color: #94a3b8 !important;
+  opacity: 1 !important;
+}
+
 * {
     margin: 0;
     padding: 0;
@@ -125,22 +160,37 @@ body {
 .setting-label {
     display: block;
     font-weight: 600;
-    color: #1e293b;
+    color: #0f172a;
     margin-bottom: 4px;
     font-size: 16px;
 }
 
 .setting-value {
     font-weight: 500;
-    color: #64748b;
+    color: #0f172a;
     font-size: 14px;
 }
 
 .setting-description {
     display: block;
-    color: #64748b;
+    color: #1e293b;
     font-size: 14px;
     margin-top: 4px;
+}
+
+/* Account sign-in info styling */
+.account-signin-info {
+    margin-top: 16px;
+    padding: 12px 16px;
+    background: #f1f5f9;
+    border-radius: 8px;
+    border-left: 4px solid #3b82f6;
+}
+
+.account-signin-info em {
+    color: #334155;
+    font-style: italic;
+    font-size: 14px;
 }
 
 /* Toggle Switch */
@@ -225,7 +275,7 @@ input:disabled + .toggle-slider:before {
 
 .btn-secondary {
     background: #f1f5f9;
-    color: #475569;
+    color: #334155;
     border: 1px solid #e2e8f0;
 }
 
@@ -261,7 +311,7 @@ input:disabled + .toggle-slider:before {
 
 /* Pro-only sections */
 .pro-only {
-    opacity: 0.6;
+    opacity: 0.8;
     position: relative;
 }
 
@@ -280,6 +330,16 @@ input:disabled + .toggle-slider:before {
     letter-spacing: 0.5px;
 }
 
+/* Explicitly set pro-only and disabled text to a readable gray in light mode */
+.pro-only .setting-label,
+.pro-only .setting-value,
+.pro-only .setting-description,
+input:disabled ~ .setting-label,
+input:disabled ~ .setting-description {
+    color: #94a3b8 !important;
+    opacity: 1 !important;
+}
+
 /* Footer */
 .options-footer {
     background: #f8fafc;
@@ -295,7 +355,7 @@ input:disabled + .toggle-slider:before {
 }
 
 .footer-text {
-    color: #64748b;
+    color: #334155;
     font-size: 14px;
 }
 
@@ -305,7 +365,7 @@ input:disabled + .toggle-slider:before {
 }
 
 .footer-link {
-    color: #64748b;
+    color: #334155;
     text-decoration: none;
     font-size: 14px;
     transition: color 0.2s ease;
@@ -361,7 +421,7 @@ input:disabled + .toggle-slider:before {
     border: none;
     font-size: 24px;
     cursor: pointer;
-    color: #64748b;
+    color: #334155;
     padding: 0;
     width: 32px;
     height: 32px;
@@ -393,7 +453,7 @@ input:disabled + .toggle-slider:before {
 }
 
 .modal-body p {
-    color: #64748b;
+    color: #334155;
     margin-bottom: 16px;
     line-height: 1.6;
 }
@@ -404,7 +464,7 @@ input:disabled + .toggle-slider:before {
 }
 
 .modal-body li {
-    color: #64748b;
+    color: #334155;
     margin-bottom: 8px;
     line-height: 1.5;
 }
@@ -510,7 +570,16 @@ input:disabled + .toggle-slider:before {
     
     .setting-value,
     .setting-description {
-        color: #94a3b8;
+        color: #cbd5e1;
+    }
+    
+    .account-signin-info {
+        background: #334155;
+        border-left-color: #3b82f6;
+    }
+    
+    .account-signin-info em {
+        color: #cbd5e1;
     }
     
     .btn-secondary {
@@ -542,7 +611,7 @@ input:disabled + .toggle-slider:before {
     
     .footer-text,
     .footer-link {
-        color: #94a3b8;
+        color: #cbd5e1;
     }
     
     .modal-content {
@@ -564,6 +633,15 @@ input:disabled + .toggle-slider:before {
     
     .modal-body p,
     .modal-body li {
-        color: #94a3b8;
+        color: #cbd5e1;
+    }
+    /* Make disabled/secondary/pro-only text darker for contrast */
+    .pro-only .setting-label,
+    .pro-only .setting-value,
+    .pro-only .setting-description,
+    input:disabled ~ .setting-label,
+    input:disabled ~ .setting-description {
+        color: #94a3b8 !important;
+        opacity: 1 !important;
     }
 } 

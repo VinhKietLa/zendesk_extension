@@ -79,8 +79,8 @@ function throttleWriteData(dataToWrite) {
   }, 5000); // Adjust this interval as necessary (5 seconds in this case)
 }
 
-// Listener for messages from popup.js
-chrome.runtime.onMessage.addListener((request) => {
+// Listener for messages from popup.js and options page
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === "logRedirectUri") {
     console.log("🔗 Redirect URI from popup:", request.redirectUri);
     console.log("🔗 Redirect URI length:", request.redirectUriLength);
@@ -89,6 +89,14 @@ chrome.runtime.onMessage.addListener((request) => {
     console.log("🔗 Full OAuth URL:", request.oauthUrl);
   } else if (request.action === "logAuthUrl") {
     console.log("🔗 Auth URL being opened:", request.authUrl);
+  } else if (request.action === "triggerSignIn") {
+    // Handle sign-in request from options page
+    handleSignInFromBackground(sendResponse);
+    return true; // Keep the message channel open for async response
+  } else if (request.action === "startSignIn") {
+    // New: Handle sign-in entirely in background
+    startSignInFlow(sendResponse);
+    return true;
   }
 });
 
@@ -111,6 +119,244 @@ function setRefreshInterval(intervalSeconds) {
   } else {
     console.log("🔄 Auto-refresh is disabled, not starting interval");
   }
+}
+
+// Handle sign-in from background script
+async function handleSignInFromBackground(sendResponse) {
+  try {
+    console.log("🔐 Background script handling sign-in request");
+    console.log("🔐 Client ID:", "469337959937-4hh07g3u8499rk3t5gd14cjcbpem6umm.apps.googleusercontent.com");
+    console.log("🔐 Cloud Function URL:", "https://exchangeoauthcode-7ylhtvfxha-uc.a.run.app");
+    
+    // Use Chrome's identity API for OAuth flow
+    chrome.identity.launchWebAuthFlow(
+      {
+        url: getOAuthUrl(),
+        interactive: true,
+      },
+      async (redirectUrl) => {
+        console.log("🔄 Background OAuth callback received, redirectUrl:", redirectUrl);
+        
+        if (chrome.runtime.lastError) {
+          console.error("❌ Background auth error:", chrome.runtime.lastError);
+          console.error("❌ Background auth error details:", JSON.stringify(chrome.runtime.lastError));
+          sendResponse({ success: false, error: chrome.runtime.lastError.message });
+          return;
+        }
+
+        if (!redirectUrl) {
+          console.error("❌ No redirect URL received in background");
+          sendResponse({ success: false, error: "No redirect URL received" });
+          return;
+        }
+
+        console.log("🔍 Background parsing redirect URL...");
+        const url = new URL(redirectUrl);
+        const code = url.searchParams.get("code");
+        const error = url.searchParams.get("error");
+        const errorDescription = url.searchParams.get("error_description");
+
+        console.log("🔍 Background URL parameters:", { code: !!code, error, errorDescription });
+        console.log("🔍 Background full redirect URL:", redirectUrl);
+
+        if (error) {
+          console.error("❌ Background OAuth error:", error);
+          sendResponse({ success: false, error: errorDescription || error });
+          return;
+        }
+
+        if (!code) {
+          console.error("❌ No code received in background");
+          sendResponse({ success: false, error: "No authorization code received" });
+          return;
+        }
+
+        try {
+          console.log("🔄 Background exchanging code for token...");
+          const redirectUri = chrome.identity.getRedirectURL();
+          console.log("🔗 Background redirect URI:", redirectUri);
+
+          const requestBody = { code, redirectUri };
+          console.log("📤 Background request body:", JSON.stringify(requestBody));
+
+          const response = await fetch("https://exchangeoauthcode-7ylhtvfxha-uc.a.run.app", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(requestBody),
+          });
+
+          console.log("📡 Background cloud function response status:", response.status);
+          console.log("📡 Background cloud function response headers:", Object.fromEntries(response.headers.entries()));
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            console.error("❌ Background cloud function error:", errorData);
+            throw new Error(errorData.error || "Token exchange failed");
+          }
+
+          const responseData = await response.json();
+          console.log("📡 Background cloud function response data:", responseData);
+          
+          const { idToken, accessToken } = responseData;
+          console.log("✅ Background token exchange successful");
+          console.log("🔐 Background ID Token length:", idToken ? idToken.length : 0);
+          console.log("🔐 Background Access Token length:", accessToken ? accessToken.length : 0);
+
+          // Store the tokens and notify popup to handle the sign-in
+          await chrome.storage.local.set({ 
+            pendingSignIn: { idToken, accessToken },
+            signInTimestamp: Date.now()
+          });
+
+          // Notify popup to handle the sign-in
+          chrome.runtime.sendMessage({ 
+            action: 'completeSignIn', 
+            idToken, 
+            accessToken 
+          }, (response) => {
+            if (chrome.runtime.lastError) {
+              console.log("Popup not available, will handle on next popup open");
+            } else {
+              console.log("✅ Background sign-in completion message sent successfully");
+            }
+          });
+
+          console.log("✅ Background sign-in tokens stored, popup will handle completion");
+          sendResponse({ success: true });
+        } catch (error) {
+          console.error("❌ Background error exchanging code for token:", error);
+          console.error("❌ Background error stack:", error.stack);
+          console.error("❌ Background error name:", error.name);
+          console.error("❌ Background error message:", error.message);
+          sendResponse({ success: false, error: error.message });
+        }
+      }
+    );
+  } catch (error) {
+    console.error("❌ Background error in handleSignInFromBackground:", error);
+    console.error("❌ Background error stack:", error.stack);
+    sendResponse({ success: false, error: error.message });
+  }
+}
+
+// New: Full sign-in flow in background
+async function startSignInFlow(sendResponse) {
+  try {
+    console.log("🔐 [BG] Starting full sign-in flow");
+    const clientId = "469337959937-4hh07g3u8499rk3t5gd14cjcbpem6umm.apps.googleusercontent.com";
+    const redirectUri = chrome.identity.getRedirectURL();
+    const scopes = ["profile", "email"];
+    const state = Math.random().toString(36).substring(2);
+    const params = new URLSearchParams({
+      client_id: clientId,
+      redirect_uri: redirectUri,
+      response_type: "code",
+      scope: scopes.join(" "),
+      state,
+      access_type: "offline",
+      prompt: "consent",
+      include_granted_scopes: "true",
+    });
+    const authUrl = `https://accounts.google.com/o/oauth2/auth?${params.toString()}`;
+    console.log("🔗 [BG] OAuth URL:", authUrl);
+    chrome.identity.launchWebAuthFlow({ url: authUrl, interactive: true }, async (redirectUrl) => {
+      if (chrome.runtime.lastError) {
+        console.error("❌ [BG] Auth error:", chrome.runtime.lastError);
+        sendResponse({ success: false, error: chrome.runtime.lastError.message });
+        return;
+      }
+      if (!redirectUrl) {
+        console.error("❌ [BG] No redirect URL received");
+        sendResponse({ success: false, error: "No redirect URL received" });
+        return;
+      }
+      const url = new URL(redirectUrl);
+      const code = url.searchParams.get("code");
+      const error = url.searchParams.get("error");
+      const errorDescription = url.searchParams.get("error_description");
+      if (error) {
+        console.error("❌ [BG] OAuth error:", error, errorDescription);
+        sendResponse({ success: false, error: errorDescription || error });
+        return;
+      }
+      if (!code) {
+        console.error("❌ [BG] No code received");
+        sendResponse({ success: false, error: "No authorization code received" });
+        return;
+      }
+      try {
+        // Exchange code for tokens
+        const response = await fetch("https://exchangeoauthcode-7ylhtvfxha-uc.a.run.app", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ code, redirectUri }),
+        });
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.error("❌ [BG] Cloud function error:", errorData);
+          sendResponse({ success: false, error: errorData.error || "Token exchange failed" });
+          return;
+        }
+        const { idToken, accessToken } = await response.json();
+        console.log("✅ [BG] Token exchange successful");
+        
+        // Store tokens and notify popup to handle Firebase sign-in
+        await chrome.storage.local.set({
+          pendingSignIn: { idToken, accessToken },
+          signInTimestamp: Date.now(),
+          shouldReopenPopup: true
+        });
+        
+        // Notify popup to complete the sign-in
+        chrome.runtime.sendMessage({ 
+          action: "completeSignIn", 
+          idToken, 
+          accessToken 
+        }, (response) => {
+          if (chrome.runtime.lastError) {
+            console.log("Popup not available, will handle on next popup open");
+          } else {
+            console.log("✅ Background sign-in completion message sent successfully");
+          }
+        });
+        
+        sendResponse({ success: true });
+        
+        // Update badge to indicate successful sign-in and trigger popup
+        chrome.action.setBadgeText({ text: '✓' });
+        chrome.action.setBadgeBackgroundColor({ color: '#4CAF50' });
+        
+        // Clear badge after 3 seconds
+        setTimeout(() => {
+          chrome.action.setBadgeText({ text: '' });
+        }, 3000);
+        
+        // Try to reopen popup after a delay
+        setTimeout(() => {
+          chrome.action.openPopup();
+        }, 2000);
+      } catch (err) {
+        console.error("❌ [BG] Error in token exchange or Firebase sign-in:", err);
+        sendResponse({ success: false, error: err.message });
+      }
+    });
+  } catch (err) {
+    console.error("❌ [BG] Error in startSignInFlow:", err);
+    sendResponse({ success: false, error: err.message });
+  }
+}
+
+function getOAuthUrl() {
+  const clientId = "469337959937-4hh07g3u8499rk3t5gd14cjcbpem6umm.apps.googleusercontent.com";
+  const redirectUri = chrome.identity.getRedirectURL();
+  const scope = "profile email";
+  
+  return `https://accounts.google.com/o/oauth2/v2/auth?` +
+         `client_id=${clientId}&` +
+         `redirect_uri=${encodeURIComponent(redirectUri)}&` +
+         `response_type=code&` +
+         `scope=${encodeURIComponent(scope)}&` +
+         `access_type=offline`;
 }
 
 // Check if current time is within working hours
