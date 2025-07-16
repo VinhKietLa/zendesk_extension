@@ -322,6 +322,16 @@ document.addEventListener("DOMContentLoaded", async () => {
   onAuthStateChanged(auth, async (user) => {
     console.log("🔐 Auth state changed:", user ? "User signed in" : "No user");
 
+    // Notify options page of auth state change
+    try {
+      chrome.runtime.sendMessage({ 
+        action: 'authStateChanged', 
+        user: user ? { email: user.email, uid: user.uid } : null 
+      });
+    } catch (error) {
+      console.log("Options page not available for auth state update");
+    }
+
     if (user) {
       console.log("👤 User details:", {
         uid: user.uid,
