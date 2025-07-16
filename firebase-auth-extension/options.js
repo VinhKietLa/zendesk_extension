@@ -12,6 +12,25 @@ document.addEventListener('DOMContentLoaded', function() {
 
 function initializeOptions() {
     console.log('Agent Hero Options Page Initialized');
+    
+    // Listen for auth state changes
+    import('./src/firebase.js').then(({ auth }) => {
+        import('firebase/auth').then(({ onAuthStateChanged }) => {
+            onAuthStateChanged(auth, async (user) => {
+                console.log('Auth state changed in options:', user ? 'User signed in' : 'No user');
+                
+                if (user) {
+                    // User is signed in, update UI
+                    updateAccountInfo('Pro', user.email);
+                    updateProFeaturesVisibility('Pro');
+                } else {
+                    // User is signed out, update UI
+                    updateAccountInfo('Free', null);
+                    updateProFeaturesVisibility('Free');
+                }
+            });
+        });
+    });
 }
 
 function setupEventListeners() {
@@ -263,13 +282,90 @@ function handleUpgrade() {
 }
 
 function handleSignIn() {
-    // Trigger sign in process
-    chrome.runtime.sendMessage({ action: 'signIn' }, function(response) {
-        if (response && response.success) {
-            // Reload settings to update account info
-            loadSettings();
+    // Use Chrome's identity API for OAuth flow (same as popup)
+    chrome.identity.launchWebAuthFlow(
+        {
+            url: getOAuthUrl(),
+            interactive: true,
+        },
+        async (redirectUrl) => {
+            if (chrome.runtime.lastError) {
+                console.error("❌ Auth error:", chrome.runtime.lastError);
+                alert("Authentication failed: " + chrome.runtime.lastError.message);
+                return;
+            }
+
+            if (!redirectUrl) {
+                console.error("❌ No redirect URL received");
+                alert("Authentication failed: No redirect URL received");
+                return;
+            }
+
+            const url = new URL(redirectUrl);
+            const code = url.searchParams.get("code");
+            const error = url.searchParams.get("error");
+            const errorDescription = url.searchParams.get("error_description");
+
+            if (error) {
+                console.error("❌ OAuth error:", error);
+                console.error("❌ Error description:", errorDescription);
+                alert("Authentication failed: " + (errorDescription || error));
+                return;
+            }
+
+            if (!code) {
+                console.error("❌ No code received");
+                alert("Authentication failed: No authorization code received");
+                return;
+            }
+
+            try {
+                console.log("🔄 Exchanging code for token");
+                const redirectUri = chrome.identity.getRedirectURL();
+
+                const response = await fetch("https://exchangeoauthcode-7ylhtvfxha-uc.a.run.app", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ code, redirectUri }),
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || "Token exchange failed");
+                }
+
+                const { idToken, accessToken } = await response.json();
+                console.log("✅ Token exchange successful");
+
+                // Import Firebase auth functions
+                const { auth } = await import('./src/firebase.js');
+                const { GoogleAuthProvider, signInWithCredential } = await import('firebase/auth');
+                
+                const credential = GoogleAuthProvider.credential(idToken, accessToken);
+                await signInWithCredential(auth, credential);
+                
+                // Update UI
+                loadSettings();
+                alert("Successfully signed in!");
+            } catch (error) {
+                console.error("❌ Error exchanging code for token:", error);
+                alert("Authentication failed: " + error.message);
+            }
         }
-    });
+    );
+}
+
+function getOAuthUrl() {
+    const clientId = "469337959937-4hh07g3u8499rk3t5gd14cjcbpem6umm.apps.googleusercontent.com";
+    const redirectUri = chrome.identity.getRedirectURL();
+    const scope = "profile email";
+    
+    return `https://accounts.google.com/o/oauth2/v2/auth?` +
+           `client_id=${clientId}&` +
+           `redirect_uri=${encodeURIComponent(redirectUri)}&` +
+           `response_type=code&` +
+           `scope=${encodeURIComponent(scope)}&` +
+           `access_type=offline`;
 }
 
 function showHelpModal() {
