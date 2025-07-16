@@ -7,6 +7,7 @@
     <title>Agent Hero
     </title>
     <link rel="stylesheet" href="popup.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
 
 <body>
@@ -47,11 +48,26 @@
         </div>
 
         <div class="tabs">
-            <button class="tab-btn active" data-tab="important">Important</button>
-            <button class="tab-btn" data-tab="pinned">Pinned</button>
-            <button class="tab-btn" data-tab="overdue">Overdue</button>
-            <button class="tab-btn" data-tab="completed">Completed</button>
-            <button class="tab-btn" data-tab="macros">Quick Macros</button>
+            <button class="tab-btn active" data-tab="important">
+                <i class="fas fa-exclamation-triangle"></i>
+                <span>Important</span>
+            </button>
+            <button class="tab-btn" data-tab="pinned">
+                <i class="fas fa-thumbtack"></i>
+                <span>Pinned</span>
+            </button>
+            <button class="tab-btn" data-tab="overdue">
+                <i class="fas fa-clock"></i>
+                <span>Overdue</span>
+            </button>
+            <button class="tab-btn" data-tab="completed">
+                <i class="fas fa-check-circle"></i>
+                <span>Done</span>
+            </button>
+            <button class="tab-btn" data-tab="macros">
+                <i class="fas fa-bolt"></i>
+                <span>Macros</span>
+            </button>
         </div>
 
         <div class="tab-content">

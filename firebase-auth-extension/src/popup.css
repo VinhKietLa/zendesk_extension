@@ -3,7 +3,7 @@
 body {
   font-family: "Inter", sans-serif;
   margin: 0;
-  padding: 20px;
+  padding: 0;
   background-color: #f9fafb;
   color: #2d3436;
   width: 400px;
@@ -571,39 +571,55 @@ li .action-buttons {
   display: flex;
   gap: 0;
   margin-bottom: 0;
-  border-bottom: 1.5px solid #e0e0e0;
-  background: #f5f6fa;
-  padding: 0 0 0 0;
-  height: 44px;
+  border-bottom: 1px solid #e5e7eb;
+  background: #f9fafb;
+  padding: 0;
+  height: 48px;
   align-items: flex-end;
 }
 
 .tab-btn {
   flex: 1;
-  padding: 10px 0 12px 0;
+  padding: 12px 8px;
   border: none;
-  background: none;
+  background: transparent;
   cursor: pointer;
   border-radius: 0;
-  color: #888;
+  color: #6b7280;
   font-weight: 500;
-  font-size: 1em;
+  font-size: 14px;
   transition: all 0.2s;
-  border-bottom: 2.5px solid transparent;
+  border-bottom: 2px solid transparent;
   margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  height: 100%;
+  justify-content: center;
 }
 
 .tab-btn.active {
-  color: #222;
-  background: #fff;
-  border-bottom: 2.5px solid #0984e3;
+  color: #1f2937;
+  background: white;
+  border-bottom: 2px solid #3b82f6;
   font-weight: 600;
   z-index: 2;
 }
 
 .tab-btn:not(.active):hover {
-  background: #f0f0f0;
-  color: #444;
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.tab-btn i {
+  font-size: 14px;
+  color: inherit;
+}
+
+.tab-btn span {
+  font-size: 12px;
+  font-weight: inherit;
 }
 
 .tab-content {
@@ -681,23 +697,27 @@ h2 {
 .container {
   max-width: 400px;
   margin: 0 auto;
-  padding: 10px 0 0 0;
+  padding: 0;
 }
 
 .header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 0;
-  margin-bottom: 20px;
+  padding: 16px;
+  margin: 0 0 20px 0;
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  color: white;
+  border-bottom: 1px solid #e5e7eb;
   position: relative;
+  z-index: 10;
 }
 
 .logo-title {
   margin: 0;
-  font-size: 1.8em;
-  font-weight: 600;
-  color: #2d3436;
+  font-size: 24px;
+  font-weight: 700;
+  color: white;
 }
 
 .header-actions {
@@ -707,21 +727,20 @@ h2 {
 }
 
 .header-icon-btn {
-  background: none;
+  background: transparent;
   border: none;
-  padding: 6px;
+  padding: 8px;
   border-radius: 6px;
   cursor: pointer;
-  color: #6b7280;
-  transition: all 0.2s ease;
+  color: white;
+  transition: background-color 0.2s;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .header-icon-btn:hover {
-  background-color: #f3f4f6;
-  color: #374151;
+  background-color: rgba(255, 255, 255, 0.2);
 }
 
 .header-icon-btn svg {
@@ -762,7 +781,7 @@ body.dark-mode .header-icon-btn:hover {
 .menu-dot {
   width: 4px;
   height: 4px;
-  background-color: #2d3436;
+  background-color: white;
   border-radius: 50%;
 }
 
