@@ -120,6 +120,8 @@ export default defineConfig({
           }
         });
 
+
+
         if (fs.existsSync(distSrcDir)) {
           fs.rmdirSync(distSrcDir, { recursive: true });
         }

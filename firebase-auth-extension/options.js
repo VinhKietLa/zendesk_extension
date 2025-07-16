@@ -81,7 +81,6 @@ function setupEventListeners() {
     // Settings toggles
     const emailAlertsToggle = document.getElementById('emailAlertsToggle');
     const chromeNotificationsToggle = document.getElementById('chromeNotificationsToggle');
-    const soundAlertsToggle = document.getElementById('soundAlertsToggle');
     const autoRefreshToggle = document.getElementById('autoRefreshToggle');
     const workingHoursToggle = document.getElementById('workingHoursToggle');
     const darkModeToggle = document.getElementById('darkModeToggle');
@@ -102,10 +101,6 @@ function setupEventListeners() {
     
     if (chromeNotificationsToggle) {
         chromeNotificationsToggle.addEventListener('change', saveSettings);
-    }
-    
-    if (soundAlertsToggle) {
-        soundAlertsToggle.addEventListener('change', saveSettings);
     }
     
     if (autoRefreshToggle) {
@@ -168,7 +163,6 @@ function loadSettings() {
     chrome.storage.sync.get([
         'emailAlerts',
         'chromeNotifications',
-        'soundAlerts',
         'autoRefresh',
         'refreshInterval',
         'workingHoursEnabled',
@@ -181,7 +175,6 @@ function loadSettings() {
         // Set toggle states
         const emailAlertsToggle = document.getElementById('emailAlertsToggle');
         const chromeNotificationsToggle = document.getElementById('chromeNotificationsToggle');
-        const soundAlertsToggle = document.getElementById('soundAlertsToggle');
         const autoRefreshToggle = document.getElementById('autoRefreshToggle');
         const workingHoursToggle = document.getElementById('workingHoursToggle');
         const darkModeToggle = document.getElementById('darkModeToggle');
@@ -192,10 +185,6 @@ function loadSettings() {
         
         if (chromeNotificationsToggle) {
             chromeNotificationsToggle.checked = result.chromeNotifications !== false; // Default to true
-        }
-        
-        if (soundAlertsToggle) {
-            soundAlertsToggle.checked = result.soundAlerts !== false; // Default to true
         }
         
         if (autoRefreshToggle) {
@@ -236,7 +225,6 @@ function saveSettings() {
     const settings = {
         emailAlerts: document.getElementById('emailAlertsToggle')?.checked || false,
         chromeNotifications: document.getElementById('chromeNotificationsToggle')?.checked || false,
-        soundAlerts: document.getElementById('soundAlertsToggle')?.checked || false,
         autoRefresh: document.getElementById('autoRefreshToggle')?.checked || false,
         refreshInterval: parseInt(document.getElementById('refreshInterval')?.value) || 60,
         workingHoursEnabled: document.getElementById('workingHoursToggle')?.checked || false,

@@ -766,7 +766,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (user) {
         loadReminders(user);
       }
-    } else if (request.action === "completeSignIn") {
+        } else if (request.action === "completeSignIn") {
       console.log("🔐 Completing sign-in from background script");
       completeSignInFromBackground(request.idToken, request.accessToken);
     }
@@ -817,6 +817,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         await loadReminders(user);
       }
     });
+
+
 
   // Burger menu dropdown logic
   const menuBtn = document.getElementById("menuBtn");

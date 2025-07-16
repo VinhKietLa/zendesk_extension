@@ -4,6 +4,8 @@ import { getUserReminders, updateReminder, isUserPro, getUserProfile } from "./d
 // Cloud Function URL for sending emails
 const EMAIL_FUNCTION_URL = "https://us-central1-zendesk-chrome-tool.cloudfunctions.net/sendReminderEmail";
 
+
+
 // Check if current time is within working hours
 async function isWithinWorkingHours() {
   return new Promise((resolve) => {
@@ -136,7 +138,7 @@ async function checkFirestoreReminders(userId) {
                 priority: 2,
                 requireInteraction: true,
               },
-              (notificationId) => {
+              async (notificationId) => {
                 if (chrome.runtime.lastError) {
                   console.error(
                     "❌ Notification error:",
@@ -209,7 +211,7 @@ function checkLocalReminders() {
             console.log(`⏰ Reminder due for ticket #${ticketId}`);
 
             // Check working hours before creating notification
-            isWithinWorkingHours().then((withinWorkingHours) => {
+            isWithinWorkingHours().then(async (withinWorkingHours) => {
               if (withinWorkingHours) {
                 try {
                   chrome.notifications.create(
@@ -222,7 +224,7 @@ function checkLocalReminders() {
                       priority: 2,
                       requireInteraction: true,
                     },
-                    (notificationId) => {
+                    async (notificationId) => {
                       if (chrome.runtime.lastError) {
                         console.error(
                           "❌ Notification error:",

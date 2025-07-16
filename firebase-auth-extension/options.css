@@ -644,4 +644,48 @@ input:disabled ~ .setting-description {
         color: #94a3b8 !important;
         opacity: 1 !important;
     }
+    
+    .select-input {
+        background: #334155;
+        border-color: #475569;
+        color: #e2e8f0;
+    }
+    
+    .select-input:focus {
+        border-color: #3b82f6;
+    }
+    
+    .select-input:disabled {
+        background: #1e293b;
+        color: #64748b;
+        cursor: not-allowed;
+    }
+}
+
+/* Select Input Styles */
+.select-input {
+    padding: 8px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 14px;
+    background: white;
+    color: #374151;
+    transition: border-color 0.2s;
+    min-width: 150px;
+}
+
+.select-input:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.select-input option {
+    padding: 8px;
+}
+
+.select-input:disabled {
+    background: #f8fafc;
+    color: #9ca3af;
+    cursor: not-allowed;
 } 

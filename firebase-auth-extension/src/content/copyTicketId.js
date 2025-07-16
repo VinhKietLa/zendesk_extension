@@ -2,6 +2,8 @@
 
 console.log("🎫 Copy Ticket ID content script loaded");
 
+
+
 function getTicketIdFromUrl() {
   const url = window.location.href;
   console.log("🔍 Checking URL:", url);
