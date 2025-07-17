@@ -1304,28 +1304,149 @@ function displayCompletedTickets(tickets) {
   if (!list) return;
   list.innerHTML = "";
 
+  // Update count badge
+  const countElement = document.getElementById('completedTicketsCount');
+  if (countElement) {
+    countElement.textContent = tickets.length;
+  }
+
   chrome.storage.sync.get("zendeskDomain", (data) => {
     const zendeskDomain =
       data.zendeskDomain || "https://your_zendesk_domain.com";
 
     tickets.forEach(({ ticketId, description, reminderTime }) => {
-      const li = document.createElement("li");
-      const link = document.createElement("a");
-      link.href = `${zendeskDomain}/agent/tickets/${ticketId}`;
-      link.target = "_blank";
-      link.textContent = `Ticket #${ticketId} - ${description}`;
-      li.appendChild(link);
+      const ticketElement = document.createElement('li');
+      ticketElement.className = 'completed-ticket-card';
+      ticketElement.style.cursor = 'pointer';
+      
+      // Make the entire card clickable to open the ticket
+      ticketElement.addEventListener('click', () => {
+        window.open(`${zendeskDomain}/agent/tickets/${ticketId}`, '_blank');
+      });
 
-      if (reminderTime) {
-        const reminder = document.createElement("div");
-        reminder.className = "reminder";
-        reminder.textContent = `Reminder: ${new Date(
-          reminderTime
-        ).toLocaleString()}`;
-        li.appendChild(reminder);
-      }
+      const completionDate = reminderTime ? new Date(reminderTime) : new Date();
+      const completionDateString = completionDate.toLocaleDateString('en-CA') + ' ' + completionDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+      
+      // Create header
+      const header = document.createElement('div');
+      header.className = 'completed-ticket-header';
+      
+      // Ticket ID badge (green for completed)
+      const idBadge = document.createElement('div');
+      idBadge.className = 'completed-ticket-id-badge';
+      idBadge.textContent = `#${ticketId}`;
+      header.appendChild(idBadge);
+      
+      // Completion status and timestamp
+      const completionStatus = document.createElement('div');
+      completionStatus.className = 'completion-status';
+      completionStatus.innerHTML = `<i class="fas fa-check" style="color: #28a745; margin-right: 4px;"></i>Completed: ${completionDateString}`;
+      header.appendChild(completionStatus);
+      
+      // Three-dot menu button
+      const menuBtn = document.createElement('button');
+      menuBtn.className = 'completed-ticket-menu-btn';
+      menuBtn.innerHTML = '<i class="fas fa-ellipsis-v"></i>';
+      menuBtn.setAttribute('aria-label', 'Ticket options');
+      
+      // Create dropdown menu
+      const menuDropdown = document.createElement('div');
+      menuDropdown.className = 'completed-ticket-menu-dropdown';
+      
+      // Delete option
+      const deleteOption = document.createElement('button');
+      deleteOption.className = 'menu-option delete';
+      deleteOption.innerHTML = '<i class="fas fa-trash"></i> Delete Ticket';
+      deleteOption.addEventListener('click', (e) => {
+        e.stopPropagation();
+        deleteTicket({ uid: '' }, false, ticketId);
+        showToast('Ticket deleted');
+        menuDropdown.classList.remove('open');
+      });
+      menuDropdown.appendChild(deleteOption);
+      
+      // Move back to Important option
+      const moveToImportantOption = document.createElement('button');
+      moveToImportantOption.className = 'menu-option';
+      moveToImportantOption.innerHTML = '<i class="fas fa-arrow-left"></i> Move back to Important';
+      moveToImportantOption.addEventListener('click', (e) => {
+        e.stopPropagation();
+        // Remove from completed tickets and add back to important
+        chrome.storage.local.get(['completedTickets', 'importantTickets'], (data) => {
+          const updatedCompletedTickets = (data.completedTickets || []).filter(ticket => 
+            ticket.ticketId !== ticketId
+          );
+          const updatedImportantTickets = [...(data.importantTickets || []), { ticketId, description, reminderTime }];
+          
+          chrome.storage.local.set({ 
+            completedTickets: updatedCompletedTickets,
+            importantTickets: updatedImportantTickets
+          }, () => {
+            displayCompletedTickets(updatedCompletedTickets);
+            showToast('Ticket moved back to Important');
+          });
+        });
+        menuDropdown.classList.remove('open');
+      });
+      menuDropdown.appendChild(moveToImportantOption);
+      
+      // Edit Details option
+      const editOption = document.createElement('button');
+      editOption.className = 'menu-option';
+      editOption.innerHTML = '<i class="fas fa-edit"></i> Edit Details';
+      editOption.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const newDescription = prompt('Enter new description:', description);
+        if (newDescription && newDescription.trim() !== '') {
+          updateTicketDescription({ uid: '' }, false, ticketId, newDescription.trim());
+          showToast('Ticket description updated');
+        }
+        menuDropdown.classList.remove('open');
+      });
+      menuDropdown.appendChild(editOption);
+      
+      // Toggle dropdown
+      menuBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        
+        // Close other dropdowns
+        document.querySelectorAll('.completed-ticket-menu-dropdown').forEach(dropdown => {
+          if (dropdown !== menuDropdown) {
+            dropdown.classList.remove('open');
+          }
+        });
+        
+        menuDropdown.classList.toggle('open');
+        
+        if (menuDropdown.classList.contains('open')) {
+          // Position dropdown relative to the button using absolute positioning
+          menuDropdown.style.position = 'absolute';
+          menuDropdown.style.top = '100%';
+          menuDropdown.style.right = '-5px';
+          menuDropdown.style.marginTop = '4px';
+          menuDropdown.style.minWidth = '200px';
+          menuDropdown.style.zIndex = '9999999';
+        }
+      });
+      
+      // Close dropdown when clicking outside
+      document.addEventListener('click', (e) => {
+        if (!menuBtn.contains(e.target) && !menuDropdown.contains(e.target)) {
+          menuDropdown.classList.remove('open');
+        }
+      });
+      
+      header.appendChild(menuBtn);
+      header.appendChild(menuDropdown);
+      ticketElement.appendChild(header);
+      
+      // Ticket description
+      const descriptionElement = document.createElement('div');
+      descriptionElement.className = 'completed-ticket-description';
+      descriptionElement.textContent = description;
+      ticketElement.appendChild(descriptionElement);
 
-      list.appendChild(li);
+      list.appendChild(ticketElement);
     });
   });
 }

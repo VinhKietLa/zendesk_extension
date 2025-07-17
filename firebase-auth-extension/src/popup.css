@@ -6,7 +6,7 @@ body {
   padding: 0;
   background-color: #f9fafb;
   color: #2d3436;
-  width: 450px;
+  width: 400px;
   height: 700px;
   line-height: 1.6;
   overflow: hidden;
@@ -163,7 +163,6 @@ button {
 }
 
 #clearCompletedTickets {
-  width: 100%;
   background-color: #e17055;
   color: white;
   margin-top: 20px;
@@ -654,6 +653,7 @@ li .action-buttons {
 .tab-pane {
   display: none;
   animation: fadeIn 0.2s;
+  position: relative;
 }
 
 .tab-pane.active {
@@ -1614,4 +1614,206 @@ body.dark-mode .menu-option.delete:hover {
 }
 .ticket-menu-dropdown {
   z-index: 9999 !important;
+}
+
+/* Completed Tickets Styling */
+.completed-ticket-card {
+  background: #f8fff8;
+  border: 1px solid #e0e8e0;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.completed-ticket-card:hover {
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  transform: translateY(-1px);
+}
+
+.completed-ticket-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  position: relative;
+}
+
+.completed-ticket-id-badge {
+  background: #e8f5e8;
+  color: #2d5a2d;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid #28a745;
+}
+
+.completion-status {
+  color: #28a745;
+  font-size: 12px;
+  margin-left: 8px;
+  display: flex;
+  align-items: center;
+}
+
+.completed-ticket-description {
+  font-weight: 600;
+  color: #2d5a2d;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.completed-ticket-menu-btn {
+  background: none;
+  border: none;
+  color: #666;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+  position: relative;
+  z-index: 10;
+}
+
+.completed-ticket-menu-btn:hover {
+  background-color: #e0e8e0;
+}
+
+.completed-ticket-menu-dropdown {
+  position: absolute;
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  min-width: 160px;
+  z-index: 9999999;
+  display: none;
+  overflow: hidden;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.completed-ticket-menu-dropdown.open {
+  display: block;
+  position: absolute;
+  top: 100%;
+  right: -5px;
+  margin-top: 4px;
+  min-width: 200px;
+}
+
+/* Dark mode styles for completed tickets */
+body.dark-mode .completed-ticket-card {
+  background: #1a2a1a;
+  border-color: #2d5a2d;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+body.dark-mode .completed-ticket-card:hover {
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+body.dark-mode .completed-ticket-id-badge {
+  background: #2d5a2d;
+  color: #e8f5e8;
+  border-color: #28a745;
+}
+
+body.dark-mode .completion-status {
+  color: #4ade80;
+}
+
+body.dark-mode .completed-ticket-description {
+  color: #e8f5e8;
+}
+
+body.dark-mode .completed-ticket-menu-btn {
+  color: #aaa;
+}
+
+body.dark-mode .completed-ticket-menu-btn:hover {
+  background-color: #2d5a2d;
+}
+
+body.dark-mode .completed-ticket-menu-dropdown {
+  background: #2c2c2c;
+  border-color: #444;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Completed Header Layout */
+.completed-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 18px 0 8px;
+  padding-left: 20px;
+  padding-right: 20px;
+}
+.completed-header h2 {
+  margin: 0;
+  font-size: 1.08em;
+  font-weight: 600;
+  line-height: 1.2;
+  padding: 0;
+  display: flex;
+  align-items: center;
+}
+.completed-header .clear-completed-btn {
+  margin: 0;
+  align-self: center;
+}
+
+.clear-completed-btn {
+  background: #dc3545;
+  color: white;
+  border: none;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  box-shadow: 0 1px 3px rgba(220, 53, 69, 0.3);
+  width: auto;
+  min-width: 80px;
+}
+
+.clear-completed-btn:hover {
+  background: #c82333;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(220, 53, 69, 0.4);
+}
+
+.clear-completed-btn:active {
+  transform: translateY(0);
+}
+
+/* Dark mode styles for clear button */
+body.dark-mode .clear-completed-btn {
+  background: #dc3545;
+  color: white;
+  box-shadow: 0 1px 3px rgba(220, 53, 69, 0.4);
+}
+
+body.dark-mode .clear-completed-btn:hover {
+  background: #c82333;
+  box-shadow: 0 2px 6px rgba(220, 53, 69, 0.5);
+}
+
+/* Remove .completed-header and related overrides */
+.completed-header, .completed-header h2, .completed-header .clear-completed-btn {
+  all: unset;
+}
+
+/* Ensure the button inside h2 is vertically centered and has no extra margin */
+h2 .clear-completed-btn {
+  margin: 0;
+  vertical-align: middle;
 }
