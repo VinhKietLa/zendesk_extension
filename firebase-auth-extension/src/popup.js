@@ -1650,10 +1650,24 @@ async function displayPinnedTickets(user, isPro) {
             pinnedTicketsList.appendChild(ticketElement);
         });
         
-        // Update count
+        // Update count and limit display
         const countElement = document.getElementById('pinnedTicketsCount');
+        const limitElement = document.getElementById('pinnedTicketsLimit');
+        
         if (countElement) {
-            countElement.textContent = tickets.length;
+            if (isPro) {
+                countElement.textContent = '';
+            } else {
+                countElement.textContent = tickets.length;
+            }
+        }
+        
+        if (limitElement) {
+            if (isPro) {
+                limitElement.textContent = ' (Unlimited)';
+            } else {
+                limitElement.textContent = '/3';
+            }
         }
         
 
