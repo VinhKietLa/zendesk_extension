@@ -1335,34 +1335,262 @@ function displayOverdueTickets(tickets) {
   if (!list) return;
   list.innerHTML = "";
 
+  // Update count badge
+  const countElement = document.getElementById('overdueTicketsCount');
+  if (countElement) {
+    countElement.textContent = tickets.length;
+  }
+
   chrome.storage.sync.get("zendeskDomain", (data) => {
     const zendeskDomain =
       data.zendeskDomain || "https://your_zendesk_domain.com";
 
     tickets.forEach(({ ticketId, description, reminderTime }) => {
-      const li = document.createElement("li");
-      const link = document.createElement("a");
-      link.href = `${zendeskDomain}/agent/tickets/${ticketId}`;
-      link.target = "_blank";
-      link.textContent = `Ticket #${ticketId} - ${description}`;
-      li.appendChild(link);
+      const ticketElement = document.createElement('li');
+      ticketElement.className = 'ticket-card';
+      ticketElement.style.cursor = 'pointer';
+      
+      // Make the entire card clickable to open the ticket
+      ticketElement.addEventListener('click', () => {
+        window.open(`${zendeskDomain}/agent/tickets/${ticketId}`, '_blank');
+      });
 
-      if (reminderTime) {
-        const reminder = document.createElement("div");
-        reminder.className = "reminder";
-        reminder.textContent = `Reminder: ${new Date(
-          reminderTime
-        ).toLocaleString()}`;
-        li.appendChild(reminder);
-      }
+      const dueDate = reminderTime ? new Date(reminderTime) : new Date();
+      const dueDateString = dueDate.toLocaleString('en-GB');
+      
+      // Create header
+      const header = document.createElement('div');
+      header.className = 'ticket-header';
+      
+      // Ticket ID badge (red for overdue)
+      const idBadge = document.createElement('div');
+      idBadge.className = 'ticket-id-badge';
+      idBadge.style.background = '#dc3545';
+      idBadge.style.color = 'white';
+      idBadge.textContent = `#${ticketId}`;
+      header.appendChild(idBadge);
+      
+      // Due date/time
+      const dueDateTime = document.createElement('div');
+      dueDateTime.className = 'ticket-datetime';
+      dueDateTime.style.color = '#8B4513';
+      dueDateTime.textContent = `Due: ${dueDateString}`;
+      header.appendChild(dueDateTime);
+      
+      // Three-dot menu button
+      const menuBtn = document.createElement('button');
+      menuBtn.className = 'ticket-menu-btn';
+      menuBtn.innerHTML = '<i class="fas fa-ellipsis-v"></i>';
+      menuBtn.setAttribute('aria-label', 'Ticket options');
+      
+      // Create dropdown menu
+      const menuDropdown = document.createElement('div');
+      menuDropdown.className = 'ticket-menu-dropdown';
+      
+      // Mark as completed option
+      const completeOption = document.createElement('button');
+      completeOption.className = 'menu-option';
+      completeOption.innerHTML = '<i class="fas fa-check" style="color: #28a745;"></i> Mark as Completed';
+      completeOption.addEventListener('click', (e) => {
+        e.stopPropagation();
+        markReminderAsDone({ uid: '' }, ticketId);
+        showToast('Ticket marked as completed');
+        // Refresh the display
+        setTimeout(() => {
+          loadReminders({ uid: '' });
+        }, 100);
+        menuDropdown.classList.remove('open');
+      });
+      menuDropdown.appendChild(completeOption);
+      
+      // Snooze 1 hour option
+      const snooze1HourOption = document.createElement('button');
+      snooze1HourOption.className = 'menu-option';
+      snooze1HourOption.innerHTML = '<i class="fas fa-redo"></i> Snooze 1 hour';
+      snooze1HourOption.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const newReminderTime = new Date(Date.now() + 60 * 60 * 1000); // 1 hour from now
+        chrome.storage.local.get(['overdueTickets'], (data) => {
+          const updatedTickets = (data.overdueTickets || []).map(ticket => 
+            ticket.ticketId === ticketId 
+              ? { ...ticket, reminderTime: newReminderTime.getTime() }
+              : ticket
+          );
+          chrome.storage.local.set({ overdueTickets: updatedTickets }, () => {
+            displayOverdueTickets(updatedTickets);
+            showToast('Ticket snoozed for 1 hour');
+          });
+        });
+        menuDropdown.classList.remove('open');
+      });
+      menuDropdown.appendChild(snooze1HourOption);
+      
+      // Snooze 4 hours option
+      const snooze4HoursOption = document.createElement('button');
+      snooze4HoursOption.className = 'menu-option';
+      snooze4HoursOption.innerHTML = '<i class="fas fa-redo"></i> Snooze 4 hours';
+      snooze4HoursOption.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const newReminderTime = new Date(Date.now() + 4 * 60 * 60 * 1000); // 4 hours from now
+        chrome.storage.local.get(['overdueTickets'], (data) => {
+          const updatedTickets = (data.overdueTickets || []).map(ticket => 
+            ticket.ticketId === ticketId 
+              ? { ...ticket, reminderTime: newReminderTime.getTime() }
+              : ticket
+          );
+          chrome.storage.local.set({ overdueTickets: updatedTickets }, () => {
+            displayOverdueTickets(updatedTickets);
+            showToast('Ticket snoozed for 4 hours');
+          });
+        });
+        menuDropdown.classList.remove('open');
+      });
+      menuDropdown.appendChild(snooze4HoursOption);
+      
+      // Snooze until tomorrow option
+      const snoozeTomorrowOption = document.createElement('button');
+      snoozeTomorrowOption.className = 'menu-option';
+      snoozeTomorrowOption.innerHTML = '<i class="fas fa-redo"></i> Snooze until tomorrow';
+      snoozeTomorrowOption.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        tomorrow.setHours(9, 0, 0, 0); // Set to 9 AM tomorrow
+        chrome.storage.local.get(['overdueTickets'], (data) => {
+          const updatedTickets = (data.overdueTickets || []).map(ticket => 
+            ticket.ticketId === ticketId 
+              ? { ...ticket, reminderTime: tomorrow.getTime() }
+              : ticket
+          );
+          chrome.storage.local.set({ overdueTickets: updatedTickets }, () => {
+            displayOverdueTickets(updatedTickets);
+            showToast('Ticket snoozed until tomorrow');
+          });
+        });
+        menuDropdown.classList.remove('open');
+      });
+      menuDropdown.appendChild(snoozeTomorrowOption);
+      
+      // Move to Important option
+      const moveToImportantOption = document.createElement('button');
+      moveToImportantOption.className = 'menu-option';
+      moveToImportantOption.innerHTML = '<i class="fas fa-arrow-right"></i> Move to Important';
+      moveToImportantOption.addEventListener('click', (e) => {
+        e.stopPropagation();
+        // Remove from overdue tickets
+        chrome.storage.local.get(['overdueTickets', 'importantTickets'], (data) => {
+          const updatedOverdueTickets = (data.overdueTickets || []).filter(ticket => 
+            ticket.ticketId !== ticketId
+          );
+          const updatedImportantTickets = [...(data.importantTickets || []), { ticketId, description, reminderTime }];
+          
+          chrome.storage.local.set({ 
+            overdueTickets: updatedOverdueTickets,
+            importantTickets: updatedImportantTickets
+          }, () => {
+            displayOverdueTickets(updatedOverdueTickets);
+            showToast('Ticket moved to Important');
+          });
+        });
+        menuDropdown.classList.remove('open');
+      });
+      menuDropdown.appendChild(moveToImportantOption);
+      
+      // Edit Details option
+      const editOption = document.createElement('button');
+      editOption.className = 'menu-option';
+      editOption.innerHTML = '<i class="fas fa-edit"></i> Edit Details';
+      editOption.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const newDescription = prompt('Edit description:', description);
+        if (newDescription && newDescription !== description) {
+          // Update the description in storage
+          chrome.storage.local.get(['overdueTickets'], (data) => {
+            const updatedTickets = (data.overdueTickets || []).map(ticket => 
+              ticket.ticketId === ticketId 
+                ? { ...ticket, description: newDescription }
+                : ticket
+            );
+            chrome.storage.local.set({ overdueTickets: updatedTickets }, () => {
+              displayOverdueTickets(updatedTickets);
+            });
+          });
+        }
+        menuDropdown.classList.remove('open');
+      });
+      menuDropdown.appendChild(editOption);
+      
+      // Delete Ticket option
+      const deleteOption = document.createElement('button');
+      deleteOption.className = 'menu-option delete';
+      deleteOption.innerHTML = '<i class="fas fa-trash"></i> Delete Ticket';
+      deleteOption.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (confirm('Are you sure you want to delete this ticket?')) {
+          chrome.storage.local.get(['overdueTickets'], (data) => {
+            const updatedTickets = (data.overdueTickets || []).filter(ticket => 
+              ticket.ticketId !== ticketId
+            );
+            chrome.storage.local.set({ overdueTickets: updatedTickets }, () => {
+              displayOverdueTickets(updatedTickets);
+              showToast('Ticket deleted');
+            });
+          });
+        }
+        menuDropdown.classList.remove('open');
+      });
+      menuDropdown.appendChild(deleteOption);
+      
+      // Menu button click handler
+      menuBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        
+        // Close all other open dropdowns first
+        document.querySelectorAll('.ticket-menu-dropdown.open').forEach(dropdown => {
+          if (dropdown !== menuDropdown) {
+            dropdown.classList.remove('open');
+          }
+        });
+        
+        menuDropdown.classList.toggle('open');
+        
+        if (menuDropdown.classList.contains('open')) {
+          // Position dropdown relative to the button using absolute positioning
+          menuDropdown.style.position = 'absolute';
+          menuDropdown.style.top = '100%';
+          menuDropdown.style.right = '-5px';
+          menuDropdown.style.marginTop = '4px';
+          menuDropdown.style.minWidth = '200px';
+          menuDropdown.style.zIndex = '9999999';
+        }
+      });
+      
+      // Close dropdown when clicking outside
+      document.addEventListener('click', (e) => {
+        if (!menuBtn.contains(e.target) && !menuDropdown.contains(e.target)) {
+          menuDropdown.classList.remove('open');
+        }
+      });
+      
+      header.appendChild(menuBtn);
+      header.appendChild(menuDropdown);
+      ticketElement.appendChild(header);
+      
+      // Ticket description
+      const descriptionElement = document.createElement('div');
+      descriptionElement.className = 'ticket-description';
+      descriptionElement.textContent = description;
+      ticketElement.appendChild(descriptionElement);
+      
+      // Overdue status indicator
+      const overdueStatus = document.createElement('div');
+      overdueStatus.style.marginTop = '8px';
+      overdueStatus.style.fontSize = '12px';
+      overdueStatus.style.color = '#8B4513';
+      overdueStatus.innerHTML = `<i class="fas fa-clock" style="color: #dc3545; margin-right: 4px;"></i>Overdue since ${dueDateString}`;
+      ticketElement.appendChild(overdueStatus);
 
-      const doneBtn = document.createElement("button");
-      doneBtn.textContent = "Done";
-      doneBtn.className = "done-btn markAsDone";
-      doneBtn.setAttribute("data-ticket-id", ticketId);
-      li.appendChild(doneBtn);
-
-      list.appendChild(li);
+      list.appendChild(ticketElement);
     });
   });
 }

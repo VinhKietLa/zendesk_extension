@@ -871,6 +871,7 @@ h2 {
   padding: 0;
   display: flex;
   flex-direction: column;
+  position: relative;
 }
 
 .header {
@@ -1491,16 +1492,16 @@ body.dark-mode .your-tickets-heading {
 
 .ticket-menu-dropdown {
   position: absolute;
-  top: calc(100% + 4px);
-  right: 0;
   background: white;
   border: 1px solid #e0e0e0;
   border-radius: 6px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  min-width: 120px;
-  z-index: 9999;
+  min-width: 160px;
+  z-index: 9999999;
   display: none;
   overflow: hidden;
+  max-height: 300px;
+  overflow-y: auto;
 }
 
 /* When there's not enough space below, show above */
@@ -1511,6 +1512,11 @@ body.dark-mode .your-tickets-heading {
 
 .ticket-menu-dropdown.open {
   display: block;
+  position: absolute;
+  top: 100%;
+  right: -5px;
+  margin-top: 4px;
+  min-width: 200px;
 }
 
 .menu-option {
@@ -1597,4 +1603,15 @@ body.dark-mode .menu-option.delete {
 
 body.dark-mode .menu-option.delete:hover {
   background-color: #3a2a2a;
+}
+
+.ticket-card {
+  z-index: 1;
+  position: relative;
+}
+.ticket-card:hover {
+  z-index: 2;
+}
+.ticket-menu-dropdown {
+  z-index: 9999 !important;
 }
