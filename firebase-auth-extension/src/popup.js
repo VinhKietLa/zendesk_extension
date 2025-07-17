@@ -327,7 +327,18 @@ document.addEventListener("DOMContentLoaded", async () => {
       document.getElementById(`${tabId}-tab`).classList.add("active");
       
       // Load content for specific tabs
-      if (tabId === "pinned") {
+      if (tabId === "important") {
+        // Get current user and pro status
+        const currentUser = auth.currentUser;
+        
+        if (currentUser) {
+          const isPro = await isUserPro(currentUser.uid);
+          await loadReminders(currentUser);
+        } else {
+          // For free users, load from local storage
+          loadFreeUserData();
+        }
+      } else if (tabId === "pinned") {
         // Get current user and pro status
         const currentUser = auth.currentUser;
         
@@ -355,6 +366,12 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // Load free user data immediately
   loadFreeUserData();
+  
+  // Load pinned tickets for free users
+  const currentUser = auth.currentUser;
+  if (!currentUser) {
+    displayPinnedTickets({ uid: "" }, false);
+  }
 
       onAuthStateChanged(auth, async (user) => {
       // Notify options page of auth state change
@@ -433,6 +450,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         // Load reminders based on user type
         await loadReminders(user);
+        await displayPinnedTickets(user, isPro);
         await initializeMacros();
       } catch (error) {
         console.error("Error in auth state change:", error);
@@ -1126,11 +1144,29 @@ async function displayImportantTickets(tickets) {
         const menuDropdown = document.createElement("div");
         menuDropdown.className = "ticket-menu-dropdown";
         
+        // Mark as Completed option
+        const completeOption = document.createElement("button");
+        completeOption.className = "menu-option";
+        completeOption.style.color = "#28a745";
+        completeOption.innerHTML = '<i class="fas fa-check-circle" style="color: #28a745;"></i> Mark as Completed';
+        completeOption.addEventListener("click", async (e) => {
+          e.stopPropagation();
+          try {
+            await markReminderAsDone(user, ticketId);
+            showToast("Ticket marked as completed");
+            await loadReminders(user);
+          } catch (error) {
+            showToast(error.message || "Failed to mark ticket as completed.");
+          }
+          menuDropdown.classList.remove("open");
+        });
+        menuDropdown.appendChild(completeOption);
+        
         // Pin option
         if (user && !pinnedIds.includes(ticketId)) {
           const pinOption = document.createElement("button");
           pinOption.className = "menu-option";
-          pinOption.innerHTML = '<i class="fas fa-thumbtack"></i> Pin';
+          pinOption.innerHTML = '<i class="fas fa-thumbtack"></i> Pin Ticket';
           pinOption.addEventListener("click", async (e) => {
             e.stopPropagation();
             try {
@@ -1145,10 +1181,54 @@ async function displayImportantTickets(tickets) {
           menuDropdown.appendChild(pinOption);
         }
         
-        // Edit option
+        // Mark as Overdue option
+        const overdueOption = document.createElement("button");
+        overdueOption.className = "menu-option";
+        overdueOption.style.color = "#fd7e14";
+        overdueOption.innerHTML = '<i class="fas fa-clock" style="color: #fd7e14;"></i> Mark as Overdue';
+        overdueOption.addEventListener("click", async (e) => {
+          e.stopPropagation();
+          try {
+            // Move ticket from important to overdue
+            if (isPro) {
+              const reminders = await getUserReminders(user.uid);
+              const reminder = reminders.find((r) => r.ticketId === ticketId && r.type === "important");
+              if (reminder) {
+                await updateReminder(reminder.id, { type: "overdue" });
+              }
+            } else {
+              // For free users, move from important to overdue in local storage
+              const data = await new Promise((resolve) => {
+                chrome.storage.local.get(["importantTickets", "overdueTickets"], resolve);
+              });
+              
+              const importantTickets = data.importantTickets || [];
+              const overdueTickets = data.overdueTickets || [];
+              
+              const ticket = importantTickets.find(t => t.ticketId === ticketId);
+              if (ticket) {
+                const updatedImportantTickets = importantTickets.filter(t => t.ticketId !== ticketId);
+                const updatedOverdueTickets = [...overdueTickets, ticket];
+                
+                await chrome.storage.local.set({
+                  importantTickets: updatedImportantTickets,
+                  overdueTickets: updatedOverdueTickets
+                });
+              }
+            }
+            showToast("Ticket marked as overdue");
+            await loadReminders(user);
+          } catch (error) {
+            showToast(error.message || "Failed to mark ticket as overdue.");
+          }
+          menuDropdown.classList.remove("open");
+        });
+        menuDropdown.appendChild(overdueOption);
+        
+        // Edit Details option
         const editOption = document.createElement("button");
         editOption.className = "menu-option";
-        editOption.innerHTML = '<i class="fas fa-edit"></i> Edit';
+        editOption.innerHTML = '<i class="fas fa-edit"></i> Edit Details';
         editOption.addEventListener("click", (e) => {
           e.stopPropagation();
           const newDescription = prompt("Edit description:", description);
@@ -1159,10 +1239,10 @@ async function displayImportantTickets(tickets) {
         });
         menuDropdown.appendChild(editOption);
         
-        // Delete option
+        // Delete Ticket option
         const deleteOption = document.createElement("button");
         deleteOption.className = "menu-option delete";
-        deleteOption.innerHTML = '<i class="fas fa-trash"></i> Delete';
+        deleteOption.innerHTML = '<i class="fas fa-trash"></i> Delete Ticket';
         deleteOption.addEventListener("click", (e) => {
           e.stopPropagation();
           if (confirm("Are you sure you want to delete this ticket?")) {
@@ -1425,7 +1505,8 @@ async function unpinTicket(user, isPro, ticket) {
 async function displayPinnedTickets(user, isPro) {
     const userId = user?.uid;
     
-    if (!userId) {
+    // For free users, userId might be empty string, but we still want to display pinned tickets
+    if (userId === undefined || userId === null) {
         return;
     }
     
@@ -1454,22 +1535,117 @@ async function displayPinnedTickets(user, isPro) {
             
             const pinnedDate = new Date(ticket.pinnedAt).toLocaleString('en-GB');
             
-            ticketElement.innerHTML = `
-                <div class="ticket-header">
-                    <div class="ticket-id-badge">#${ticket.ticketId}</div>
-                    <div class="ticket-datetime">Pinned: ${pinnedDate}</div>
-                    <button class="ticket-menu-btn"><i class="fas fa-ellipsis-v"></i></button>
-                </div>
-                <div class="ticket-description">${ticket.description}</div>
-                <div class="ticket-menu-dropdown">
-                    <div class="menu-option" onclick="window.open('${zendeskDomain}/agent/tickets/${ticket.ticketId}', '_blank')">
-                        <i class="fas fa-external-link-alt"></i> Open Ticket
-                    </div>
-                    <div class="menu-option delete" onclick="unpinTicketFromMenu('${ticket.ticketId}')">
-                        <i class="fas fa-thumbtack"></i> Unpin
-                    </div>
-                </div>
-            `;
+            // Create header
+            const header = document.createElement('div');
+            header.className = 'ticket-header';
+            
+            // Ticket ID badge
+            const idBadge = document.createElement('div');
+            idBadge.className = 'ticket-id-badge';
+            idBadge.textContent = `#${ticket.ticketId}`;
+            header.appendChild(idBadge);
+            
+            // Date/time
+            const dateTime = document.createElement('div');
+            dateTime.className = 'ticket-datetime';
+            dateTime.textContent = `Pinned: ${pinnedDate}`;
+            header.appendChild(dateTime);
+            
+            // Three-dot menu button
+            const menuBtn = document.createElement('button');
+            menuBtn.className = 'ticket-menu-btn';
+            menuBtn.innerHTML = '<i class="fas fa-ellipsis-v"></i>';
+            menuBtn.setAttribute('aria-label', 'Ticket options');
+            
+            // Create dropdown menu
+            const menuDropdown = document.createElement('div');
+            menuDropdown.className = 'ticket-menu-dropdown';
+            
+            // Edit option
+            const editOption = document.createElement('button');
+            editOption.className = 'menu-option';
+            editOption.innerHTML = '<i class="fas fa-edit"></i> Edit';
+            editOption.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const newDescription = prompt('Edit description:', ticket.description);
+                if (newDescription && newDescription !== ticket.description) {
+                    updateTicketDescription(user, isPro, ticket.ticketId, newDescription);
+                }
+                menuDropdown.classList.remove('open');
+            });
+            menuDropdown.appendChild(editOption);
+            
+            // Unpin option
+            const unpinOption = document.createElement('button');
+            unpinOption.className = 'menu-option';
+            unpinOption.innerHTML = '<i class="fas fa-thumbtack"></i> Unpin';
+            unpinOption.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                try {
+                    await unpinTicket(user, isPro, ticket);
+                    showToast('Ticket unpinned');
+                    await displayPinnedTickets(user, isPro);
+                } catch (error) {
+                    showToast(error.message || 'Failed to unpin ticket.');
+                }
+                menuDropdown.classList.remove('open');
+            });
+            menuDropdown.appendChild(unpinOption);
+            
+            // Delete option
+            const deleteOption = document.createElement('button');
+            deleteOption.className = 'menu-option delete';
+            deleteOption.innerHTML = '<i class="fas fa-trash"></i> Delete';
+            deleteOption.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (confirm('Are you sure you want to delete this ticket?')) {
+                    deleteTicket(user, isPro, ticket.ticketId);
+                }
+                menuDropdown.classList.remove('open');
+            });
+            menuDropdown.appendChild(deleteOption);
+            
+            // Add click event handler for the menu button
+            menuBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                
+                // Check if dropdown is currently open
+                const isOpen = menuDropdown.classList.contains('open');
+                
+                if (!isOpen) {
+                    // Calculate available space below the button
+                    const buttonRect = menuBtn.getBoundingClientRect();
+                    const popupHeight = window.innerHeight;
+                    const spaceBelow = popupHeight - buttonRect.bottom;
+                    const dropdownHeight = 120; // Approximate height of dropdown
+                    
+                    // If not enough space below, show above
+                    if (spaceBelow < dropdownHeight) {
+                        menuDropdown.classList.add('above');
+                    } else {
+                        menuDropdown.classList.remove('above');
+                    }
+                }
+                
+                menuDropdown.classList.toggle('open');
+            });
+            
+            header.appendChild(menuBtn);
+            header.appendChild(menuDropdown);
+            ticketElement.appendChild(header);
+            
+            // Description
+            const descDiv = document.createElement('div');
+            descDiv.className = 'ticket-description';
+            descDiv.textContent = ticket.description;
+            ticketElement.appendChild(descDiv);
+            
+            // Make the card clickable to open the ticket
+            ticketElement.addEventListener('click', (e) => {
+                if (!e.target.closest('.ticket-menu-btn')) {
+                    window.open(`${zendeskDomain}/agent/tickets/${ticket.ticketId}`, '_blank');
+                }
+            });
             
             pinnedTicketsList.appendChild(ticketElement);
         });
@@ -1480,20 +1656,7 @@ async function displayPinnedTickets(user, isPro) {
             countElement.textContent = tickets.length;
         }
         
-        // Add global function for unpinning from menu
-        window.unpinTicketFromMenu = async (ticketId) => {
-            try {
-                const ticket = tickets.find(t => t.ticketId === ticketId);
-                if (ticket) {
-                    await unpinTicket(user, isPro, ticket);
-                    showToast("Ticket unpinned");
-                    await displayPinnedTickets(user, isPro);
-                }
-            } catch (error) {
-                console.error('Error unpinning ticket:', error);
-                showToast(error.message || "Failed to unpin ticket.");
-            }
-        };
+
     } catch (error) {
         console.error('Error loading pinned tickets:', error);
     }
@@ -1501,7 +1664,7 @@ async function displayPinnedTickets(user, isPro) {
 
 // Get pinned tickets
 async function getPinnedTickets(user, isPro) {
-  if (isPro) {
+  if (isPro && user?.uid) {
     // Pro: Store in Firestore as reminders with type 'pinned'
     const reminders = await getUserReminders(user.uid);
     const pinnedTickets = reminders

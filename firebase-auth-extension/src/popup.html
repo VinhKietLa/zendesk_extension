@@ -48,11 +48,11 @@
         </div>
 
         <div class="tabs">
-            <button class="tab-btn" data-tab="important">
+            <button class="tab-btn active" data-tab="important">
                 <i class="fas fa-exclamation-triangle"></i>
                 <span>Important</span>
             </button>
-            <button class="tab-btn active" data-tab="pinned">
+            <button class="tab-btn" data-tab="pinned">
                 <i class="fas fa-thumbtack"></i>
                 <span>Pinned</span>
             </button>
@@ -71,7 +71,7 @@
         </div>
 
         <div class="tab-content">
-            <div id="important-tab" class="tab-pane">
+            <div id="important-tab" class="tab-pane active">
                 <div class="important-header">
                     <div class="important-title">
                         <i class="fas fa-exclamation-triangle warning-icon"></i>
@@ -121,7 +121,7 @@
                 </div>
             </div>
 
-            <div id="pinned-tab" class="tab-pane active">
+            <div id="pinned-tab" class="tab-pane">
                 <h2>Pinned Tickets <span id="pinnedTicketsCount"></span><span id="pinnedTicketsLimit">/3</span></h2>
                 <ul id="pinnedTicketsList" class="ticket-list"></ul>
             </div>
