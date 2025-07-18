@@ -349,6 +349,9 @@ document.addEventListener("DOMContentLoaded", async () => {
           // For free users, load from local storage
           await displayPinnedTickets({ uid: "" }, false);
         }
+      } else if (tabId === "macros") {
+        // Initialize macros and update count display
+        await initializeMacros();
       }
       
       // Settings are now controlled by the options page
@@ -758,8 +761,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         // Show success message
         showToast("Successfully upgraded to Pro!");
 
-        // Reload reminders to use Firestore
+        // Reload reminders and macros to use Firestore
         await loadReminders(user);
+        await initializeMacros();
       } catch (error) {
         console.error("Error upgrading to Pro:", error);
         alert("Failed to upgrade to Pro. Please try again.");
@@ -977,6 +981,11 @@ document.addEventListener("DOMContentLoaded", async () => {
         const macroElement = createMacroElement(newMacro);
         macrosList.appendChild(macroElement);
       }
+
+      // Update macro count display
+      const isPro = user ? await isUserPro(user.uid) : false;
+      const currentMacros = macrosList ? macrosList.children.length : 0;
+      updateMacroCountDisplay(currentMacros, isPro);
 
       nameInput.value = "";
       contentInput.value = "";
@@ -1494,7 +1503,7 @@ function displayOverdueTickets(tickets) {
       // Due date/time
       const dueDateTime = document.createElement('div');
       dueDateTime.className = 'ticket-datetime';
-      dueDateTime.style.color = '#8B4513';
+      dueDateTime.style.color = '#ffcc80';
       dueDateTime.textContent = `Due: ${dueDateString}`;
       header.appendChild(dueDateTime);
       
@@ -1707,7 +1716,7 @@ function displayOverdueTickets(tickets) {
       const overdueStatus = document.createElement('div');
       overdueStatus.style.marginTop = '8px';
       overdueStatus.style.fontSize = '12px';
-      overdueStatus.style.color = '#8B4513';
+      overdueStatus.style.color = '#ffcc80';
       overdueStatus.innerHTML = `<i class="fas fa-clock" style="color: #dc3545; margin-right: 4px;"></i>Overdue since ${dueDateString}`;
       ticketElement.appendChild(overdueStatus);
 
@@ -2323,8 +2332,11 @@ async function initializeMacros() {
 
   try {
     let macros = [];
+    let isPro = false;
+    
     if (user) {
       // Pro user: Get from Firestore
+      isPro = await isUserPro(user.uid);
       macros = await getMacros(user);
     } else {
       // Free user: Get from local storage
@@ -2339,9 +2351,34 @@ async function initializeMacros() {
       const macroElement = createMacroElement(macro);
       macrosList.appendChild(macroElement);
     });
+
+    // Update macro count display
+    updateMacroCountDisplay(macros.length, isPro);
   } catch (error) {
     console.error("Error loading macros:", error);
     showToast("Error loading macros", "error");
+  }
+}
+
+// Update macro count display based on user plan
+function updateMacroCountDisplay(macroCount, isPro) {
+  const countElement = document.getElementById('macrosCount');
+  const limitElement = document.getElementById('macrosLimit');
+  
+  if (countElement) {
+    if (isPro) {
+      countElement.textContent = '';
+    } else {
+      countElement.textContent = macroCount;
+    }
+  }
+  
+  if (limitElement) {
+    if (isPro) {
+      limitElement.textContent = ' (Unlimited)';
+    } else {
+      limitElement.textContent = '/3';
+    }
   }
 }
 
@@ -2356,12 +2393,17 @@ function createMacroElement(macro) {
         <button class="copy-btn" title="Copy to clipboard">
           <i class="fas fa-copy"></i> Copy
         </button>
-        <button class="edit-btn" title="Edit macro">
-          <i class="fas fa-edit"></i> Edit
+        <button class="macro-menu-btn" title="Macro options">
+          <i class="fas fa-ellipsis-v"></i>
         </button>
-        <button class="delete-btn" title="Delete macro">
-          <i class="fas fa-trash"></i> Delete
-        </button>
+        <div class="macro-menu-dropdown">
+          <button class="menu-option edit-option">
+            <i class="fas fa-edit"></i> Edit
+          </button>
+          <button class="menu-option delete-option">
+            <i class="fas fa-trash"></i> Delete
+          </button>
+        </div>
       </div>
     </div>
     <div class="macro-content">${macro.content}</div>
@@ -2369,8 +2411,10 @@ function createMacroElement(macro) {
 
   // Add event listeners
   const copyBtn = div.querySelector(".copy-btn");
-  const editBtn = div.querySelector(".edit-btn");
-  const deleteBtn = div.querySelector(".delete-btn");
+  const menuBtn = div.querySelector(".macro-menu-btn");
+  const menuDropdown = div.querySelector(".macro-menu-dropdown");
+  const editOption = div.querySelector(".edit-option");
+  const deleteOption = div.querySelector(".delete-option");
 
   copyBtn.addEventListener("click", async () => {
     const success = await copyMacroToClipboard(macro.content);
@@ -2381,11 +2425,48 @@ function createMacroElement(macro) {
     }
   });
 
-  editBtn.addEventListener("click", () => {
+  // Menu button click handler
+  menuBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    
+    // Check if dropdown is currently open
+    const isOpen = menuDropdown.classList.contains('open');
+    
+    if (!isOpen) {
+      // Calculate available space below the button
+      const buttonRect = menuBtn.getBoundingClientRect();
+      const popupHeight = window.innerHeight;
+      const spaceBelow = popupHeight - buttonRect.bottom;
+      const dropdownHeight = 80; // Approximate height of dropdown
+      
+      // If not enough space below, show above
+      if (spaceBelow < dropdownHeight) {
+        menuDropdown.classList.add('above');
+      } else {
+        menuDropdown.classList.remove('above');
+      }
+    }
+    
+    menuDropdown.classList.toggle('open');
+  });
+
+  // Close dropdown when clicking outside
+  document.addEventListener("click", (e) => {
+    if (!menuDropdown.contains(e.target) && !menuBtn.contains(e.target)) {
+      menuDropdown.classList.remove('open');
+    }
+  });
+
+  editOption.addEventListener("click", (e) => {
+    e.stopPropagation();
+    menuDropdown.classList.remove('open');
     showEditMacroModal(macro);
   });
 
-  deleteBtn.addEventListener("click", async () => {
+  deleteOption.addEventListener("click", async (e) => {
+    e.stopPropagation();
+    menuDropdown.classList.remove('open');
+    
     if (confirm("Are you sure you want to delete this macro?")) {
       try {
         const user = auth.currentUser;
@@ -2401,6 +2482,14 @@ function createMacroElement(macro) {
           await chrome.storage.local.set({ macros: updatedMacros });
         }
         div.remove();
+        
+        // Update macro count display
+        const currentUser = auth.currentUser;
+        const isPro = currentUser ? await isUserPro(currentUser.uid) : false;
+        const macrosList = document.getElementById("macrosList");
+        const currentMacros = macrosList ? macrosList.children.length : 0;
+        updateMacroCountDisplay(currentMacros, isPro);
+        
         showToast("Macro deleted successfully", "success");
       } catch (error) {
         console.error("Error deleting macro:", error);
