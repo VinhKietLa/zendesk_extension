@@ -1187,10 +1187,9 @@ async function displayImportantTickets(tickets) {
           e.stopPropagation();
           try {
             await markReminderAsDone(user, ticketId);
-            showToast("Ticket marked as completed");
             await loadReminders(user);
           } catch (error) {
-            showToast(error.message || "Failed to mark ticket as completed.");
+            console.error("Failed to mark ticket as completed:", error);
           }
           menuDropdown.classList.remove("open");
         });
@@ -1205,10 +1204,9 @@ async function displayImportantTickets(tickets) {
             e.stopPropagation();
             try {
               await pinTicket(user, isPro, { ticketId, description });
-              showToast("Ticket pinned");
               await loadReminders(user);
             } catch (error) {
-              showToast(error.message || "Failed to pin ticket.");
+              console.error("Failed to pin ticket:", error);
             }
             menuDropdown.classList.remove("open");
           });
@@ -1256,10 +1254,9 @@ async function displayImportantTickets(tickets) {
                 });
               }
             }
-            showToast("Ticket marked as overdue");
             await loadReminders(user);
           } catch (error) {
-            showToast(error.message || "Failed to mark ticket as overdue.");
+            console.error("Failed to mark ticket as overdue:", error);
           }
           menuDropdown.classList.remove("open");
         });
@@ -1401,7 +1398,6 @@ function displayCompletedTickets(tickets) {
       deleteOption.addEventListener('click', (e) => {
         e.stopPropagation();
         deleteTicket({ uid: '' }, false, ticketId);
-        showToast('Ticket deleted');
         menuDropdown.classList.remove('open');
       });
       menuDropdown.appendChild(deleteOption);
@@ -1424,7 +1420,6 @@ function displayCompletedTickets(tickets) {
             importantTickets: updatedImportantTickets
           }, () => {
             displayCompletedTickets(updatedCompletedTickets);
-            showToast('Ticket moved back to Important');
           });
         });
         menuDropdown.classList.remove('open');
@@ -1579,7 +1574,6 @@ function displayOverdueTickets(tickets) {
       completeOption.addEventListener('click', (e) => {
         e.stopPropagation();
         markReminderAsDone({ uid: '' }, ticketId);
-        showToast('Ticket marked as completed');
         // Refresh the display
         setTimeout(() => {
           loadReminders({ uid: '' });
@@ -1848,7 +1842,6 @@ function displayOverdueTickets(tickets) {
             importantTickets: updatedImportantTickets
           }, () => {
             displayOverdueTickets(updatedOverdueTickets);
-            showToast('Ticket moved to Important');
           });
         });
         menuDropdown.classList.remove('open');
@@ -1892,7 +1885,6 @@ function displayOverdueTickets(tickets) {
             );
             chrome.storage.local.set({ overdueTickets: updatedTickets }, () => {
               displayOverdueTickets(updatedTickets);
-              showToast('Ticket deleted');
             });
           });
         }
@@ -2026,7 +2018,6 @@ async function pinTicket(user, isPro, ticket) {
       return;
     }
     if (pinnedTickets.some((t) => t.ticketId === ticket.ticketId)) {
-      showToast("This ticket is already pinned.");
       return;
     }
     // Remove from important
@@ -2194,10 +2185,9 @@ async function displayPinnedTickets(user, isPro) {
                 e.stopPropagation();
                 try {
                     await unpinTicket(user, isPro, ticket);
-                    showToast('Ticket unpinned');
                     await displayPinnedTickets(user, isPro);
                 } catch (error) {
-                    showToast(error.message || 'Failed to unpin ticket.');
+                    console.error("Failed to unpin ticket:", error);
                 }
                 menuDropdown.classList.remove('open');
             });
@@ -2365,11 +2355,10 @@ function addPinButtonsToTickets(user, isPro) {
         pinBtn.addEventListener("click", async () => {
           try {
             await pinTicket(user, isPro, { ticketId, description });
-            showToast("Ticket pinned");
             await displayPinnedTickets(user, isPro);
             addPinButtonsToTickets(user, isPro);
           } catch (error) {
-            alert(error.message || "Failed to pin ticket.");
+            console.error("Failed to pin ticket:", error);
           }
         });
         li.appendChild(pinBtn);
@@ -2590,8 +2579,6 @@ async function deleteTicket(user, isPro, ticketId) {
       });
     }
 
-    showToast("Ticket deleted successfully");
-    
     // Refresh the UI based on user type
     if (user) {
       await loadReminders(user);
@@ -2601,7 +2588,6 @@ async function deleteTicket(user, isPro, ticketId) {
     }
   } catch (error) {
     console.error("Error deleting ticket:", error);
-    showToast("Failed to delete ticket");
   }
 }
 
@@ -2979,7 +2965,6 @@ function initializeThemeSystem() {
       chrome.storage.local.set({ selectedTheme: currentTheme }, () => {
         console.log('Theme saved to storage:', currentTheme);
       });
-      showToast(`Theme changed to ${option.querySelector('span').textContent}`);
     });
   });
   
