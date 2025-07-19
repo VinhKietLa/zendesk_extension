@@ -1503,7 +1503,7 @@ function displayOverdueTickets(tickets) {
       // Due date/time
       const dueDateTime = document.createElement('div');
       dueDateTime.className = 'ticket-datetime';
-      dueDateTime.style.color = '#ffcc80';
+      dueDateTime.style.color = '#dc2626';
       dueDateTime.textContent = `Due: ${dueDateString}`;
       header.appendChild(dueDateTime);
       
@@ -1685,13 +1685,33 @@ function displayOverdueTickets(tickets) {
         menuDropdown.classList.toggle('open');
         
         if (menuDropdown.classList.contains('open')) {
-          // Position dropdown relative to the button using absolute positioning
-          menuDropdown.style.position = 'absolute';
-          menuDropdown.style.top = '100%';
-          menuDropdown.style.right = '-5px';
-          menuDropdown.style.marginTop = '4px';
+          // Move dropdown to document body to avoid clipping
+          document.body.appendChild(menuDropdown);
+          
+          // Calculate position relative to viewport
+          const buttonRect = menuBtn.getBoundingClientRect();
+          const popupHeight = window.innerHeight;
+          const spaceBelow = popupHeight - buttonRect.bottom;
+          const dropdownHeight = 120; // Approximate height of dropdown
+          
+          // Position the dropdown using fixed positioning
+          menuDropdown.style.position = 'fixed';
           menuDropdown.style.minWidth = '200px';
-          menuDropdown.style.zIndex = '9999999';
+          menuDropdown.style.zIndex = '99999999';
+          
+          if (spaceBelow < dropdownHeight) {
+            // Show above if not enough space below
+            menuDropdown.style.top = (buttonRect.top - dropdownHeight - 4) + 'px';
+          } else {
+            // Show below
+            menuDropdown.style.top = (buttonRect.bottom + 4) + 'px';
+          }
+          
+          // Position horizontally
+          menuDropdown.style.left = (buttonRect.right - 200) + 'px';
+        } else {
+          // Move dropdown back to header when closing
+          header.appendChild(menuDropdown);
         }
       });
       
@@ -1699,6 +1719,8 @@ function displayOverdueTickets(tickets) {
       document.addEventListener('click', (e) => {
         if (!menuBtn.contains(e.target) && !menuDropdown.contains(e.target)) {
           menuDropdown.classList.remove('open');
+          // Move dropdown back to header
+          header.appendChild(menuDropdown);
         }
       });
       
@@ -1716,8 +1738,8 @@ function displayOverdueTickets(tickets) {
       const overdueStatus = document.createElement('div');
       overdueStatus.style.marginTop = '8px';
       overdueStatus.style.fontSize = '12px';
-      overdueStatus.style.color = '#ffcc80';
-      overdueStatus.innerHTML = `<i class="fas fa-clock" style="color: #dc3545; margin-right: 4px;"></i>Overdue since ${dueDateString}`;
+      overdueStatus.style.color = '#dc2626';
+      overdueStatus.innerHTML = `<i class="fas fa-clock" style="color: #dc2626; margin-right: 4px;"></i>Overdue since ${dueDateString}`;
       ticketElement.appendChild(overdueStatus);
 
       list.appendChild(ticketElement);

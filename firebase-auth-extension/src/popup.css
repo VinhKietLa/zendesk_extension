@@ -2433,3 +2433,206 @@ body.dark-mode #pinnedTicketsList .menu-option.delete {
 body.dark-mode #pinnedTicketsList .menu-option.delete:hover {
   background-color: #7f1d1d;
 }
+
+/* Overdue Tab Special Styling */
+#overdue-tab h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e5e7eb;
+  color: #000000;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+#overdue-tab h2 i {
+  color: #dc2626;
+  font-size: 16px;
+}
+
+#overdueTicketsCount {
+  background: #dc2626;
+  color: white;
+  border-radius: 50%;
+  padding: 2px 8px;
+  font-size: 12px;
+  font-weight: 500;
+  margin-left: 8px;
+}
+
+/* Overdue Ticket Cards - Enhanced Design */
+#overdueTicketsList .ticket-card {
+  background: #ffffff;
+  border: 1px solid #dc2626;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 12px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+#overdueTicketsList .ticket-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #dc2626 0%, #ef4444 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+#overdueTicketsList .ticket-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+  border-color: #ef4444;
+}
+
+#overdueTicketsList .ticket-card:hover::before {
+  opacity: 1;
+}
+
+#overdueTicketsList .ticket-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  position: relative;
+  z-index: 15;
+  overflow: visible;
+}
+
+#overdueTicketsList .ticket-id-badge {
+  background: #dc2626;
+  color: white;
+  padding: 6px 12px;
+  border-radius: 16px;
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+#overdueTicketsList .ticket-datetime {
+  color: #dc2626;
+  font-size: 12px;
+  font-weight: 600;
+  background: #fef2f2;
+  padding: 4px 8px;
+  border-radius: 8px;
+  margin-left: 8px;
+}
+
+#overdueTicketsList .ticket-description {
+  font-weight: 600;
+  color: #000000;
+  font-size: 15px;
+  line-height: 1.5;
+  margin-top: 8px;
+}
+
+#overdueTicketsList .ticket-menu-btn {
+  background: transparent;
+  border: none;
+  color: #000000;
+  cursor: pointer;
+  padding: 6px 10px;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  position: relative;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  min-height: 28px;
+}
+
+#overdueTicketsList .ticket-menu-btn:hover {
+  background: rgba(220, 38, 38, 0.1);
+  color: #dc2626;
+}
+
+/* Overdue status indicator styling */
+#overdueTicketsList .ticket-card > div:last-child {
+  color: #dc2626 !important;
+  font-weight: 600;
+  background: #fef2f2;
+  padding: 6px 10px;
+  border-radius: 8px;
+  margin-top: 8px;
+  display: inline-block;
+}
+
+#overdueTicketsList .ticket-card > div:last-child i {
+  color: #dc2626 !important;
+  margin-right: 6px;
+}
+
+/* Dark mode styles for overdue tab */
+body.dark-mode #overdue-tab h2 {
+  color: #e5e7eb;
+  border-bottom-color: #374151;
+}
+
+body.dark-mode #overdue-tab h2 i {
+  color: #f87171;
+}
+
+body.dark-mode #overdueTicketsCount {
+  background: #dc2626;
+  color: white;
+}
+
+body.dark-mode #overdueTicketsList .ticket-card {
+  background: #1f2937;
+  border-color: #dc2626;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+body.dark-mode #overdueTicketsList .ticket-card::before {
+  background: linear-gradient(90deg, #dc2626 0%, #f87171 100%);
+}
+
+body.dark-mode #overdueTicketsList .ticket-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  border-color: #f87171;
+}
+
+body.dark-mode #overdueTicketsList .ticket-id-badge {
+  background: #dc2626;
+  color: white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+body.dark-mode #overdueTicketsList .ticket-datetime {
+  color: #f87171;
+  background: #7f1d1d;
+}
+
+body.dark-mode #overdueTicketsList .ticket-description {
+  color: #e5e7eb;
+}
+
+body.dark-mode #overdueTicketsList .ticket-menu-btn {
+  color: #e5e7eb;
+}
+
+body.dark-mode #overdueTicketsList .ticket-menu-btn:hover {
+  background: rgba(220, 38, 38, 0.2);
+  color: #f87171;
+}
+
+body.dark-mode #overdueTicketsList .ticket-card > div:last-child {
+  color: #f87171 !important;
+  background: #7f1d1d;
+}
+
+body.dark-mode #overdueTicketsList .ticket-card > div:last-child i {
+  color: #f87171 !important;
+}
