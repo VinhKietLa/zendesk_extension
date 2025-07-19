@@ -2633,3 +2633,196 @@ body.dark-mode #overdueTicketsList .ticket-card > div:last-child {
 body.dark-mode #overdueTicketsList .ticket-card > div:last-child i {
   color: #f87171 !important;
 }
+
+/* Theme System */
+.theme-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  min-width: 200px;
+  z-index: 9999999;
+  display: none;
+  overflow: hidden;
+  margin-top: 4px;
+  margin-right: 0;
+}
+
+.theme-dropdown.open {
+  display: block;
+}
+
+.theme-option {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.theme-option:last-child {
+  border-bottom: none;
+}
+
+.theme-option:hover {
+  background-color: #f8f9fa;
+}
+
+.theme-option.active {
+  background-color: #e3f2fd;
+}
+
+.theme-preview {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  margin-right: 12px;
+  border: 2px solid #e0e0e0;
+}
+
+.theme-option span {
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+}
+
+/* Theme Colors */
+.theme-preview.ocean-blue {
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+}
+
+.theme-preview.emerald-fresh {
+  background: linear-gradient(135deg, #10b981, #059669);
+}
+
+.theme-preview.violet-modern {
+  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+}
+
+.theme-preview.minimal-slate {
+  background: linear-gradient(135deg, #64748b, #475569);
+}
+
+.theme-preview.rose-warm {
+  background: linear-gradient(135deg, #f43f5e, #e11d48);
+}
+
+/* Theme Variables */
+:root {
+  /* Ocean Blue (Default) */
+  --primary-color: #3b82f6;
+  --primary-dark: #1d4ed8;
+  --primary-light: #dbeafe;
+  --accent-color: #1e40af;
+  --header-gradient: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  --tab-active-bg: #dbeafe;
+  --badge-bg: #3b82f6;
+  --icon-color: #3b82f6;
+}
+
+/* Emerald Fresh Theme */
+[data-theme="emerald-fresh"] {
+  --primary-color: #10b981;
+  --primary-dark: #059669;
+  --primary-light: #d1fae5;
+  --accent-color: #047857;
+  --header-gradient: linear-gradient(135deg, #10b981, #059669);
+  --tab-active-bg: #d1fae5;
+  --badge-bg: #10b981;
+  --icon-color: #10b981;
+}
+
+/* Violet Modern Theme */
+[data-theme="violet-modern"] {
+  --primary-color: #8b5cf6;
+  --primary-dark: #7c3aed;
+  --primary-light: #ede9fe;
+  --accent-color: #6d28d9;
+  --header-gradient: linear-gradient(135deg, #8b5cf6, #7c3aed);
+  --tab-active-bg: #ede9fe;
+  --badge-bg: #8b5cf6;
+  --icon-color: #8b5cf6;
+}
+
+/* Minimal Slate Theme */
+[data-theme="minimal-slate"] {
+  --primary-color: #64748b;
+  --primary-dark: #475569;
+  --primary-light: #f1f5f9;
+  --accent-color: #334155;
+  --header-gradient: linear-gradient(135deg, #64748b, #475569);
+  --tab-active-bg: #f1f5f9;
+  --badge-bg: #64748b;
+  --icon-color: #64748b;
+}
+
+/* Rose Warm Theme */
+[data-theme="rose-warm"] {
+  --primary-color: #f43f5e;
+  --primary-dark: #e11d48;
+  --primary-light: #fce7f3;
+  --accent-color: #be185d;
+  --header-gradient: linear-gradient(135deg, #f43f5e, #e11d48);
+  --tab-active-bg: #fce7f3;
+  --badge-bg: #f43f5e;
+  --icon-color: #f43f5e;
+}
+
+/* Apply theme colors to elements */
+.header {
+  background: var(--header-gradient) !important;
+}
+
+.tab-btn.active {
+  background-color: var(--tab-active-bg) !important;
+  color: var(--primary-dark) !important;
+}
+
+.important-badge {
+  background: var(--badge-bg) !important;
+}
+
+.warning-icon {
+  color: var(--icon-color) !important;
+}
+
+#addTicket {
+  background: var(--primary-color) !important;
+}
+
+#addTicket:hover {
+  background: var(--primary-dark) !important;
+}
+
+/* Dark mode theme support */
+body.dark-mode[data-theme="emerald-fresh"] {
+  --primary-light: #064e3b;
+  --tab-active-bg: #064e3b;
+}
+
+body.dark-mode[data-theme="violet-modern"] {
+  --primary-light: #4c1d95;
+  --tab-active-bg: #4c1d95;
+}
+
+body.dark-mode[data-theme="minimal-slate"] {
+  --primary-light: #1e293b;
+  --tab-active-bg: #1e293b;
+}
+
+body.dark-mode[data-theme="rose-warm"] {
+  --primary-light: #831843;
+  --tab-active-bg: #831843;
+}
+
+/* Theme dropdown positioning fix */
+.header-actions .theme-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 10000;
+}

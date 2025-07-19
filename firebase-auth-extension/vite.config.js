@@ -106,7 +106,24 @@ export default defineConfig({
           const src = resolve(distSrcDir, file);
           const dest = resolve(__dirname, "dist", file);
           if (fs.existsSync(src)) {
-            fs.renameSync(src, dest);
+            // Read the HTML content
+            let htmlContent = fs.readFileSync(src, "utf-8");
+            
+            // Find the popup script and update its reference
+            const popupScript = files.find(
+              (f) => f.startsWith("popup") && f.endsWith(".js")
+            );
+            
+            if (popupScript) {
+              // Replace the script reference with the built asset
+              htmlContent = htmlContent.replace(
+                /<script[^>]*src="popup\.js"[^>]*><\/script>/,
+                `<script src="assets/${popupScript}"></script>`
+              );
+            }
+            
+            fs.writeFileSync(dest, htmlContent);
+            fs.unlinkSync(src); // Remove the original file
           }
         });
 

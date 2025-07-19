@@ -2924,3 +2924,83 @@ chrome.storage.local.get(['user'], (data) => {
     if (logoutBtn) logoutBtn.style.display = "inline-block";
   }
 });
+
+// Theme Switching System
+function initializeThemeSystem() {
+  const themeBtn = document.getElementById('themeBtn');
+  const themeDropdown = document.getElementById('themeDropdown');
+  
+  if (!themeBtn || !themeDropdown) return;
+  
+  // Load saved theme
+  chrome.storage.local.get(['selectedTheme'], (data) => {
+    const savedTheme = data.selectedTheme || 'ocean-blue';
+    applyTheme(savedTheme);
+    updateActiveThemeOption(savedTheme);
+  });
+  
+  // Theme button click handler
+  themeBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    
+    // Close other dropdowns
+    document.querySelectorAll('.dropdown-menu').forEach(dropdown => {
+      dropdown.classList.remove('open');
+    });
+    
+    themeDropdown.classList.toggle('open');
+  });
+  
+  // Theme option click handlers
+  const themeOptions = themeDropdown.querySelectorAll('.theme-option');
+  themeOptions.forEach(option => {
+    option.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const theme = option.getAttribute('data-theme');
+      applyTheme(theme);
+      updateActiveThemeOption(theme);
+      themeDropdown.classList.remove('open');
+      
+      // Save theme preference
+      chrome.storage.local.set({ selectedTheme: theme });
+      showToast(`Theme changed to ${option.querySelector('span').textContent}`);
+    });
+  });
+  
+  // Close theme dropdown when clicking outside
+  document.addEventListener('click', (e) => {
+    if (!themeBtn.contains(e.target) && !themeDropdown.contains(e.target)) {
+      themeDropdown.classList.remove('open');
+    }
+  });
+}
+
+function applyTheme(theme) {
+  // Remove existing theme classes
+  document.documentElement.removeAttribute('data-theme');
+  document.body.removeAttribute('data-theme');
+  
+  // Apply new theme
+  if (theme !== 'ocean-blue') {
+    document.documentElement.setAttribute('data-theme', theme);
+    document.body.setAttribute('data-theme', theme);
+  }
+}
+
+function updateActiveThemeOption(theme) {
+  // Remove active class from all options
+  document.querySelectorAll('.theme-option').forEach(option => {
+    option.classList.remove('active');
+  });
+  
+  // Add active class to current theme
+  const activeOption = document.querySelector(`[data-theme="${theme}"]`);
+  if (activeOption) {
+    activeOption.classList.add('active');
+  }
+}
+
+// Initialize theme system after all other initialization is complete
+setTimeout(() => {
+  initializeThemeSystem();
+}, 500);
