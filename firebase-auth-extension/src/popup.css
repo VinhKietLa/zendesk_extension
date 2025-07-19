@@ -2035,10 +2035,7 @@ body.dark-mode .menu-option.delete:hover {
 
 .completed-ticket-menu-dropdown.open {
   display: block;
-  position: absolute;
-  top: 100%;
-  right: -5px;
-  margin-top: 4px;
+  /* Remove absolute positioning to allow JavaScript to control positioning */
   min-width: 200px;
 }
 

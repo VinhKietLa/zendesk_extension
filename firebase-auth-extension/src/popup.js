@@ -81,6 +81,7 @@ async function loadReminders(user) {
       .map((r) => ({
         ticketId: r.ticketId,
         description: r.description,
+        completedAt: r.completedAt, // Include completion timestamp
       }));
 
     const overdueTickets = reminders
@@ -168,6 +169,7 @@ async function markReminderAsDone(user, ticketId) {
       await updateReminder(reminder.id, {
         status: "completed",
         type: "completed",
+        completedAt: Date.now(), // Add completion timestamp
       });
     }
     // Reload all reminders
@@ -199,7 +201,11 @@ async function markReminderAsDone(user, ticketId) {
 
               const updatedCompletedTickets = [
                 ...completedTickets,
-                { ticketId: ticket.ticketId, description: ticket.description },
+                { 
+                  ticketId: ticket.ticketId, 
+                  description: ticket.description,
+                  completedAt: Date.now() // Add completion timestamp
+                },
               ];
 
               await chrome.storage.local.set({
@@ -1348,7 +1354,7 @@ function displayCompletedTickets(tickets) {
     const zendeskDomain =
       data.zendeskDomain || "https://your_zendesk_domain.com";
 
-    tickets.forEach(({ ticketId, description, reminderTime }) => {
+    tickets.forEach(({ ticketId, description, completedAt }) => {
       const ticketElement = document.createElement('li');
       ticketElement.className = 'completed-ticket-card';
       ticketElement.style.cursor = 'pointer';
@@ -1358,7 +1364,7 @@ function displayCompletedTickets(tickets) {
         window.open(`${zendeskDomain}/agent/tickets/${ticketId}`, '_blank');
       });
 
-      const formattedTime = formatTicketTime(reminderTime);
+      const formattedCompletionTime = formatTicketTime(completedAt);
       
       // Create header
       const header = document.createElement('div');
@@ -1371,10 +1377,10 @@ function displayCompletedTickets(tickets) {
       header.appendChild(idBadge);
       
       // Completion status and timestamp
-      if (formattedTime) {
+      if (formattedCompletionTime) {
         const completionStatus = document.createElement('div');
         completionStatus.className = 'completion-status';
-        completionStatus.innerHTML = `<i class="fas fa-check" style="color: #28a745; margin-right: 4px;"></i>Completed: ${formattedTime}`;
+        completionStatus.innerHTML = `<i class="fas fa-check" style="color: #28a745; margin-right: 4px;"></i>Completed: ${formattedCompletionTime}`;
         header.appendChild(completionStatus);
       }
       
@@ -1454,13 +1460,31 @@ function displayCompletedTickets(tickets) {
         menuDropdown.classList.toggle('open');
         
         if (menuDropdown.classList.contains('open')) {
-          // Position dropdown relative to the button using absolute positioning
-          menuDropdown.style.position = 'absolute';
-          menuDropdown.style.top = '100%';
-          menuDropdown.style.right = '-5px';
-          menuDropdown.style.marginTop = '4px';
-          menuDropdown.style.minWidth = '200px';
+          // Move dropdown to document body to prevent clipping
+          document.body.appendChild(menuDropdown);
+          
+          // Get button position
+          const buttonRect = menuBtn.getBoundingClientRect();
+          
+          // Calculate position to ensure dropdown is fully visible
+          const dropdownWidth = 200;
+          const dropdownHeight = 120; // Approximate height for 3 menu items
+          
+          // Position dropdown using fixed positioning
+          menuDropdown.style.position = 'fixed';
+          menuDropdown.style.top = `${buttonRect.bottom + 4}px`;
+          menuDropdown.style.left = `${buttonRect.right - dropdownWidth}px`; // Align to right edge of button
+          menuDropdown.style.minWidth = `${dropdownWidth}px`;
           menuDropdown.style.zIndex = '9999999';
+          menuDropdown.style.backgroundColor = 'white';
+          menuDropdown.style.border = '1px solid #ddd';
+          menuDropdown.style.borderRadius = '4px';
+          menuDropdown.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)';
+        } else {
+          // Move back to original parent when closing
+          if (menuDropdown.parentNode === document.body) {
+            header.appendChild(menuDropdown);
+          }
         }
       });
       
@@ -1468,6 +1492,10 @@ function displayCompletedTickets(tickets) {
       document.addEventListener('click', (e) => {
         if (!menuBtn.contains(e.target) && !menuDropdown.contains(e.target)) {
           menuDropdown.classList.remove('open');
+          // Move back to original parent when closing
+          if (menuDropdown.parentNode === document.body) {
+            header.appendChild(menuDropdown);
+          }
         }
       });
       
