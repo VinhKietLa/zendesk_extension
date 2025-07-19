@@ -2925,18 +2925,29 @@ chrome.storage.local.get(['user'], (data) => {
   }
 });
 
-// Theme Switching System
+// Unified Theme Manager
+let currentTheme = 'ocean-blue';
+let isDarkMode = false;
+
 function initializeThemeSystem() {
   const themeBtn = document.getElementById('themeBtn');
   const themeDropdown = document.getElementById('themeDropdown');
   
   if (!themeBtn || !themeDropdown) return;
   
-  // Load saved theme
-  chrome.storage.local.get(['selectedTheme'], (data) => {
-    const savedTheme = data.selectedTheme || 'ocean-blue';
-    applyTheme(savedTheme);
-    updateActiveThemeOption(savedTheme);
+  // Load saved theme and dark mode together
+  Promise.all([
+    new Promise(resolve => chrome.storage.local.get(['selectedTheme'], resolve)),
+    new Promise(resolve => chrome.storage.sync.get(['darkMode'], resolve))
+  ]).then(([themeData, darkModeData]) => {
+    currentTheme = themeData.selectedTheme || 'ocean-blue';
+    isDarkMode = darkModeData.darkMode || false;
+    
+    console.log('Theme system initialization - theme:', currentTheme, 'darkMode:', isDarkMode);
+    
+    // Apply both theme and dark mode
+    applyThemeAndDarkMode(currentTheme, isDarkMode);
+    updateActiveThemeOption(currentTheme);
   });
   
   // Theme button click handler
@@ -2956,13 +2967,18 @@ function initializeThemeSystem() {
   themeOptions.forEach(option => {
     option.addEventListener('click', (e) => {
       e.stopPropagation();
-      const theme = option.getAttribute('data-theme');
-      applyTheme(theme);
-      updateActiveThemeOption(theme);
+      const newTheme = option.getAttribute('data-theme');
+      console.log('Theme selected:', newTheme);
+      
+      currentTheme = newTheme;
+      applyThemeAndDarkMode(currentTheme, isDarkMode);
+      updateActiveThemeOption(currentTheme);
       themeDropdown.classList.remove('open');
       
       // Save theme preference
-      chrome.storage.local.set({ selectedTheme: theme });
+      chrome.storage.local.set({ selectedTheme: currentTheme }, () => {
+        console.log('Theme saved to storage:', currentTheme);
+      });
       showToast(`Theme changed to ${option.querySelector('span').textContent}`);
     });
   });
@@ -2975,16 +2991,25 @@ function initializeThemeSystem() {
   });
 }
 
-function applyTheme(theme) {
+function applyThemeAndDarkMode(theme, darkMode) {
   // Remove existing theme classes
   document.documentElement.removeAttribute('data-theme');
   document.body.removeAttribute('data-theme');
+  
+  // Apply dark mode class
+  if (darkMode) {
+    document.body.classList.add('dark-mode');
+  } else {
+    document.body.classList.remove('dark-mode');
+  }
   
   // Apply new theme
   if (theme !== 'ocean-blue') {
     document.documentElement.setAttribute('data-theme', theme);
     document.body.setAttribute('data-theme', theme);
   }
+  
+  console.log('Applied theme:', theme, 'darkMode:', darkMode);
 }
 
 function updateActiveThemeOption(theme) {
@@ -3000,7 +3025,61 @@ function updateActiveThemeOption(theme) {
   }
 }
 
-// Initialize theme system after all other initialization is complete
+// Modern Dark Mode Toggle System
+function initializeDarkModeToggle() {
+  const darkModeBtn = document.getElementById('darkModeBtn');
+  
+  if (!darkModeBtn) return;
+  
+  // Enhanced dark mode toggle click handler
+  darkModeBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    
+    // Add toggling animation class
+    darkModeBtn.classList.add('toggling');
+    
+    // Toggle dark mode state
+    isDarkMode = !isDarkMode;
+    
+    console.log('Dark mode toggle - new state:', isDarkMode, 'current theme:', currentTheme);
+    
+    // Smooth transition with slight delay for animation
+    setTimeout(() => {
+      // Apply both theme and dark mode together
+      applyThemeAndDarkMode(currentTheme, isDarkMode);
+      
+      // Save preference
+      chrome.storage.sync.set({ darkMode: isDarkMode });
+      
+      // Show enhanced toast notification
+      const message = isDarkMode ? '🌙 Dark mode enabled' : '☀️ Light mode enabled';
+      showToast(message, 'success');
+      
+      // Remove toggling class after animation
+      setTimeout(() => {
+        darkModeBtn.classList.remove('toggling');
+      }, 300);
+    }, 150);
+  });
+  
+  // Keyboard accessibility
+  darkModeBtn.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      darkModeBtn.click();
+    }
+  });
+  
+  // Enhanced hover feedback
+  darkModeBtn.addEventListener('mouseenter', () => {
+    const isDark = document.body.classList.contains('dark-mode');
+    const tooltip = isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode';
+    darkModeBtn.setAttribute('title', tooltip);
+  });
+}
+
+// Initialize theme system and dark mode toggle
 setTimeout(() => {
   initializeThemeSystem();
+  initializeDarkModeToggle();
 }, 500);
