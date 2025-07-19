@@ -34,6 +34,23 @@ import {
 const clientId = import.meta.env.VITE_OAUTH_CLIENT_ID;
 const CLOUD_FUNCTION_URL = "https://exchangeoauthcode-7ylhtvfxha-uc.a.run.app";
 
+// Helper function to format time consistently across all tabs
+function formatTicketTime(reminderTime) {
+  if (!reminderTime) return null;
+  
+  try {
+    const date = new Date(reminderTime);
+    // Use consistent formatting: DD/MM/YYYY HH:MM
+    return date.toLocaleDateString('en-GB') + ' ' + date.toLocaleTimeString('en-GB', {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  } catch (error) {
+    console.error('Error formatting time:', error);
+    return null;
+  }
+}
+
 // Helper function to load reminders based on user type
 async function loadReminders(user) {
   if (!user) return;
@@ -1138,9 +1155,11 @@ async function displayImportantTickets(tickets) {
         if (reminderTime) {
           const dateTime = document.createElement("div");
           dateTime.className = "ticket-datetime";
-          const date = new Date(reminderTime);
-          dateTime.textContent = date.toLocaleDateString() + " " + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-          header.appendChild(dateTime);
+          const formattedTime = formatTicketTime(reminderTime);
+          if (formattedTime) {
+            dateTime.textContent = formattedTime;
+            header.appendChild(dateTime);
+          }
         }
         
         // Three-dot menu
@@ -1203,7 +1222,11 @@ async function displayImportantTickets(tickets) {
               const reminders = await getUserReminders(user.uid);
               const reminder = reminders.find((r) => r.ticketId === ticketId && r.type === "important");
               if (reminder) {
-                await updateReminder(reminder.id, { type: "overdue" });
+                // Keep the existing reminder time but change type to overdue
+                await updateReminder(reminder.id, { 
+                  type: "overdue"
+                  // Don't change reminderTime - keep the original time
+                });
               }
             } else {
               // For free users, move from important to overdue in local storage
@@ -1217,7 +1240,9 @@ async function displayImportantTickets(tickets) {
               const ticket = importantTickets.find(t => t.ticketId === ticketId);
               if (ticket) {
                 const updatedImportantTickets = importantTickets.filter(t => t.ticketId !== ticketId);
-                const updatedOverdueTickets = [...overdueTickets, ticket];
+                // Keep the existing reminder time
+                const overdueTicket = { ...ticket }; // Don't change reminderTime
+                const updatedOverdueTickets = [...overdueTickets, overdueTicket];
                 
                 await chrome.storage.local.set({
                   importantTickets: updatedImportantTickets,
@@ -1333,8 +1358,7 @@ function displayCompletedTickets(tickets) {
         window.open(`${zendeskDomain}/agent/tickets/${ticketId}`, '_blank');
       });
 
-      const completionDate = reminderTime ? new Date(reminderTime) : new Date();
-      const completionDateString = completionDate.toLocaleDateString('en-CA') + ' ' + completionDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+      const formattedTime = formatTicketTime(reminderTime);
       
       // Create header
       const header = document.createElement('div');
@@ -1347,10 +1371,12 @@ function displayCompletedTickets(tickets) {
       header.appendChild(idBadge);
       
       // Completion status and timestamp
-      const completionStatus = document.createElement('div');
-      completionStatus.className = 'completion-status';
-      completionStatus.innerHTML = `<i class="fas fa-check" style="color: #28a745; margin-right: 4px;"></i>Completed: ${completionDateString}`;
-      header.appendChild(completionStatus);
+      if (formattedTime) {
+        const completionStatus = document.createElement('div');
+        completionStatus.className = 'completion-status';
+        completionStatus.innerHTML = `<i class="fas fa-check" style="color: #28a745; margin-right: 4px;"></i>Completed: ${formattedTime}`;
+        header.appendChild(completionStatus);
+      }
       
       // Three-dot menu button
       const menuBtn = document.createElement('button');
@@ -1485,8 +1511,7 @@ function displayOverdueTickets(tickets) {
         window.open(`${zendeskDomain}/agent/tickets/${ticketId}`, '_blank');
       });
 
-      const dueDate = reminderTime ? new Date(reminderTime) : new Date();
-      const dueDateString = dueDate.toLocaleString('en-GB');
+      const formattedTime = formatTicketTime(reminderTime);
       
       // Create header
       const header = document.createElement('div');
@@ -1501,11 +1526,13 @@ function displayOverdueTickets(tickets) {
       header.appendChild(idBadge);
       
       // Due date/time
-      const dueDateTime = document.createElement('div');
-      dueDateTime.className = 'ticket-datetime';
-      dueDateTime.style.color = '#dc2626';
-      dueDateTime.textContent = `Due: ${dueDateString}`;
-      header.appendChild(dueDateTime);
+      if (formattedTime) {
+        const dueDateTime = document.createElement('div');
+        dueDateTime.className = 'ticket-datetime';
+        dueDateTime.style.color = '#dc2626';
+        dueDateTime.textContent = `Due: ${formattedTime}`;
+        header.appendChild(dueDateTime);
+      }
       
       // Three-dot menu button
       const menuBtn = document.createElement('button');
@@ -1537,20 +1564,78 @@ function displayOverdueTickets(tickets) {
       const snooze1HourOption = document.createElement('button');
       snooze1HourOption.className = 'menu-option';
       snooze1HourOption.innerHTML = '<i class="fas fa-redo"></i> Snooze 1 hour';
-      snooze1HourOption.addEventListener('click', (e) => {
+      snooze1HourOption.addEventListener('click', async (e) => {
         e.stopPropagation();
         const newReminderTime = new Date(Date.now() + 60 * 60 * 1000); // 1 hour from now
-        chrome.storage.local.get(['overdueTickets'], (data) => {
-          const updatedTickets = (data.overdueTickets || []).map(ticket => 
-            ticket.ticketId === ticketId 
-              ? { ...ticket, reminderTime: newReminderTime.getTime() }
-              : ticket
-          );
-          chrome.storage.local.set({ overdueTickets: updatedTickets }, () => {
-            displayOverdueTickets(updatedTickets);
-            showToast('Ticket snoozed for 1 hour');
+        
+        // Check if user is Pro
+        const user = auth.currentUser;
+        if (user) {
+          try {
+            const isPro = await isUserPro(user.uid);
+            if (isPro) {
+              // Pro: Update in Firestore
+              const reminders = await getUserReminders(user.uid);
+              const overdueReminder = reminders.find(r => r.ticketId === ticketId && r.type === 'overdue');
+              if (overdueReminder) {
+                // Update the reminder to important with new time
+                await updateReminder(overdueReminder.id, {
+                  type: 'important',
+                  status: 'active',
+                  reminderTime: newReminderTime.getTime()
+                });
+                // Reload all reminders
+                await loadReminders(user);
+                showToast('Ticket snoozed for 1 hour');
+              }
+            } else {
+              // Free: Update local storage
+              chrome.storage.local.get(['overdueTickets', 'importantTickets'], (data) => {
+                const updatedOverdueTickets = (data.overdueTickets || []).filter(ticket => 
+                  ticket.ticketId !== ticketId
+                );
+                const updatedImportantTickets = [...(data.importantTickets || []), { 
+                  ticketId, 
+                  description, 
+                  reminderTime: newReminderTime.getTime() 
+                }];
+                
+                chrome.storage.local.set({ 
+                  overdueTickets: updatedOverdueTickets,
+                  importantTickets: updatedImportantTickets
+                }, () => {
+                  displayOverdueTickets(updatedOverdueTickets);
+                  displayImportantTickets(updatedImportantTickets);
+                  showToast('Ticket snoozed for 1 hour');
+                });
+              });
+            }
+          } catch (error) {
+            console.error('Error snoozing ticket:', error);
+            showToast('Failed to snooze ticket');
+          }
+        } else {
+          // No user - free mode
+          chrome.storage.local.get(['overdueTickets', 'importantTickets'], (data) => {
+            const updatedOverdueTickets = (data.overdueTickets || []).filter(ticket => 
+              ticket.ticketId !== ticketId
+            );
+            const updatedImportantTickets = [...(data.importantTickets || []), { 
+              ticketId, 
+              description, 
+              reminderTime: newReminderTime.getTime() 
+            }];
+            
+            chrome.storage.local.set({ 
+              overdueTickets: updatedOverdueTickets,
+              importantTickets: updatedImportantTickets
+            }, () => {
+              displayOverdueTickets(updatedOverdueTickets);
+              displayImportantTickets(updatedImportantTickets);
+              showToast('Ticket snoozed for 1 hour');
+            });
           });
-        });
+        }
         menuDropdown.classList.remove('open');
       });
       menuDropdown.appendChild(snooze1HourOption);
@@ -1559,20 +1644,78 @@ function displayOverdueTickets(tickets) {
       const snooze4HoursOption = document.createElement('button');
       snooze4HoursOption.className = 'menu-option';
       snooze4HoursOption.innerHTML = '<i class="fas fa-redo"></i> Snooze 4 hours';
-      snooze4HoursOption.addEventListener('click', (e) => {
+      snooze4HoursOption.addEventListener('click', async (e) => {
         e.stopPropagation();
         const newReminderTime = new Date(Date.now() + 4 * 60 * 60 * 1000); // 4 hours from now
-        chrome.storage.local.get(['overdueTickets'], (data) => {
-          const updatedTickets = (data.overdueTickets || []).map(ticket => 
-            ticket.ticketId === ticketId 
-              ? { ...ticket, reminderTime: newReminderTime.getTime() }
-              : ticket
-          );
-          chrome.storage.local.set({ overdueTickets: updatedTickets }, () => {
-            displayOverdueTickets(updatedTickets);
-            showToast('Ticket snoozed for 4 hours');
+        
+        // Check if user is Pro
+        const user = auth.currentUser;
+        if (user) {
+          try {
+            const isPro = await isUserPro(user.uid);
+            if (isPro) {
+              // Pro: Update in Firestore
+              const reminders = await getUserReminders(user.uid);
+              const overdueReminder = reminders.find(r => r.ticketId === ticketId && r.type === 'overdue');
+              if (overdueReminder) {
+                // Update the reminder to important with new time
+                await updateReminder(overdueReminder.id, {
+                  type: 'important',
+                  status: 'active',
+                  reminderTime: newReminderTime.getTime()
+                });
+                // Reload all reminders
+                await loadReminders(user);
+                showToast('Ticket snoozed for 4 hours');
+              }
+            } else {
+              // Free: Update local storage
+              chrome.storage.local.get(['overdueTickets', 'importantTickets'], (data) => {
+                const updatedOverdueTickets = (data.overdueTickets || []).filter(ticket => 
+                  ticket.ticketId !== ticketId
+                );
+                const updatedImportantTickets = [...(data.importantTickets || []), { 
+                  ticketId, 
+                  description, 
+                  reminderTime: newReminderTime.getTime() 
+                }];
+                
+                chrome.storage.local.set({ 
+                  overdueTickets: updatedOverdueTickets,
+                  importantTickets: updatedImportantTickets
+                }, () => {
+                  displayOverdueTickets(updatedOverdueTickets);
+                  displayImportantTickets(updatedImportantTickets);
+                  showToast('Ticket snoozed for 4 hours');
+                });
+              });
+            }
+          } catch (error) {
+            console.error('Error snoozing ticket:', error);
+            showToast('Failed to snooze ticket');
+          }
+        } else {
+          // No user - free mode
+          chrome.storage.local.get(['overdueTickets', 'importantTickets'], (data) => {
+            const updatedOverdueTickets = (data.overdueTickets || []).filter(ticket => 
+              ticket.ticketId !== ticketId
+            );
+            const updatedImportantTickets = [...(data.importantTickets || []), { 
+              ticketId, 
+              description, 
+              reminderTime: newReminderTime.getTime() 
+            }];
+            
+            chrome.storage.local.set({ 
+              overdueTickets: updatedOverdueTickets,
+              importantTickets: updatedImportantTickets
+            }, () => {
+              displayOverdueTickets(updatedOverdueTickets);
+              displayImportantTickets(updatedImportantTickets);
+              showToast('Ticket snoozed for 4 hours');
+            });
           });
-        });
+        }
         menuDropdown.classList.remove('open');
       });
       menuDropdown.appendChild(snooze4HoursOption);
@@ -1581,22 +1724,80 @@ function displayOverdueTickets(tickets) {
       const snoozeTomorrowOption = document.createElement('button');
       snoozeTomorrowOption.className = 'menu-option';
       snoozeTomorrowOption.innerHTML = '<i class="fas fa-redo"></i> Snooze until tomorrow';
-      snoozeTomorrowOption.addEventListener('click', (e) => {
+      snoozeTomorrowOption.addEventListener('click', async (e) => {
         e.stopPropagation();
         const tomorrow = new Date();
         tomorrow.setDate(tomorrow.getDate() + 1);
         tomorrow.setHours(9, 0, 0, 0); // Set to 9 AM tomorrow
-        chrome.storage.local.get(['overdueTickets'], (data) => {
-          const updatedTickets = (data.overdueTickets || []).map(ticket => 
-            ticket.ticketId === ticketId 
-              ? { ...ticket, reminderTime: tomorrow.getTime() }
-              : ticket
-          );
-          chrome.storage.local.set({ overdueTickets: updatedTickets }, () => {
-            displayOverdueTickets(updatedTickets);
-            showToast('Ticket snoozed until tomorrow');
+        
+        // Check if user is Pro
+        const user = auth.currentUser;
+        if (user) {
+          try {
+            const isPro = await isUserPro(user.uid);
+            if (isPro) {
+              // Pro: Update in Firestore
+              const reminders = await getUserReminders(user.uid);
+              const overdueReminder = reminders.find(r => r.ticketId === ticketId && r.type === 'overdue');
+              if (overdueReminder) {
+                // Update the reminder to important with new time
+                await updateReminder(overdueReminder.id, {
+                  type: 'important',
+                  status: 'active',
+                  reminderTime: tomorrow.getTime()
+                });
+                // Reload all reminders
+                await loadReminders(user);
+                showToast('Ticket snoozed until tomorrow');
+              }
+            } else {
+              // Free: Update local storage
+              chrome.storage.local.get(['overdueTickets', 'importantTickets'], (data) => {
+                const updatedOverdueTickets = (data.overdueTickets || []).filter(ticket => 
+                  ticket.ticketId !== ticketId
+                );
+                const updatedImportantTickets = [...(data.importantTickets || []), { 
+                  ticketId, 
+                  description, 
+                  reminderTime: tomorrow.getTime() 
+                }];
+                
+                chrome.storage.local.set({ 
+                  overdueTickets: updatedOverdueTickets,
+                  importantTickets: updatedImportantTickets
+                }, () => {
+                  displayOverdueTickets(updatedOverdueTickets);
+                  displayImportantTickets(updatedImportantTickets);
+                  showToast('Ticket snoozed until tomorrow');
+                });
+              });
+            }
+          } catch (error) {
+            console.error('Error snoozing ticket:', error);
+            showToast('Failed to snooze ticket');
+          }
+        } else {
+          // No user - free mode
+          chrome.storage.local.get(['overdueTickets', 'importantTickets'], (data) => {
+            const updatedOverdueTickets = (data.overdueTickets || []).filter(ticket => 
+              ticket.ticketId !== ticketId
+            );
+            const updatedImportantTickets = [...(data.importantTickets || []), { 
+              ticketId, 
+              description, 
+              reminderTime: tomorrow.getTime() 
+            }];
+            
+            chrome.storage.local.set({ 
+              overdueTickets: updatedOverdueTickets,
+              importantTickets: updatedImportantTickets
+            }, () => {
+              displayOverdueTickets(updatedOverdueTickets);
+              displayImportantTickets(updatedImportantTickets);
+              showToast('Ticket snoozed until tomorrow');
+            });
           });
-        });
+        }
         menuDropdown.classList.remove('open');
       });
       menuDropdown.appendChild(snoozeTomorrowOption);
@@ -1735,12 +1936,14 @@ function displayOverdueTickets(tickets) {
       ticketElement.appendChild(descriptionElement);
       
       // Overdue status indicator
-      const overdueStatus = document.createElement('div');
-      overdueStatus.style.marginTop = '8px';
-      overdueStatus.style.fontSize = '12px';
-      overdueStatus.style.color = '#dc2626';
-      overdueStatus.innerHTML = `<i class="fas fa-clock" style="color: #dc2626; margin-right: 4px;"></i>Overdue since ${dueDateString}`;
-      ticketElement.appendChild(overdueStatus);
+      if (formattedTime) {
+        const overdueStatus = document.createElement('div');
+        overdueStatus.style.marginTop = '8px';
+        overdueStatus.style.fontSize = '12px';
+        overdueStatus.style.color = '#dc2626';
+        overdueStatus.innerHTML = `<i class="fas fa-clock" style="color: #dc2626; margin-right: 4px;"></i>Overdue since ${formattedTime}`;
+        ticketElement.appendChild(overdueStatus);
+      }
 
       list.appendChild(ticketElement);
     });
