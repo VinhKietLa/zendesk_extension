@@ -2153,3 +2153,283 @@ h2 .clear-completed-btn {
   margin: 0;
   vertical-align: middle;
 }
+
+/* Pinned Tab Special Styling */
+#pinned-tab h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e5e7eb;
+  color: #000000;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+#pinned-tab h2 i {
+  color: #3b82f6;
+  font-size: 16px;
+}
+
+#pinnedTicketsCount {
+  background: #f3f4f6;
+  color: #000000;
+  border-radius: 12px;
+  padding: 2px 8px;
+  font-size: 12px;
+  font-weight: 500;
+  margin-left: 8px;
+}
+
+#pinnedTicketsLimit {
+  color: #6b7280;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* Pinned Ticket Cards - Special Design */
+#pinnedTicketsList .ticket-card {
+  background: #ffffff;
+  border: 1px solid #3b82f6;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 12px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+#pinnedTicketsList .ticket-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #3b82f6 0%, #60a5fa 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+#pinnedTicketsList .ticket-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+  border-color: #60a5fa;
+}
+
+#pinnedTicketsList .ticket-card:hover::before {
+  opacity: 1;
+}
+
+#pinnedTicketsList .ticket-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  position: relative;
+  z-index: 15;
+  overflow: visible;
+}
+
+#pinnedTicketsList .ticket-id-badge {
+  background: #3b82f6;
+  color: white;
+  padding: 6px 12px;
+  border-radius: 16px;
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+#pinnedTicketsList .ticket-datetime {
+  color: #6b7280;
+  font-size: 12px;
+  font-weight: 500;
+  margin-left: 8px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+#pinnedTicketsList .ticket-datetime i {
+  color: #3b82f6;
+  font-size: 12px;
+}
+
+#pinnedTicketsList .ticket-description {
+  font-weight: 600;
+  color: #000000;
+  font-size: 15px;
+  line-height: 1.5;
+  margin-top: 8px;
+}
+
+#pinnedTicketsList .ticket-menu-btn {
+  background: transparent;
+  border: none;
+  color: #000000;
+  cursor: pointer;
+  padding: 6px 10px;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  position: relative;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  min-height: 28px;
+}
+
+#pinnedTicketsList .ticket-menu-btn:hover {
+  background: rgba(59, 130, 246, 0.1);
+  color: #3b82f6;
+}
+
+#pinnedTicketsList .ticket-menu-dropdown {
+  z-index: 9999999 !important;
+}
+
+#pinnedTicketsList .ticket-menu-dropdown.open {
+  display: block !important;
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  min-width: 200px;
+  z-index: 9999999 !important;
+  overflow: visible !important;
+  background: white !important;
+  border: 1px solid #e5e7eb !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+}
+
+#pinnedTicketsList .ticket-menu-dropdown.above {
+  top: auto;
+  bottom: calc(100% + 4px);
+  overflow: visible;
+}
+
+#pinnedTicketsList .menu-option {
+  width: 100%;
+  text-align: left;
+  padding: 10px 14px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 13px;
+  color: #374151 !important;
+  transition: background-color 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  white-space: nowrap;
+  font-weight: 500;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+#pinnedTicketsList .menu-option:hover {
+  background-color: #f8fafc;
+}
+
+#pinnedTicketsList .menu-option.delete {
+  color: #dc3545;
+}
+
+#pinnedTicketsList .menu-option.delete:hover {
+  background-color: #fef2f2;
+}
+
+#pinnedTicketsList .menu-option i {
+  font-size: 12px;
+  width: 16px;
+}
+
+/* Dark mode styles for pinned tab */
+body.dark-mode #pinned-tab h2 {
+  color: #e5e7eb;
+  border-bottom-color: #374151;
+}
+
+body.dark-mode #pinned-tab h2 i {
+  color: #60a5fa;
+}
+
+body.dark-mode #pinnedTicketsCount {
+  background: #374151;
+  color: #e5e7eb;
+}
+
+body.dark-mode #pinnedTicketsLimit {
+  color: #9ca3af;
+}
+
+body.dark-mode #pinnedTicketsList .ticket-card {
+  background: #1f2937;
+  border-color: #3b82f6;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+body.dark-mode #pinnedTicketsList .ticket-card::before {
+  background: linear-gradient(90deg, #3b82f6 0%, #60a5fa 100%);
+}
+
+body.dark-mode #pinnedTicketsList .ticket-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  border-color: #60a5fa;
+}
+
+body.dark-mode #pinnedTicketsList .ticket-id-badge {
+  background: #3b82f6;
+  color: white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+body.dark-mode #pinnedTicketsList .ticket-datetime {
+  color: #9ca3af;
+}
+
+body.dark-mode #pinnedTicketsList .ticket-datetime i {
+  color: #60a5fa;
+}
+
+body.dark-mode #pinnedTicketsList .ticket-description {
+  color: #e5e7eb;
+}
+
+body.dark-mode #pinnedTicketsList .ticket-menu-btn {
+  background: transparent;
+  border: none;
+  color: #e5e7eb;
+}
+
+body.dark-mode #pinnedTicketsList .ticket-menu-btn:hover {
+  background: rgba(59, 130, 246, 0.2);
+  color: #60a5fa;
+}
+
+body.dark-mode #pinnedTicketsList .ticket-menu-dropdown {
+  background: #2c2c2c !important;
+  border-color: #444 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+}
+
+body.dark-mode #pinnedTicketsList .menu-option {
+  color: #e5e7eb !important;
+}
+
+body.dark-mode #pinnedTicketsList .menu-option:hover {
+  background-color: #374151;
+}
+
+body.dark-mode #pinnedTicketsList .menu-option.delete {
+  color: #f87171;
+}
+
+body.dark-mode #pinnedTicketsList .menu-option.delete:hover {
+  background-color: #7f1d1d;
+}

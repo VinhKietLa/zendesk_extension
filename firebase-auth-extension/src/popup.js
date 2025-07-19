@@ -1906,7 +1906,7 @@ async function displayPinnedTickets(user, isPro) {
             // Date/time
             const dateTime = document.createElement('div');
             dateTime.className = 'ticket-datetime';
-            dateTime.textContent = `Pinned: ${pinnedDate}`;
+            dateTime.innerHTML = `<i class="fas fa-thumbtack"></i>${pinnedDate}`;
             header.appendChild(dateTime);
             
             // Three-dot menu button
@@ -1967,25 +1967,53 @@ async function displayPinnedTickets(user, isPro) {
             menuBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 
-                // Check if dropdown is currently open
-                const isOpen = menuDropdown.classList.contains('open');
+                // Close all other open dropdowns first
+                document.querySelectorAll('.ticket-menu-dropdown.open').forEach(dropdown => {
+                    if (dropdown !== menuDropdown) {
+                        dropdown.classList.remove('open');
+                    }
+                });
                 
-                if (!isOpen) {
-                    // Calculate available space below the button
+                menuDropdown.classList.toggle('open');
+                
+                if (menuDropdown.classList.contains('open')) {
+                    // Move dropdown to document body to avoid clipping
+                    document.body.appendChild(menuDropdown);
+                    
+                    // Calculate position relative to viewport
                     const buttonRect = menuBtn.getBoundingClientRect();
                     const popupHeight = window.innerHeight;
                     const spaceBelow = popupHeight - buttonRect.bottom;
                     const dropdownHeight = 120; // Approximate height of dropdown
                     
-                    // If not enough space below, show above
+                    // Position the dropdown using fixed positioning
+                    menuDropdown.style.position = 'fixed';
+                    menuDropdown.style.minWidth = '200px';
+                    menuDropdown.style.zIndex = '99999999';
+                    
                     if (spaceBelow < dropdownHeight) {
-                        menuDropdown.classList.add('above');
+                        // Show above if not enough space below
+                        menuDropdown.style.top = (buttonRect.top - dropdownHeight - 4) + 'px';
                     } else {
-                        menuDropdown.classList.remove('above');
+                        // Show below
+                        menuDropdown.style.top = (buttonRect.bottom + 4) + 'px';
                     }
+                    
+                    // Position horizontally
+                    menuDropdown.style.left = (buttonRect.right - 200) + 'px';
+                } else {
+                    // Move dropdown back to header when closing
+                    header.appendChild(menuDropdown);
                 }
-                
-                menuDropdown.classList.toggle('open');
+            });
+            
+            // Close dropdown when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!menuBtn.contains(e.target) && !menuDropdown.contains(e.target)) {
+                    menuDropdown.classList.remove('open');
+                    // Move dropdown back to header
+                    header.appendChild(menuDropdown);
+                }
             });
             
             header.appendChild(menuBtn);
