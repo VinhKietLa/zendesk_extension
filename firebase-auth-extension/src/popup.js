@@ -331,6 +331,10 @@ async function completeSignInFromBackground(idToken, accessToken) {
 document.addEventListener("DOMContentLoaded", async () => {
   console.log("🚀 DOMContentLoaded event fired");
   
+  // Initialize theme system immediately to prevent flash
+  initializeThemeSystem();
+  initializeDarkModeToggle();
+  
   // Initialize licensing
   await initializeLicensing();
 
@@ -2921,7 +2925,7 @@ function initializeThemeSystem() {
   
   if (!themeBtn || !themeDropdown) return;
   
-  // Load saved theme and dark mode together
+  // Load saved theme and dark mode together with immediate fallback
   Promise.all([
     new Promise(resolve => chrome.storage.local.get(['selectedTheme'], resolve)),
     new Promise(resolve => chrome.storage.sync.get(['darkMode'], resolve))
@@ -2931,7 +2935,13 @@ function initializeThemeSystem() {
     
     console.log('Theme system initialization - theme:', currentTheme, 'darkMode:', isDarkMode);
     
-    // Apply both theme and dark mode
+    // Apply both theme and dark mode immediately
+    applyThemeAndDarkMode(currentTheme, isDarkMode);
+    updateActiveThemeOption(currentTheme);
+  }).catch(() => {
+    // Fallback to default theme if storage fails
+    currentTheme = 'ocean-blue';
+    isDarkMode = false;
     applyThemeAndDarkMode(currentTheme, isDarkMode);
     updateActiveThemeOption(currentTheme);
   });
@@ -3063,8 +3073,4 @@ function initializeDarkModeToggle() {
   });
 }
 
-// Initialize theme system and dark mode toggle
-setTimeout(() => {
-  initializeThemeSystem();
-  initializeDarkModeToggle();
-}, 500);
+

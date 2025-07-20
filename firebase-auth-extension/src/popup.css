@@ -1,5 +1,16 @@
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap");
 
+/* Prevent theme flash by hiding content until theme is applied */
+body:not([data-theme]):not(.dark-mode) {
+  opacity: 0;
+  transition: opacity 0.1s ease-in-out;
+}
+
+body[data-theme],
+body.dark-mode {
+  opacity: 1;
+}
+
 body {
   font-family: "Inter", sans-serif;
   margin: 0;
