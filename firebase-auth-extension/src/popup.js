@@ -2990,19 +2990,23 @@ function applyThemeAndDarkMode(theme, darkMode) {
   // Remove existing theme classes
   document.documentElement.removeAttribute('data-theme');
   document.body.removeAttribute('data-theme');
+  document.documentElement.classList.remove('dark-mode');
+  document.body.classList.remove('dark-mode');
   
-  // Apply dark mode class
+  // Apply dark mode class to both html and body
   if (darkMode) {
+    document.documentElement.classList.add('dark-mode');
     document.body.classList.add('dark-mode');
-  } else {
-    document.body.classList.remove('dark-mode');
   }
   
-  // Apply new theme
+  // Apply new theme to both html and body
   if (theme !== 'ocean-blue') {
     document.documentElement.setAttribute('data-theme', theme);
     document.body.setAttribute('data-theme', theme);
   }
+  
+  // Ensure content is visible
+  document.documentElement.classList.add('theme-ready');
   
   console.log('Applied theme:', theme, 'darkMode:', darkMode);
 }

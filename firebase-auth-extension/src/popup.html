@@ -6,8 +6,67 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Agent Hero
     </title>
+    <style>
+        /* Immediate flash prevention - runs before any other CSS */
+        html {
+            visibility: hidden !important;
+        }
+        html.theme-ready {
+            visibility: visible !important;
+        }
+        /* Additional aggressive prevention */
+        body {
+            display: none !important;
+        }
+        html.theme-ready body {
+            display: block !important;
+        }
+    </style>
+    <script>
+        // Apply theme immediately to prevent flash
+        (function() {
+            // Set a timeout to ensure content is always shown
+            setTimeout(function() {
+                if (!document.documentElement.classList.contains('theme-ready')) {
+                    document.documentElement.classList.add('theme-ready');
+                }
+            }, 50);
+            
+            try {
+                if (typeof chrome !== 'undefined' && chrome.storage) {
+                    // Use synchronous storage access for immediate theme application
+                    chrome.storage.local.get(['selectedTheme'], function(themeData) {
+                        chrome.storage.sync.get(['darkMode'], function(darkModeData) {
+                            const theme = themeData.selectedTheme || 'ocean-blue';
+                            const isDarkMode = darkModeData.darkMode || false;
+                            
+                            // Apply theme to document element immediately
+                            if (theme !== 'ocean-blue') {
+                                document.documentElement.setAttribute('data-theme', theme);
+                            }
+                            
+                            // Apply dark mode immediately
+                            if (isDarkMode) {
+                                document.documentElement.classList.add('dark-mode');
+                            }
+                            
+                            // Show content after theme is applied
+                            document.documentElement.classList.add('theme-ready');
+                        });
+                    });
+                } else {
+                    // Fallback if chrome.storage not available
+                    document.documentElement.classList.add('theme-ready');
+                }
+            } catch (e) {
+                // Fallback on any error
+                document.documentElement.classList.add('theme-ready');
+            }
+        })();
+    </script>
     <link rel="stylesheet" href="popup.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+
 </head>
 
 <body>
@@ -357,6 +416,7 @@
             </div>
         </div>
     </div>
+
 
 
 
