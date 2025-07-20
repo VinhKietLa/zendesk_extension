@@ -976,7 +976,6 @@ h2 {
   margin: 0;
   background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
   color: white;
-  border-bottom: 1px solid rgb(228, 228, 231);
   position: relative;
   z-index: 10;
 }
