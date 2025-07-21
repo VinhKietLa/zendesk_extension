@@ -2299,7 +2299,7 @@ async function displayPinnedTickets(user, isPro) {
             if (isPro) {
                 limitElement.textContent = ' (Unlimited)';
             } else {
-                limitElement.textContent = '/3';
+                limitElement.textContent = ' /3';
             }
         }
         
@@ -2413,6 +2413,9 @@ async function loadFreeUserData() {
       displayPinnedTickets({ uid: "" }, false);
     }
   );
+  
+  // Also initialize macros for free users
+  await initializeMacros();
 }
 
 // Add migration function for Pro users
@@ -2607,8 +2610,15 @@ async function initializeMacros() {
     
     if (user) {
       // Pro user: Get from Firestore
-      isPro = await isUserPro(user.uid);
-      macros = await getMacros(user);
+      try {
+        isPro = await isUserPro(user.uid);
+        macros = await getMacros(user);
+      } catch (firestoreError) {
+        console.error("Error loading macros from Firestore:", firestoreError);
+        // Fallback to empty macros if Firestore fails
+        macros = [];
+        isPro = false;
+      }
     } else {
       // Free user: Get from local storage
       const data = await new Promise((resolve) => {
@@ -2627,7 +2637,11 @@ async function initializeMacros() {
     updateMacroCountDisplay(macros.length, isPro);
   } catch (error) {
     console.error("Error loading macros:", error);
-    showToast("Error loading macros", "error");
+    // Don't show error toast for macro loading issues during sign-out
+    // Only show if it's not a sign-out related error
+    if (user) {
+      showToast("Error loading macros", "error");
+    }
   }
 }
 
@@ -2648,7 +2662,7 @@ function updateMacroCountDisplay(macroCount, isPro) {
     if (isPro) {
       limitElement.textContent = ' (Unlimited)';
     } else {
-      limitElement.textContent = '/3';
+      limitElement.textContent = ' /3';
     }
   }
 }
