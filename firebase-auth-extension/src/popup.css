@@ -910,7 +910,6 @@ li:last-child {
 .completed-badge {
   display: flex;
   align-items: center;
-  gap: 12px;
   height: 24px; /* Match other badges height */
   flex-shrink: 0; /* Prevent badge from shrinking */
 }
@@ -930,14 +929,16 @@ li:last-child {
   flex-shrink: 0; /* Prevent span from shrinking */
 }
 
-.completed-badge .clear-completed-btn {
-  height: 24px; /* Match badge height */
-  padding: 4px 8px;
-  font-size: 11px;
+/* Clear button now positioned outside the badge */
+.completed-header .clear-completed-btn {
+  height: 32px; /* Match the title height */
+  padding: 6px 12px;
+  font-size: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0; /* Prevent button from shrinking */
+  margin-left: auto; /* Push to the right */
 }
 
 /* Add Ticket Card */
