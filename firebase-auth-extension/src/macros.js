@@ -9,7 +9,7 @@ import {
 
 // Get macros based on user type
 export async function getMacros(user) {
-  if (!user) return [];
+  if (!user || !user.uid) return [];
 
   const isPro = await isUserPro(user.uid);
 
@@ -28,7 +28,7 @@ export async function getMacros(user) {
 
 // Add a new macro
 export async function addMacro(user, name, content) {
-  if (!user) throw new Error("User not authenticated");
+  if (!user || !user.uid) throw new Error("User not authenticated");
 
   const isPro = await isUserPro(user.uid);
 
@@ -65,7 +65,7 @@ export async function addMacro(user, name, content) {
 
 // Update a macro
 export async function updateMacro(user, macroId, name, content) {
-  if (!user) throw new Error("User not authenticated");
+  if (!user || !user.uid) throw new Error("User not authenticated");
 
   const isPro = await isUserPro(user.uid);
 
@@ -94,7 +94,7 @@ export async function updateMacro(user, macroId, name, content) {
 
 // Delete a macro
 export async function deleteMacro(user, macroId) {
-  if (!user) throw new Error("User not authenticated");
+  if (!user || !user.uid) throw new Error("User not authenticated");
 
   const isPro = await isUserPro(user.uid);
 

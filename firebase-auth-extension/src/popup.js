@@ -53,7 +53,7 @@ function formatTicketTime(reminderTime) {
 
 // Helper function to load reminders based on user type
 async function loadReminders(user) {
-  if (!user) return;
+  if (!user || !user.uid) return;
 
   // Check both Google Auth and Chrome Web Store license
   const [pro, hasLicense] = await Promise.all([
@@ -110,7 +110,7 @@ async function loadReminders(user) {
 
 // Helper function to add a reminder
 async function addReminder(user, ticketId, description, reminderTime) {
-  if (!user) throw new Error("User not authenticated");
+  if (!user || !user.uid) throw new Error("User not authenticated");
 
   const pro = await isUserPro(user.uid);
 
@@ -157,9 +157,71 @@ async function addReminder(user, ticketId, description, reminderTime) {
 
 // Helper function to mark a reminder as done
 async function markReminderAsDone(user, ticketId) {
-  if (!user) throw new Error("User not authenticated");
+  // Handle free users (user is null)
+  if (!user) {
+    // Free: Update local storage only
+    return new Promise((resolve, reject) => {
+      chrome.storage.local.get(
+        ["importantTickets", "completedTickets", "overdueTickets", "pinnedTickets"],
+        async (data) => {
+          try {
+            const importantTickets = data.importantTickets || [];
+            const overdueTickets = data.overdueTickets || [];
+            const completedTickets = data.completedTickets || [];
+            const pinnedTickets = data.pinnedTickets || [];
 
-  const pro = await isUserPro(user.uid);
+            // Check all ticket lists
+            const ticket =
+              importantTickets.find((t) => t.ticketId === ticketId) ||
+              overdueTickets.find((t) => t.ticketId === ticketId) ||
+              pinnedTickets.find((t) => t.ticketId === ticketId);
+
+            if (ticket) {
+              // Remove from all lists
+              const updatedImportantTickets = importantTickets.filter(
+                (t) => t.ticketId !== ticketId
+              );
+              const updatedOverdueTickets = overdueTickets.filter(
+                (t) => t.ticketId !== ticketId
+              );
+              const updatedPinnedTickets = pinnedTickets.filter(
+                (t) => t.ticketId !== ticketId
+              );
+
+              const updatedCompletedTickets = [
+                ...completedTickets,
+                { 
+                  ticketId: ticket.ticketId, 
+                  description: ticket.description,
+                  completedAt: Date.now()
+                },
+              ];
+
+              await chrome.storage.local.set({
+                importantTickets: updatedImportantTickets,
+                overdueTickets: updatedOverdueTickets,
+                completedTickets: updatedCompletedTickets,
+                pinnedTickets: updatedPinnedTickets,
+              });
+
+              displayImportantTickets(updatedImportantTickets);
+              displayOverdueTickets(updatedOverdueTickets);
+              displayCompletedTickets(updatedCompletedTickets);
+              displayPinnedTickets(null, false);
+              resolve();
+            } else {
+              reject(new Error("Ticket not found"));
+            }
+          } catch (error) {
+            reject(error);
+          }
+        }
+      );
+    });
+  }
+
+  // Only check if user is pro if user exists and has a valid uid
+  const pro = user && user.uid ? await isUserPro(user.uid) : false;
 
   if (pro) {
     // Pro: Update in Firestore
@@ -178,24 +240,29 @@ async function markReminderAsDone(user, ticketId) {
     // Free: Update local storage only
     return new Promise((resolve, reject) => {
       chrome.storage.local.get(
-        ["importantTickets", "completedTickets", "overdueTickets"],
+        ["importantTickets", "completedTickets", "overdueTickets", "pinnedTickets"],
         async (data) => {
           try {
             const importantTickets = data.importantTickets || [];
             const overdueTickets = data.overdueTickets || [];
             const completedTickets = data.completedTickets || [];
+            const pinnedTickets = data.pinnedTickets || [];
 
-            // Check both important and overdue tickets
+            // Check all ticket lists
             const ticket =
               importantTickets.find((t) => t.ticketId === ticketId) ||
-              overdueTickets.find((t) => t.ticketId === ticketId);
+              overdueTickets.find((t) => t.ticketId === ticketId) ||
+              pinnedTickets.find((t) => t.ticketId === ticketId);
 
             if (ticket) {
-              // Remove from both lists (only one will actually have the ticket)
+              // Remove from all lists
               const updatedImportantTickets = importantTickets.filter(
                 (t) => t.ticketId !== ticketId
               );
               const updatedOverdueTickets = overdueTickets.filter(
+                (t) => t.ticketId !== ticketId
+              );
+              const updatedPinnedTickets = pinnedTickets.filter(
                 (t) => t.ticketId !== ticketId
               );
 
@@ -212,12 +279,16 @@ async function markReminderAsDone(user, ticketId) {
                 importantTickets: updatedImportantTickets,
                 overdueTickets: updatedOverdueTickets,
                 completedTickets: updatedCompletedTickets,
+                pinnedTickets: updatedPinnedTickets,
               });
 
               displayImportantTickets(updatedImportantTickets);
               displayOverdueTickets(updatedOverdueTickets);
               displayCompletedTickets(updatedCompletedTickets);
+              displayPinnedTickets(null, false);
               resolve();
+            } else {
+              reject(new Error("Ticket not found"));
             }
           } catch (error) {
             reject(error);
@@ -230,7 +301,7 @@ async function markReminderAsDone(user, ticketId) {
 
 // Helper function to clear completed tickets
 async function clearCompletedTickets(user) {
-  if (!user) throw new Error("User not authenticated");
+  if (!user || !user.uid) throw new Error("User not authenticated");
 
   const pro = await isUserPro(user.uid);
 
@@ -358,7 +429,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         // Get current user and pro status
         const currentUser = auth.currentUser;
         
-        if (currentUser) {
+        if (currentUser && currentUser.uid) {
           const isPro = await isUserPro(currentUser.uid);
           await loadReminders(currentUser);
         } else {
@@ -369,7 +440,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         // Get current user and pro status
         const currentUser = auth.currentUser;
         
-        if (currentUser) {
+        if (currentUser && currentUser.uid) {
           const isPro = await isUserPro(currentUser.uid);
           await displayPinnedTickets(currentUser, isPro);
         } else {
@@ -1054,7 +1125,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       const enabled = e.target.checked;
       
       const user = auth.currentUser;
-      if (enabled && user) {
+      if (enabled && user && user.uid) {
         const isPro = await isUserPro(user.uid);
         
         if (!isPro) {
@@ -1138,9 +1209,13 @@ async function displayImportantTickets(tickets) {
   const user = auth.currentUser;
   let isPro = false;
   let pinnedIds = [];
-  if (user) {
+  if (user && user.uid) {
     isPro = await isUserPro(user.uid);
     pinnedIds = await getPinnedTicketIds(user, isPro);
+  } else {
+    // For free users, get pinned tickets from local storage
+    isPro = false;
+    pinnedIds = await getPinnedTicketIds(null, false);
   }
   chrome.storage.sync.get("zendeskDomain", (data) => {
     const zendeskDomain =
@@ -1199,8 +1274,8 @@ async function displayImportantTickets(tickets) {
         });
         menuDropdown.appendChild(completeOption);
         
-        // Pin option
-        if (user && !pinnedIds.includes(ticketId)) {
+        // Pin option - show for both logged-in and free users
+        if (!pinnedIds.includes(ticketId)) {
           const pinOption = document.createElement("button");
           pinOption.className = "menu-option";
           pinOption.innerHTML = '<i class="fas fa-thumbtack"></i> Pin Ticket';
@@ -1208,7 +1283,13 @@ async function displayImportantTickets(tickets) {
             e.stopPropagation();
             try {
               await pinTicket(user, isPro, { ticketId, description });
-              await loadReminders(user);
+              // Refresh the UI based on user type
+              if (user) {
+                await loadReminders(user);
+              } else {
+                // For Free users, refresh from local storage
+                loadFreeUserData();
+              }
             } catch (error) {
               console.error("Failed to pin ticket:", error);
             }
@@ -1226,7 +1307,7 @@ async function displayImportantTickets(tickets) {
           e.stopPropagation();
           try {
             // Move ticket from important to overdue
-            if (isPro) {
+            if (isPro && user) {
               const reminders = await getUserReminders(user.uid);
               const reminder = reminders.find((r) => r.ticketId === ticketId && r.type === "important");
               if (reminder) {
@@ -1988,7 +2069,7 @@ function showToast(message) {
 
 // Pin a ticket
 async function pinTicket(user, isPro, ticket) {
-  if (isPro) {
+  if (isPro && user) {
     // Pro: Add to Firestore as a 'pinned' reminder, remove from 'important'
     // Remove from important
     const reminders = await getUserReminders(user.uid);
@@ -2044,7 +2125,7 @@ async function pinTicket(user, isPro, ticket) {
 // Unpin a ticket
 async function unpinTicket(user, isPro, ticket) {
   const { ticketId, description, reminderTime, pinnedAt } = ticket;
-  if (isPro) {
+  if (isPro && user) {
     // Pro: Remove from Firestore 'pinned', add back to 'important' with original properties
     const reminders = await getUserReminders(user.uid);
     const pinned = reminders.find(
@@ -2111,8 +2192,9 @@ async function unpinTicket(user, isPro, ticket) {
 async function displayPinnedTickets(user, isPro) {
     const userId = user?.uid;
     
-    // For free users, userId might be empty string, but we still want to display pinned tickets
-    if (userId === undefined || userId === null) {
+    // For free users, userId might be undefined/null, but we still want to display pinned tickets
+    // Only return early if we're dealing with Pro users who don't have a valid user object
+    if (isPro && (userId === undefined || userId === null)) {
         return;
     }
     
@@ -2180,6 +2262,30 @@ async function displayPinnedTickets(user, isPro) {
                 menuDropdown.classList.remove('open');
             });
             menuDropdown.appendChild(editOption);
+            
+            // Mark as Done option
+            const doneOption = document.createElement('button');
+            doneOption.className = 'menu-option';
+            doneOption.style.color = '#28a745';
+            doneOption.innerHTML = '<i class="fas fa-check-circle" style="color: #28a745;"></i> Mark as Done';
+            doneOption.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                try {
+                    // Mark as done (this will also remove from pinned)
+                    await markReminderAsDone(user, ticket.ticketId);
+                    // Refresh the display based on user type
+                    if (user) {
+                        await loadReminders(user);
+                    } else {
+                        // For Free users, refresh from local storage
+                        loadFreeUserData();
+                    }
+                } catch (error) {
+                    console.error("Failed to mark pinned ticket as done:", error);
+                }
+                menuDropdown.classList.remove('open');
+            });
+            menuDropdown.appendChild(doneOption);
             
             // Unpin option
             const unpinOption = document.createElement('button');
@@ -2384,12 +2490,16 @@ onAuthStateChanged(auth, async (user) => {
     await displayPinnedTickets(user, isPro);
     addPinButtonsToTickets(user, isPro);
   } else {
-    displayPinnedTickets({ uid: "" }, false);
+    // For free users, display pinned tickets with null user
+    displayPinnedTickets(null, false);
   }
 });
 
 // Also update after reminders are loaded
 async function afterRemindersLoaded(user) {
+  // Only proceed if user exists
+  if (!user) return;
+  
   const isPro = await isUserPro(user.uid);
   await displayPinnedTickets(user, isPro);
   addPinButtonsToTickets(user, isPro);
@@ -2410,7 +2520,7 @@ async function loadFreeUserData() {
       displayImportantTickets(data.importantTickets || []);
       displayCompletedTickets(data.completedTickets || []);
       displayOverdueTickets(data.overdueTickets || []);
-      displayPinnedTickets({ uid: "" }, false);
+      displayPinnedTickets(null, false);
     }
   );
   
@@ -2500,7 +2610,7 @@ async function migrateLocalToFirestore(userId) {
 // Add update ticket description function
 async function updateTicketDescription(user, isPro, ticketId, newDescription) {
   try {
-    if (isPro) {
+    if (isPro && user) {
       const reminders = await getUserReminders(user.uid);
       const reminder = reminders.find((r) => r.ticketId === ticketId);
       if (reminder) {
@@ -2554,7 +2664,7 @@ async function updateTicketDescription(user, isPro, ticketId, newDescription) {
 // Add delete ticket function
 async function deleteTicket(user, isPro, ticketId) {
   try {
-    if (isPro) {
+    if (isPro && user) {
       const reminders = await getUserReminders(user.uid);
       const reminder = reminders.find((r) => r.ticketId === ticketId);
       if (reminder) {
