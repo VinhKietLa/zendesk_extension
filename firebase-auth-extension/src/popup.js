@@ -2047,7 +2047,7 @@ function displayOverdueTickets(tickets) {
           const buttonRect = menuBtn.getBoundingClientRect();
           const popupHeight = window.innerHeight;
           const spaceBelow = popupHeight - buttonRect.bottom;
-          const dropdownHeight = 120; // Approximate height of dropdown
+          const dropdownHeight = 160; // Approximate height of dropdown (4 options)
           
           // Position the dropdown using fixed positioning
           menuDropdown.style.position = 'fixed';

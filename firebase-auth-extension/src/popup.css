@@ -3019,6 +3019,8 @@ body.dark-mode #pinnedTicketsList .menu-option.delete:hover {
   color: #dc2626;
 }
 
+
+
 /* Overdue status indicator styling */
 #overdueTicketsList .ticket-card > div:last-child {
   color: #dc2626 !important;
@@ -3096,6 +3098,8 @@ body.dark-mode #overdueTicketsList .ticket-card > div:last-child {
 body.dark-mode #overdueTicketsList .ticket-card > div:last-child i {
   color: #f87171 !important;
 }
+
+
 
 /* Theme System */
 .theme-dropdown {
