@@ -261,7 +261,6 @@ button {
 #clearCompletedTickets {
   background-color: #e17055;
   color: white;
-  margin-top: 20px;
 }
 
 #clearCompletedTickets:hover {
@@ -939,6 +938,8 @@ li:last-child {
   justify-content: center;
   flex-shrink: 0; /* Prevent button from shrinking */
   margin-left: auto; /* Push to the right */
+  align-self: center; /* Center vertically within the header */
+
 }
 
 /* Add Ticket Card */
@@ -2273,6 +2274,7 @@ body.dark-mode .completed-ticket-menu-dropdown {
   transition: all 0.2s ease;
   display: flex;
   align-items: center;
+  gap: 6px;
   box-shadow: 0 1px 3px rgba(220, 53, 69, 0.3);
   width: auto;
   min-width: 80px;
