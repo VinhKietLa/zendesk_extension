@@ -147,8 +147,7 @@ body.dark-mode .tab-content .action-btn:hover {
   background-color: #e0e0e0 !important;
 }
 
-/* Icons - use theme colors in dark mode */
-body.dark-mode .tab-content i,
+/* Icons - use theme colors in dark mode (except completed tickets) */
 body.dark-mode .tab-content svg {
   color: var(--icon-color) !important;
 }
@@ -2452,14 +2451,14 @@ body.dark-mode .menu-option i {
 
 /* Completed Tickets Styling */
 .completed-ticket-card {
-  background: #f8fff8;
-  border: 1px solid #e0e8e0;
-  border-radius: 8px;
-  padding: 16px;
-  margin-bottom: 8px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  background: #ffffff;
+  border: 1px solid #28a745;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 12px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
   position: relative;
   overflow: hidden;
 }
@@ -2471,7 +2470,7 @@ body.dark-mode .menu-option i {
   left: 0;
   right: 0;
   height: 2px;
-  background: linear-gradient(90deg, #28a745 0%, #34d058 100%);
+  background: linear-gradient(90deg, #28a745 0%, #28a745 100%);
   opacity: 0;
   transition: opacity 0.3s ease;
 }
@@ -2495,13 +2494,13 @@ body.dark-mode .menu-option i {
 }
 
 .completed-ticket-id-badge {
-  background: #e8f5e8;
-  color: #2d5a2d;
-  padding: 4px 8px;
-  border-radius: 12px;
-  font-size: 12px;
+  background: #28a745;
+  color: white;
+  padding: 6px 12px;
+  border-radius: 16px;
+  font-size: 13px;
   font-weight: 600;
-  border: 1px solid #28a745;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .completion-status {
@@ -2514,7 +2513,7 @@ body.dark-mode .menu-option i {
 
 .completed-ticket-description {
   font-weight: 600;
-  color: #2d5a2d;
+  color: #28a745;
   font-size: 14px;
   line-height: 1.4;
 }
@@ -2563,12 +2562,27 @@ body.dark-mode .menu-option i {
 /* Dark mode styles for completed tickets */
 body.dark-mode .completed-ticket-card {
   background: rgb(9, 9, 11);
-  border-color: #6b7280;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  border: 1px solid #28a745;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 12px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
 }
 
 body.dark-mode .completed-ticket-card::before {
-  background: linear-gradient(90deg, #28a745 0%, #34d058 100%);
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #28a745 0%, #28a745 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
 }
 
 body.dark-mode .completed-ticket-card:hover {
@@ -2577,18 +2591,51 @@ body.dark-mode .completed-ticket-card:hover {
   border-color: #28a745;
 }
 
+body.dark-mode .completed-ticket-card:hover::before {
+  opacity: 1;
+}
+
 body.dark-mode .completed-ticket-id-badge {
-  background: #2d5a2d;
-  color: #e8f5e8;
-  border-color: #28a745;
+  background: #28a745;
+  color: white;
+  padding: 6px 12px;
+  border-radius: 16px;
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
+/* Override the general dark mode text color rule for completed tickets */
+body.dark-mode .tab-content .completion-status,
 body.dark-mode .completion-status {
-  color: #4ade80;
+  color: #28a745 !important;
 }
 
+body.dark-mode .tab-content .completed-ticket-description,
 body.dark-mode .completed-ticket-description {
-  color: #e8f5e8;
+  color: #28a745 !important;
+}
+
+/* Override the general dark mode icon color rule for completed tickets */
+body.dark-mode .tab-content .completion-status i,
+body.dark-mode .completion-status i,
+body.dark-mode .tab-content .completed-ticket-card .completion-status i,
+body.dark-mode .completed-ticket-card .completion-status i,
+body.dark-mode .tab-content .completion-status .fas,
+body.dark-mode .completion-status .fas,
+body.dark-mode .tab-content .completed-ticket-card .completion-status .fas,
+body.dark-mode .completed-ticket-card .completion-status .fas,
+body.dark-mode .tab-content .completion-status .fa-check,
+body.dark-mode .completion-status .fa-check,
+body.dark-mode .tab-content .completed-ticket-card .completion-status .fa-check,
+body.dark-mode .completed-ticket-card .completion-status .fa-check {
+  color: #28a745 !important;
+}
+
+/* Override the general dark mode datetime color rule for completed tickets */
+body.dark-mode .completed-ticket-card .ticket-datetime,
+body.dark-mode .tab-content .completed-ticket-card .ticket-datetime {
+  color: #28a745 !important;
 }
 
 body.dark-mode .completed-ticket-menu-btn {
