@@ -129,9 +129,7 @@ body.dark-mode .tab-content .macro-menu-dropdown {
   background-color: rgb(9, 9, 11) !important;
 }
 
-/* Buttons - white background, black text */
-body.dark-mode .tab-content button,
-body.dark-mode .tab-content .add-ticket-btn,
+/* Buttons - white background, black text (excluding theme-aware buttons) */
 body.dark-mode .tab-content .copy-btn,
 body.dark-mode .tab-content .done-btn,
 body.dark-mode .tab-content .action-btn {
@@ -139,8 +137,6 @@ body.dark-mode .tab-content .action-btn {
   color: #000000 !important;
 }
 
-body.dark-mode .tab-content button:hover,
-body.dark-mode .tab-content .add-ticket-btn:hover,
 body.dark-mode .tab-content .copy-btn:hover,
 body.dark-mode .tab-content .done-btn:hover,
 body.dark-mode .tab-content .action-btn:hover {
@@ -2096,21 +2092,44 @@ body.dark-mode .macro-menu-dropdown .menu-option i {
 
 /* Dark mode support */
 body.dark-mode .add-macro {
-  background: rgb(9, 9, 11);
-  border-color: #6b7280;
+  background-color: rgb(9, 9, 11) !important;
+  border: 1px solid rgb(39, 39, 42) !important;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  margin-top: 16px;
+  overflow: hidden;
 }
 
 body.dark-mode .add-macro h3 {
-  color: #e0e0e0;
+  color: #ffffff !important;
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
 }
 
 body.dark-mode .macro-item {
   background: rgb(9, 9, 11);
-  border-color: #6b7280;
+  border: 1px solid #6b7280;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: visible;
 }
 
 body.dark-mode .macro-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
   background: linear-gradient(90deg, #ffc107 0%, #ffca2c 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
 }
 
 body.dark-mode .macro-item:hover {
@@ -2119,20 +2138,41 @@ body.dark-mode .macro-item:hover {
   border-color: #ffc107;
 }
 
+body.dark-mode .macro-item:hover::before {
+  opacity: 1;
+}
+
 body.dark-mode .macro-name {
   color: #e0e0e0;
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 1.4;
 }
 
 body.dark-mode .macro-content {
   color: #b2bec3;
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 1.4;
 }
 
 body.dark-mode .add-macro input,
 body.dark-mode .add-macro textarea,
 body.dark-mode .macro-search input {
-  background-color: #2c2c2c;
-  border-color: #6b7280;
-  color: #e0e0e0;
+  background-color: rgb(9, 9, 11) !important;
+  border: 1px solid rgb(39, 39, 42) !important;
+  color: #ffffff !important;
+  border-radius: 8px;
+  font-size: 14px;
+  transition: border-color 0.2s ease;
+  box-sizing: border-box;
+}
+
+body.dark-mode .add-macro input:focus,
+body.dark-mode .add-macro textarea:focus,
+body.dark-mode .macro-search input:focus {
+  outline: none;
+  border-color: rgb(39, 39, 42);
 }
 
 body.dark-mode .macros-container::-webkit-scrollbar-track {
@@ -3648,6 +3688,52 @@ body {
   border: none !important;
   outline: none !important;
   box-shadow: none !important;
+}
+
+/* Add Macro button - use theme accent color like Add Ticket button */
+.btn {
+  width: 100%;
+  background-color: var(--primary-color);
+  color: white;
+  border: none !important;
+  outline: none !important;
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.btn:hover {
+  background-color: var(--primary-dark);
+}
+
+.btn:focus {
+  outline: none !important;
+  border: none !important;
+}
+
+/* Dark mode styling for Add Macro button */
+body.dark-mode .btn {
+  background-color: var(--primary-color) !important;
+  color: #ffffff !important;
+  border: none !important;
+  outline: none !important;
+}
+
+body.dark-mode .btn:hover {
+  background-color: var(--primary-dark) !important;
+}
+
+body.dark-mode .btn:focus {
+  outline: none !important;
+  border: none !important;
 }
 
 
