@@ -1259,24 +1259,7 @@ async function displayImportantTickets(tickets) {
         const menuDropdown = document.createElement("div");
         menuDropdown.className = "ticket-menu-dropdown";
         
-        // Mark as Completed option
-        const completeOption = document.createElement("button");
-        completeOption.className = "menu-option";
-        completeOption.style.color = "#28a745";
-        completeOption.innerHTML = '<i class="fas fa-check-circle" style="color: #28a745;"></i> Mark as Completed';
-        completeOption.addEventListener("click", async (e) => {
-          e.stopPropagation();
-          try {
-            await markReminderAsDone(user, ticketId);
-            await loadReminders(user);
-          } catch (error) {
-            console.error("Failed to mark ticket as completed:", error);
-          }
-          menuDropdown.classList.remove("open");
-        });
-        menuDropdown.appendChild(completeOption);
-        
-        // Pin option - show for both logged-in and free users
+        // Pin option - show for both logged-in and free users (FIRST - most common action)
         if (!pinnedIds.includes(ticketId)) {
           const pinOption = document.createElement("button");
           pinOption.className = "menu-option";
@@ -1300,7 +1283,51 @@ async function displayImportantTickets(tickets) {
           menuDropdown.appendChild(pinOption);
         }
         
-        // Mark as Overdue option
+        // Edit Details option (SECOND - secondary action)
+        const editOption = document.createElement("button");
+        editOption.className = "menu-option";
+        editOption.innerHTML = '<i class="fas fa-edit"></i> Edit Details';
+        editOption.addEventListener("click", (e) => {
+          e.stopPropagation();
+          const newDescription = prompt("Edit description:", description);
+          if (newDescription && newDescription !== description) {
+            updateTicketDescription(user, isPro, ticketId, newDescription);
+          }
+          menuDropdown.classList.remove("open");
+        });
+        menuDropdown.appendChild(editOption);
+        
+        // Mark as Done option (THIRD - completion)
+        const completeOption = document.createElement("button");
+        completeOption.className = "menu-option";
+        completeOption.style.color = "#28a745";
+        completeOption.innerHTML = '<i class="fas fa-check-circle" style="color: #28a745;"></i> Mark as Done';
+        completeOption.addEventListener("click", async (e) => {
+          e.stopPropagation();
+          try {
+            await markReminderAsDone(user, ticketId);
+            await loadReminders(user);
+          } catch (error) {
+            console.error("Failed to mark ticket as completed:", error);
+          }
+          menuDropdown.classList.remove("open");
+        });
+        menuDropdown.appendChild(completeOption);
+        
+        // Delete Ticket option (FOURTH - destructive action)
+        const deleteOption = document.createElement("button");
+        deleteOption.className = "menu-option delete";
+        deleteOption.innerHTML = '<i class="fas fa-trash"></i> Delete Ticket';
+        deleteOption.addEventListener("click", (e) => {
+          e.stopPropagation();
+          if (confirm("Are you sure you want to delete this ticket?")) {
+            deleteTicket(user, isPro, ticketId);
+          }
+          menuDropdown.classList.remove("open");
+        });
+        menuDropdown.appendChild(deleteOption);
+        
+        // Mark as Overdue option (LAST - specialized action)
         const overdueOption = document.createElement("button");
         overdueOption.className = "menu-option";
         overdueOption.style.color = "#fd7e14";
@@ -1348,33 +1375,6 @@ async function displayImportantTickets(tickets) {
           menuDropdown.classList.remove("open");
         });
         menuDropdown.appendChild(overdueOption);
-        
-        // Edit Details option
-        const editOption = document.createElement("button");
-        editOption.className = "menu-option";
-        editOption.innerHTML = '<i class="fas fa-edit"></i> Edit Details';
-        editOption.addEventListener("click", (e) => {
-          e.stopPropagation();
-          const newDescription = prompt("Edit description:", description);
-          if (newDescription && newDescription !== description) {
-            updateTicketDescription(user, isPro, ticketId, newDescription);
-          }
-          menuDropdown.classList.remove("open");
-        });
-        menuDropdown.appendChild(editOption);
-        
-        // Delete Ticket option
-        const deleteOption = document.createElement("button");
-        deleteOption.className = "menu-option delete";
-        deleteOption.innerHTML = '<i class="fas fa-trash"></i> Delete Ticket';
-        deleteOption.addEventListener("click", (e) => {
-          e.stopPropagation();
-          if (confirm("Are you sure you want to delete this ticket?")) {
-            deleteTicket(user, isPro, ticketId);
-          }
-          menuDropdown.classList.remove("open");
-        });
-        menuDropdown.appendChild(deleteOption);
         
         // Use fixed positioning to prevent clipping
         menuBtn.addEventListener("click", (e) => {
@@ -1507,18 +1507,7 @@ function displayCompletedTickets(tickets) {
       const menuDropdown = document.createElement('div');
       menuDropdown.className = 'completed-ticket-menu-dropdown';
       
-      // Delete option
-      const deleteOption = document.createElement('button');
-      deleteOption.className = 'menu-option delete';
-      deleteOption.innerHTML = '<i class="fas fa-trash"></i> Delete Ticket';
-      deleteOption.addEventListener('click', (e) => {
-        e.stopPropagation();
-        deleteTicket({ uid: '' }, false, ticketId);
-        menuDropdown.classList.remove('open');
-      });
-      menuDropdown.appendChild(deleteOption);
-      
-      // Move back to Important option
+      // Move back to Important option (FIRST - most common action for completed tickets)
       const moveToImportantOption = document.createElement('button');
       moveToImportantOption.className = 'menu-option';
       moveToImportantOption.innerHTML = '<i class="fas fa-arrow-left"></i> Move back to Important';
@@ -1542,7 +1531,7 @@ function displayCompletedTickets(tickets) {
       });
       menuDropdown.appendChild(moveToImportantOption);
       
-      // Edit Details option
+      // Edit Details option (SECOND - secondary action)
       const editOption = document.createElement('button');
       editOption.className = 'menu-option';
       editOption.innerHTML = '<i class="fas fa-edit"></i> Edit Details';
@@ -1556,6 +1545,19 @@ function displayCompletedTickets(tickets) {
         menuDropdown.classList.remove('open');
       });
       menuDropdown.appendChild(editOption);
+      
+      // Delete option (LAST - destructive action)
+      const deleteOption = document.createElement('button');
+      deleteOption.className = 'menu-option delete';
+      deleteOption.innerHTML = '<i class="fas fa-trash"></i> Delete Ticket';
+      deleteOption.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (confirm('Are you sure you want to delete this ticket?')) {
+          deleteTicket({ uid: '' }, false, ticketId);
+        }
+        menuDropdown.classList.remove('open');
+      });
+      menuDropdown.appendChild(deleteOption);
       
       // Toggle dropdown
       menuBtn.addEventListener('click', (e) => {
@@ -1643,7 +1645,7 @@ function displayCompletedTickets(tickets) {
   });
 }
 
-function displayOverdueTickets(tickets) {
+async function displayOverdueTickets(tickets) {
   const list = document.getElementById("overdueTicketsList");
   if (!list) return;
   list.innerHTML = "";
@@ -1652,6 +1654,13 @@ function displayOverdueTickets(tickets) {
   const countElement = document.getElementById('overdueTicketsCount');
   if (countElement) {
     countElement.textContent = tickets.length;
+  }
+
+  // Get current user and Pro status
+  const user = auth.currentUser;
+  let isPro = false;
+  if (user && user.uid) {
+    isPro = await isUserPro(user.uid);
   }
 
   chrome.storage.sync.get("zendeskDomain", (data) => {
@@ -1701,22 +1710,46 @@ function displayOverdueTickets(tickets) {
       const menuDropdown = document.createElement('div');
       menuDropdown.className = 'ticket-menu-dropdown';
       
-      // Mark as completed option
+      // Mark as Done option (FIRST - immediate resolution)
       const completeOption = document.createElement('button');
       completeOption.className = 'menu-option';
-      completeOption.innerHTML = '<i class="fas fa-check" style="color: #28a745;"></i> Mark as Completed';
+      completeOption.innerHTML = '<i class="fas fa-check" style="color: #28a745;"></i> Mark as Done';
       completeOption.addEventListener('click', (e) => {
         e.stopPropagation();
-        markReminderAsDone({ uid: '' }, ticketId);
+        markReminderAsDone(user, ticketId);
         // Refresh the display
         setTimeout(() => {
-          loadReminders({ uid: '' });
+          loadReminders(user);
         }, 100);
         menuDropdown.classList.remove('open');
       });
       menuDropdown.appendChild(completeOption);
       
-      // Snooze 1 hour option
+      // Move to Important option (SECOND - status change to prioritize)
+      const moveToImportantOption = document.createElement('button');
+      moveToImportantOption.className = 'menu-option';
+      moveToImportantOption.innerHTML = '<i class="fas fa-arrow-right"></i> Move to Important';
+      moveToImportantOption.addEventListener('click', (e) => {
+        e.stopPropagation();
+        // Remove from overdue tickets
+        chrome.storage.local.get(['overdueTickets', 'importantTickets'], (data) => {
+          const updatedOverdueTickets = (data.overdueTickets || []).filter(ticket => 
+            ticket.ticketId !== ticketId
+          );
+          const updatedImportantTickets = [...(data.importantTickets || []), { ticketId, description, reminderTime }];
+          
+          chrome.storage.local.set({ 
+            overdueTickets: updatedOverdueTickets,
+            importantTickets: updatedImportantTickets
+          }, () => {
+            displayOverdueTickets(updatedOverdueTickets);
+          });
+        });
+        menuDropdown.classList.remove('open');
+      });
+      menuDropdown.appendChild(moveToImportantOption);
+      
+      // Snooze 1 hour option (THIRD - quick delay)
       const snooze1HourOption = document.createElement('button');
       snooze1HourOption.className = 'menu-option';
       snooze1HourOption.innerHTML = '<i class="fas fa-redo"></i> Snooze 1 hour';
@@ -1796,7 +1829,7 @@ function displayOverdueTickets(tickets) {
       });
       menuDropdown.appendChild(snooze1HourOption);
       
-      // Snooze 4 hours option
+      // Snooze 4 hours option (FOURTH - medium delay)
       const snooze4HoursOption = document.createElement('button');
       snooze4HoursOption.className = 'menu-option';
       snooze4HoursOption.innerHTML = '<i class="fas fa-redo"></i> Snooze 4 hours';
@@ -1876,7 +1909,7 @@ function displayOverdueTickets(tickets) {
       });
       menuDropdown.appendChild(snooze4HoursOption);
       
-      // Snooze until tomorrow option
+      // Snooze until tomorrow option (FIFTH - long delay)
       const snoozeTomorrowOption = document.createElement('button');
       snoozeTomorrowOption.className = 'menu-option';
       snoozeTomorrowOption.innerHTML = '<i class="fas fa-redo"></i> Snooze until tomorrow';
@@ -1958,31 +1991,7 @@ function displayOverdueTickets(tickets) {
       });
       menuDropdown.appendChild(snoozeTomorrowOption);
       
-      // Move to Important option
-      const moveToImportantOption = document.createElement('button');
-      moveToImportantOption.className = 'menu-option';
-      moveToImportantOption.innerHTML = '<i class="fas fa-arrow-right"></i> Move to Important';
-      moveToImportantOption.addEventListener('click', (e) => {
-        e.stopPropagation();
-        // Remove from overdue tickets
-        chrome.storage.local.get(['overdueTickets', 'importantTickets'], (data) => {
-          const updatedOverdueTickets = (data.overdueTickets || []).filter(ticket => 
-            ticket.ticketId !== ticketId
-          );
-          const updatedImportantTickets = [...(data.importantTickets || []), { ticketId, description, reminderTime }];
-          
-          chrome.storage.local.set({ 
-            overdueTickets: updatedOverdueTickets,
-            importantTickets: updatedImportantTickets
-          }, () => {
-            displayOverdueTickets(updatedOverdueTickets);
-          });
-        });
-        menuDropdown.classList.remove('open');
-      });
-      menuDropdown.appendChild(moveToImportantOption);
-      
-      // Edit Details option
+      // Edit Details option (SIXTH - secondary action)
       const editOption = document.createElement('button');
       editOption.className = 'menu-option';
       editOption.innerHTML = '<i class="fas fa-edit"></i> Edit Details';
@@ -2006,21 +2015,14 @@ function displayOverdueTickets(tickets) {
       });
       menuDropdown.appendChild(editOption);
       
-      // Delete Ticket option
+      // Delete Ticket option (LAST - destructive action)
       const deleteOption = document.createElement('button');
       deleteOption.className = 'menu-option delete';
       deleteOption.innerHTML = '<i class="fas fa-trash"></i> Delete Ticket';
       deleteOption.addEventListener('click', (e) => {
         e.stopPropagation();
         if (confirm('Are you sure you want to delete this ticket?')) {
-          chrome.storage.local.get(['overdueTickets'], (data) => {
-            const updatedTickets = (data.overdueTickets || []).filter(ticket => 
-              ticket.ticketId !== ticketId
-            );
-            chrome.storage.local.set({ overdueTickets: updatedTickets }, () => {
-              displayOverdueTickets(updatedTickets);
-            });
-          });
+          deleteTicket(user, isPro, ticketId);
         }
         menuDropdown.classList.remove('open');
       });
@@ -2299,21 +2301,23 @@ async function displayPinnedTickets(user, isPro) {
             const menuDropdown = document.createElement('div');
             menuDropdown.className = 'ticket-menu-dropdown';
             
-            // Edit option
-            const editOption = document.createElement('button');
-            editOption.className = 'menu-option';
-            editOption.innerHTML = '<i class="fas fa-edit"></i> Edit';
-            editOption.addEventListener('click', (e) => {
+            // Unpin option (FIRST - most common action for pinned tickets)
+            const unpinOption = document.createElement('button');
+            unpinOption.className = 'menu-option';
+            unpinOption.innerHTML = '<i class="fas fa-thumbtack"></i> Unpin';
+            unpinOption.addEventListener('click', async (e) => {
                 e.stopPropagation();
-                const newDescription = prompt('Edit description:', ticket.description);
-                if (newDescription && newDescription !== ticket.description) {
-                    updateTicketDescription(user, isPro, ticket.ticketId, newDescription);
+                try {
+                    await unpinTicket(user, isPro, ticket);
+                    await displayPinnedTickets(user, isPro);
+                } catch (error) {
+                    console.error("Failed to unpin ticket:", error);
                 }
                 menuDropdown.classList.remove('open');
             });
-            menuDropdown.appendChild(editOption);
+            menuDropdown.appendChild(unpinOption);
             
-            // Mark as Done option
+            // Mark as Done option (SECOND - completion action)
             const doneOption = document.createElement('button');
             doneOption.className = 'menu-option';
             doneOption.style.color = '#28a745';
@@ -2337,23 +2341,21 @@ async function displayPinnedTickets(user, isPro) {
             });
             menuDropdown.appendChild(doneOption);
             
-            // Unpin option
-            const unpinOption = document.createElement('button');
-            unpinOption.className = 'menu-option';
-            unpinOption.innerHTML = '<i class="fas fa-thumbtack"></i> Unpin';
-            unpinOption.addEventListener('click', async (e) => {
+            // Edit option (THIRD - secondary action)
+            const editOption = document.createElement('button');
+            editOption.className = 'menu-option';
+            editOption.innerHTML = '<i class="fas fa-edit"></i> Edit';
+            editOption.addEventListener('click', (e) => {
                 e.stopPropagation();
-                try {
-                    await unpinTicket(user, isPro, ticket);
-                    await displayPinnedTickets(user, isPro);
-                } catch (error) {
-                    console.error("Failed to unpin ticket:", error);
+                const newDescription = prompt('Edit description:', ticket.description);
+                if (newDescription && newDescription !== ticket.description) {
+                    updateTicketDescription(user, isPro, ticket.ticketId, newDescription);
                 }
                 menuDropdown.classList.remove('open');
             });
-            menuDropdown.appendChild(unpinOption);
+            menuDropdown.appendChild(editOption);
             
-            // Delete option
+            // Delete option (LAST - destructive action)
             const deleteOption = document.createElement('button');
             deleteOption.className = 'menu-option delete';
             deleteOption.innerHTML = '<i class="fas fa-trash"></i> Delete';
