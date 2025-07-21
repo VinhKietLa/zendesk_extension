@@ -424,6 +424,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       const tabId = btn.getAttribute("data-tab");
       document.getElementById(`${tabId}-tab`).classList.add("active");
       
+
+      
       // Load content for specific tabs
       if (tabId === "important") {
         // Get current user and pro status
@@ -1374,29 +1376,58 @@ async function displayImportantTickets(tickets) {
         });
         menuDropdown.appendChild(deleteOption);
         
-        // Use the same pattern as the top-right menu with smart positioning
+        // Use fixed positioning to prevent clipping
         menuBtn.addEventListener("click", (e) => {
           e.stopPropagation();
           
-          // Check if dropdown is currently open
-          const isOpen = menuDropdown.classList.contains("open");
+          // Close all other open dropdowns first
+          document.querySelectorAll('.ticket-menu-dropdown.open').forEach(dropdown => {
+            if (dropdown !== menuDropdown) {
+              dropdown.classList.remove('open');
+            }
+          });
           
-          if (!isOpen) {
-            // Calculate available space below the button
+          menuDropdown.classList.toggle("open");
+          
+          if (menuDropdown.classList.contains('open')) {
+            // Move dropdown to document body to avoid clipping
+            document.body.appendChild(menuDropdown);
+            
+            // Calculate position relative to viewport
             const buttonRect = menuBtn.getBoundingClientRect();
             const popupHeight = window.innerHeight;
             const spaceBelow = popupHeight - buttonRect.bottom;
             const dropdownHeight = 120; // Approximate height of dropdown
             
-            // If not enough space below, show above
+            // Position the dropdown using fixed positioning
+            menuDropdown.style.position = 'fixed';
+            menuDropdown.style.minWidth = '200px';
+            menuDropdown.style.zIndex = '99999999';
+            
             if (spaceBelow < dropdownHeight) {
-              menuDropdown.classList.add("above");
+              // Show above if not enough space below
+              menuDropdown.style.top = (buttonRect.top - dropdownHeight - 4) + 'px';
             } else {
-              menuDropdown.classList.remove("above");
+              // Show below
+              menuDropdown.style.top = (buttonRect.bottom + 4) + 'px';
             }
+            
+            // Position horizontally - align right edge of dropdown with right edge of button
+            const dropdownWidth = 200;
+            menuDropdown.style.left = (buttonRect.right - dropdownWidth) + 'px';
+          } else {
+            // Move dropdown back to header when closing
+            header.appendChild(menuDropdown);
           }
-          
-          menuDropdown.classList.toggle("open");
+        });
+        
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+          if (!menuBtn.contains(e.target) && !menuDropdown.contains(e.target)) {
+            menuDropdown.classList.remove('open');
+            // Move dropdown back to header
+            header.appendChild(menuDropdown);
+          }
         });
         
         header.appendChild(menuBtn);
@@ -1537,34 +1568,54 @@ function displayCompletedTickets(tickets) {
           }
         });
         
+        // Check if dropdown is currently open
+        const isOpen = menuDropdown.classList.contains('open');
+        
+        if (!isOpen) {
+          // Calculate available space below the button
+          const buttonRect = menuBtn.getBoundingClientRect();
+          const popupHeight = window.innerHeight;
+          const spaceBelow = popupHeight - buttonRect.bottom;
+          const dropdownHeight = 120; // Approximate height of dropdown
+          
+          // If not enough space below, show above
+          if (spaceBelow < dropdownHeight) {
+            menuDropdown.classList.add('above');
+          } else {
+            menuDropdown.classList.remove('above');
+          }
+        }
+        
         menuDropdown.classList.toggle('open');
         
         if (menuDropdown.classList.contains('open')) {
-          // Move dropdown to document body to prevent clipping
+          // Move dropdown to document body to avoid clipping
           document.body.appendChild(menuDropdown);
           
-          // Get button position
+          // Calculate position relative to viewport
           const buttonRect = menuBtn.getBoundingClientRect();
+          const popupHeight = window.innerHeight;
+          const spaceBelow = popupHeight - buttonRect.bottom;
+          const dropdownHeight = 120; // Approximate height of dropdown
           
-          // Calculate position to ensure dropdown is fully visible
-          const dropdownWidth = 200;
-          const dropdownHeight = 120; // Approximate height for 3 menu items
-          
-          // Position dropdown using fixed positioning
+          // Position the dropdown using fixed positioning
           menuDropdown.style.position = 'fixed';
-          menuDropdown.style.top = `${buttonRect.bottom + 4}px`;
-          menuDropdown.style.left = `${buttonRect.right - dropdownWidth}px`; // Align to right edge of button
-          menuDropdown.style.minWidth = `${dropdownWidth}px`;
-          menuDropdown.style.zIndex = '9999999';
-          menuDropdown.style.backgroundColor = 'white';
-          menuDropdown.style.border = '1px solid #ddd';
-          menuDropdown.style.borderRadius = '4px';
-          menuDropdown.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)';
-        } else {
-          // Move back to original parent when closing
-          if (menuDropdown.parentNode === document.body) {
-            header.appendChild(menuDropdown);
+          menuDropdown.style.minWidth = '200px';
+          menuDropdown.style.zIndex = '99999999';
+          
+          if (spaceBelow < dropdownHeight) {
+            // Show above if not enough space below
+            menuDropdown.style.top = (buttonRect.top - dropdownHeight - 4) + 'px';
+          } else {
+            // Show below
+            menuDropdown.style.top = (buttonRect.bottom + 4) + 'px';
           }
+          
+          // Position horizontally
+          menuDropdown.style.left = (buttonRect.right - 200) + 'px';
+        } else {
+          // Move dropdown back to header when closing
+          header.appendChild(menuDropdown);
         }
       });
       
@@ -1572,10 +1623,8 @@ function displayCompletedTickets(tickets) {
       document.addEventListener('click', (e) => {
         if (!menuBtn.contains(e.target) && !menuDropdown.contains(e.target)) {
           menuDropdown.classList.remove('open');
-          // Move back to original parent when closing
-          if (menuDropdown.parentNode === document.body) {
-            header.appendChild(menuDropdown);
-          }
+          // Move dropdown back to header
+          header.appendChild(menuDropdown);
         }
       });
       
@@ -2013,8 +2062,9 @@ function displayOverdueTickets(tickets) {
             menuDropdown.style.top = (buttonRect.bottom + 4) + 'px';
           }
           
-          // Position horizontally
-          menuDropdown.style.left = (buttonRect.right - 200) + 'px';
+          // Position horizontally - align right edge of dropdown with right edge of button
+          const dropdownWidth = 200;
+          menuDropdown.style.left = (buttonRect.right - dropdownWidth) + 'px';
         } else {
           // Move dropdown back to header when closing
           header.appendChild(menuDropdown);
@@ -2352,8 +2402,9 @@ async function displayPinnedTickets(user, isPro) {
                         menuDropdown.style.top = (buttonRect.bottom + 4) + 'px';
                     }
                     
-                    // Position horizontally
-                    menuDropdown.style.left = (buttonRect.right - 200) + 'px';
+                    // Position horizontally - align right edge of dropdown with right edge of button
+                    const dropdownWidth = 200;
+                    menuDropdown.style.left = (buttonRect.right - dropdownWidth) + 'px';
                 } else {
                     // Move dropdown back to header when closing
                     header.appendChild(menuDropdown);

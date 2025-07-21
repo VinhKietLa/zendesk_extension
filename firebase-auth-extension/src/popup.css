@@ -14,6 +14,8 @@ body {
   overflow: hidden;
 }
 
+
+
 h1 {
   font-size: 1.8em;
   text-align: center;
@@ -745,7 +747,7 @@ body.dark-mode #upgradeBtn:hover {
   margin-top: 0;
   padding-top: 12px;
   flex: 1;
-  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 /* Custom scrollbar for tab content */
@@ -856,7 +858,7 @@ li:last-child {
 }
 
 .warning-icon {
-  color: #ff6b35;
+  color: rgb(249, 115, 22) !important;
 }
 
 .overdue-icon {
@@ -865,6 +867,25 @@ li:last-child {
 
 .macros-icon {
   color: #ffc107;
+}
+
+/* Keep macros icon the same color in dark mode - override theme accent color */
+body.dark-mode .macros-icon {
+  color: #ffc107 !important;
+}
+
+/* Override any theme-specific macros icon colors */
+body.dark-mode[data-theme] .macros-icon {
+  color: #ffc107 !important;
+}
+
+/* Most specific override for all theme variations */
+body.dark-mode[data-theme="ocean-blue"] .macros-icon,
+body.dark-mode[data-theme="emerald-fresh"] .macros-icon,
+body.dark-mode[data-theme="violet-modern"] .macros-icon,
+body.dark-mode[data-theme="minimal-slate"] .macros-icon,
+body.dark-mode[data-theme="rose-warm"] .macros-icon {
+  color: #ffc107 !important;
 }
 
 .pinned-icon {
@@ -1124,6 +1145,42 @@ body.dark-mode input[type="time"]::-webkit-datetime-edit-ampm-field {
 /* Try to target the time picker icon with a more specific approach */
 body.dark-mode input[type="time"]::-webkit-calendar-picker-indicator {
   filter: invert(1) sepia(1) saturate(5) hue-rotate(120deg);
+}
+
+/* Theme-aware date and time input icons - Override dark mode rules */
+/* Ocean Blue Theme (#3b82f6) */
+body.dark-mode[data-theme="ocean-blue"] input[type="date"]::-webkit-calendar-picker-indicator,
+body.dark-mode[data-theme="ocean-blue"] input[type="time"]::-webkit-time-picker-indicator,
+body.dark-mode[data-theme="ocean-blue"] input[type="time"]::-webkit-calendar-picker-indicator {
+  filter: brightness(0) saturate(100%) invert(27%) sepia(51%) saturate(2878%) hue-rotate(217deg) brightness(118%) contrast(119%) !important;
+}
+
+/* Emerald Fresh Theme (#10b981) */
+body.dark-mode[data-theme="emerald-fresh"] input[type="date"]::-webkit-calendar-picker-indicator,
+body.dark-mode[data-theme="emerald-fresh"] input[type="time"]::-webkit-time-picker-indicator,
+body.dark-mode[data-theme="emerald-fresh"] input[type="time"]::-webkit-calendar-picker-indicator {
+  filter: brightness(0) saturate(100%) invert(66%) sepia(94%) saturate(484%) hue-rotate(97deg) brightness(92%) contrast(92%) !important;
+}
+
+/* Violet Modern Theme (#8b5cf6) */
+body.dark-mode[data-theme="violet-modern"] input[type="date"]::-webkit-calendar-picker-indicator,
+body.dark-mode[data-theme="violet-modern"] input[type="time"]::-webkit-time-picker-indicator,
+body.dark-mode[data-theme="violet-modern"] input[type="time"]::-webkit-calendar-picker-indicator {
+  filter: brightness(0) saturate(100%) invert(27%) sepia(51%) saturate(2878%) hue-rotate(250deg) brightness(118%) contrast(119%) !important;
+}
+
+/* Minimal Slate Theme (#64748b) */
+body.dark-mode[data-theme="minimal-slate"] input[type="date"]::-webkit-calendar-picker-indicator,
+body.dark-mode[data-theme="minimal-slate"] input[type="time"]::-webkit-time-picker-indicator,
+body.dark-mode[data-theme="minimal-slate"] input[type="time"]::-webkit-calendar-picker-indicator {
+  filter: brightness(0) saturate(100%) invert(46%) sepia(10%) saturate(1162%) hue-rotate(176deg) brightness(92%) contrast(92%) !important;
+}
+
+/* Rose Warm Theme (#f43f5e) */
+body.dark-mode[data-theme="rose-warm"] input[type="date"]::-webkit-calendar-picker-indicator,
+body.dark-mode[data-theme="rose-warm"] input[type="time"]::-webkit-time-picker-indicator,
+body.dark-mode[data-theme="rose-warm"] input[type="time"]::-webkit-calendar-picker-indicator {
+  filter: brightness(0) saturate(100%) invert(48%) sepia(97%) saturate(749%) hue-rotate(314deg) brightness(102%) contrast(101%) !important;
 }
 
 /* Keep time input text white in dark mode, only icon should be green */
@@ -1482,6 +1539,41 @@ body.dark-mode #importantTicketsList .menu-option.delete {
 body.dark-mode #importantTicketsList .menu-option.delete:hover {
   background-color: #3a2a2a;
 }
+
+/* Important Tab Ticket Hover Effects */
+#importantTicketsList .ticket-card {
+  position: relative;
+  overflow: hidden;
+}
+
+#importantTicketsList .ticket-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #f59e0b 0%, #fbbf24 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+#importantTicketsList .ticket-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+  border-color: #f59e0b;
+}
+
+#importantTicketsList .ticket-card:hover::before {
+  opacity: 1;
+}
+
+/* Dark mode hover effects for Important tab */
+body.dark-mode #importantTicketsList .ticket-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  transform: translateY(-2px);
+  border-color: #f59e0b;
+}
 body.dark-mode .important-badge {
   background-color: var(--badge-bg) !important;
   color: #ffffff !important;
@@ -1631,9 +1723,11 @@ body.dark-mode .completed-title h2 {
 /* Macro list container */
 .macros-container {
   margin-top: 12px;
-  max-height: 300px;
-  overflow-y: auto;
+  overflow-x: hidden;
   padding-right: 4px;
+  /* Allow macros container to expand beyond normal height */
+  height: auto;
+  min-height: 400px;
 }
 
 .macros-container::-webkit-scrollbar {
@@ -1655,49 +1749,178 @@ body.dark-mode .completed-title h2 {
 }
 
 /* Macro item styling */
-.macro-item {
-  background: white;
-  border: 1px solid #eee;
-  border-radius: 6px;
+/* Macro item styling - match completed-ticket-card exactly but with yellow theme */
+.macros-container .macro-item,
+#macrosList .macro-item,
+.tab-pane .macro-item {
+  background: #fffbf0;
+  border: 1px solid #ffeaa7;
+  border-radius: 8px;
+  padding: 16px;
   margin-bottom: 8px;
-  padding: 8px 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
   transition: all 0.2s ease;
+  position: relative;
+  overflow: visible;
 }
 
-.macro-item:hover {
-  border-color: #0984e3;
-  box-shadow: 0 2px 4px rgba(9, 132, 227, 0.1);
+.macros-container .macro-item::before,
+#macrosList .macro-item::before,
+.tab-pane .macro-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #ffc107 0%, #ffca2c 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
 }
 
+.macros-container .macro-item:hover,
+#macrosList .macro-item:hover,
+.tab-pane .macro-item:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+  border-color: #ffc107;
+}
+
+.macros-container .macro-item:hover::before,
+#macrosList .macro-item:hover::before,
+.tab-pane .macro-item:hover::before {
+  opacity: 1;
+}
+
+/* Macro header - match completed-ticket-header */
 .macro-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 4px;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  position: relative;
 }
 
+/* Macro name - match completed-ticket-description */
 .macro-name {
   font-weight: 600;
-  color: #2d3436;
-  font-size: 0.95em;
+  color: #b8860b;
+  font-size: 14px;
+  line-height: 1.4;
 }
 
+/* Macro content - match completed-ticket-description */
 .macro-content {
-  color: #636e72;
-  font-size: 0.9em;
+  font-weight: 600;
+  color: #b8860b;
+  font-size: 14px;
   line-height: 1.4;
-  margin: 4px 0;
-  white-space: pre-wrap;
-  word-break: break-word;
-  max-height: 60px;
-  overflow-y: auto;
 }
+
+/* Macro menu button - match completed-ticket-menu-btn exactly */
+.macro-actions .macro-menu-btn {
+  background: none;
+  border: none;
+  color: #666;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+  position: relative;
+  z-index: 10;
+}
+
+.macro-actions .macro-menu-btn:hover {
+  background-color: #ffeaa7;
+}
+
+/* Macro menu dropdown - match ticket-menu-dropdown exactly */
+.macro-menu-dropdown {
+  position: absolute;
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  min-width: 160px;
+  z-index: 9999999;
+  display: none;
+  overflow: visible;
+  max-height: none;
+  right: 0;
+  top: 100%;
+  margin-top: 4px;
+  pointer-events: auto;
+}
+
+.macro-menu-dropdown.above {
+  top: auto;
+  bottom: calc(100% + 4px);
+  overflow: visible;
+}
+
+.macro-menu-dropdown.open {
+  display: block !important;
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  min-width: 200px;
+  z-index: 9999999 !important;
+  overflow: visible !important;
+  background: white !important;
+  border: 1px solid #e0e0e0 !important;
+  border-radius: 0 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Macro menu options - match completed-ticket-menu-dropdown menu-option */
+.macro-menu-dropdown .menu-option {
+  width: 100%;
+  text-align: left;
+  padding: 8px 12px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 13px;
+  color: #333 !important;
+  transition: background-color 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+  font-weight: 500;
+  opacity: 1 !important;
+  visibility: visible !important;
+  border-radius: 0 !important;
+}
+
+.macro-menu-dropdown .menu-option:hover {
+  background-color: #f8f9fa;
+}
+
+.macro-menu-dropdown .menu-option.delete-option {
+  color: #dc3545;
+}
+
+.macro-menu-dropdown .menu-option.delete-option:hover {
+  background-color: #fff5f5;
+}
+
+.macro-menu-dropdown .menu-option i {
+  font-size: 12px;
+  width: 14px;
+}
+
+
 
 .macro-actions {
   display: flex;
   gap: 6px;
   margin-left: 8px;
   position: relative;
+  flex-shrink: 0;
+  z-index: 99999999;
 }
 
 .macro-actions button {
@@ -1745,8 +1968,7 @@ body.dark-mode .completed-title h2 {
 }
 
 .macro-actions .macro-menu-btn:hover {
-  background-color: #f0f0f0 !important;
-  opacity: 1 !important;
+  background-color: #ffeaa7;
 }
 
 .macro-menu-dropdown {
@@ -1881,6 +2103,16 @@ body.dark-mode .macro-item {
   border-color: #6b7280;
 }
 
+body.dark-mode .macro-item::before {
+  background: linear-gradient(90deg, #ffc107 0%, #ffca2c 100%);
+}
+
+body.dark-mode .macro-item:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  transform: translateY(-2px);
+  border-color: #ffc107;
+}
+
 body.dark-mode .macro-name {
   color: #e0e0e0;
 }
@@ -1951,6 +2183,7 @@ body.dark-mode .your-tickets-heading {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   cursor: pointer;
   transition: all 0.2s ease;
+  position: relative;
 }
 
 .ticket-card:hover {
@@ -2057,6 +2290,13 @@ body.dark-mode .your-tickets-heading {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
 }
 
+/* When above class is applied, override the top positioning */
+.ticket-menu-dropdown.open.above {
+  top: auto !important;
+  bottom: calc(100% + 4px) !important;
+  margin-top: 0 !important;
+}
+
 .menu-option {
   width: 100%;
   text-align: left;
@@ -2118,8 +2358,8 @@ body.dark-mode .ticket-description {
   color: #e0e0e0;
 }
 
-body.dark-mode .warning-icon {
-  color: var(--icon-color);
+body.dark-mode .tab-content .warning-icon {
+  color: rgb(249, 115, 22) !important;
 }
 
 /* Dark mode improvements for overdue tickets */
@@ -2208,11 +2448,29 @@ body.dark-mode .menu-option i {
   cursor: pointer;
   transition: all 0.2s ease;
   position: relative;
+  overflow: hidden;
+}
+
+.completed-ticket-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #28a745 0%, #34d058 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
 }
 
 .completed-ticket-card:hover {
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+  border-color: #28a745;
+}
+
+.completed-ticket-card:hover::before {
+  opacity: 1;
 }
 
 .completed-ticket-header {
@@ -2291,8 +2549,14 @@ body.dark-mode .completed-ticket-card {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
+body.dark-mode .completed-ticket-card::before {
+  background: linear-gradient(90deg, #28a745 0%, #34d058 100%);
+}
+
 body.dark-mode .completed-ticket-card:hover {
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  transform: translateY(-2px);
+  border-color: #28a745;
 }
 
 body.dark-mode .completed-ticket-id-badge {
@@ -2336,7 +2600,7 @@ body.dark-mode .completed-ticket-menu-dropdown {
 }
 
 .clear-completed-btn {
-  background: #dc3545;
+  background: #e17055;
   color: white;
   border: none;
   padding: 4px 8px;
@@ -2344,45 +2608,46 @@ body.dark-mode .completed-ticket-menu-dropdown {
   font-size: 11px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s ease;
   display: flex;
   align-items: center;
   gap: 6px;
-  box-shadow: 0 1px 3px rgba(220, 53, 69, 0.3);
+  box-shadow: 0 1px 3px rgba(225, 112, 85, 0.3);
   width: auto;
   min-width: 80px;
 }
 
+/* Completely disable all hover states for clear-completed-btn */
 .clear-completed-btn:hover {
-  background: #c82333;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 6px rgba(220, 53, 69, 0.4);
+  border-color: transparent !important;
+  background: #e17055 !important;
+  transform: none !important;
+  box-shadow: 0 1px 3px rgba(225, 112, 85, 0.3) !important;
 }
 
-.clear-completed-btn:active {
-  transform: translateY(0);
+/* Override dark mode tab content button hover rule */
+body.dark-mode .tab-content .clear-completed-btn:hover {
+  background: var(--accent-color, #3b82f6) !important;
+  color: white !important;
+  border-color: transparent !important;
+  transform: none !important;
+  box-shadow: 0 1px 3px rgba(59, 130, 246, 0.4) !important;
 }
 
 /* Dark mode styles for clear button */
 body.dark-mode .clear-completed-btn {
   background: var(--accent-color, #3b82f6) !important;
-  color: #000 !important;
+  color: white !important;
   box-shadow: 0 1px 3px rgba(59, 130, 246, 0.4) !important;
 }
 
 body.dark-mode .clear-completed-btn i {
-  color: #000 !important;
+  color: white !important;
 }
 
 /* Override the general button rule for clear button specifically */
 body.dark-mode .tab-content .clear-completed-btn {
   background: var(--accent-color, #3b82f6) !important;
-  color: #000 !important;
-}
-
-body.dark-mode .clear-completed-btn:hover {
-  background: #c82333;
-  box-shadow: 0 2px 6px rgba(220, 53, 69, 0.5);
+  color: white !important;
 }
 
 /* Remove old pinned tab h2 styles - now using new header structure */
@@ -2989,9 +3254,7 @@ body.dark-mode #overdueTicketsList .ticket-card > div:last-child i {
   background: var(--badge-bg) !important;
 }
 
-.warning-icon {
-  color: var(--icon-color) !important;
-}
+/* Removed conflicting warning-icon rule that was overriding our custom color */
 
 #addTicket {
   background: var(--primary-color) !important;
@@ -3174,3 +3437,5 @@ body {
 .dark-mode-toggle-btn:hover::before {
   opacity: 1;
 }
+
+
