@@ -3064,9 +3064,7 @@ function initializeDarkModeToggle() {
       // Save preference
       chrome.storage.sync.set({ darkMode: isDarkMode });
       
-      // Show enhanced toast notification
-      const message = isDarkMode ? '🌙 Dark mode enabled' : '☀️ Light mode enabled';
-      showToast(message, 'success');
+      // Toast notification removed for cleaner UX
       
       // Remove toggling class after animation
       setTimeout(() => {
