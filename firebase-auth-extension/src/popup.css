@@ -1093,9 +1093,9 @@ body.dark-mode[data-theme="rose-warm"] .macros-icon {
   font-size: 12px;
 }
 
-/* Make the fa-plus icon black in dark mode for addTicket */
+/* Make the fa-plus icon white in dark mode for addTicket to match text color */
 body.dark-mode #addTicket i.fa-plus {
-  color: #000000 !important;
+  color: #ffffff !important;
 }
 
 /* Style native date and time input icons */
@@ -1610,6 +1610,11 @@ body.dark-mode .add-ticket-header h3 {
   color: #ffffff !important;
 }
 
+/* Make the add-ticket-header icon white in dark mode to match the heading text */
+body.dark-mode .add-ticket-header i {
+  color: #ffffff !important;
+}
+
 body.dark-mode .form-group label {
   color: #ffffff !important;
 }
@@ -1821,17 +1826,18 @@ body.dark-mode .completed-title h2 {
 .macro-actions .macro-menu-btn {
   background: none;
   border: none;
-  color: #666;
+  color: var(--accent-color, #666);
   cursor: pointer;
   padding: 4px;
   border-radius: 4px;
-  transition: background-color 0.2s ease;
+  transition: all 0.2s ease;
   position: relative;
   z-index: 10;
 }
 
 .macro-actions .macro-menu-btn:hover {
-  background-color: #ffeaa7;
+  background-color: rgba(var(--accent-color-rgb, 102, 102, 102), 0.1);
+  color: var(--accent-color, #666);
 }
 
 /* Macro menu dropdown - match ticket-menu-dropdown exactly */
@@ -2032,11 +2038,12 @@ body.dark-mode .completed-title h2 {
 
 /* Dark mode styles for macro menu */
 body.dark-mode .macro-actions .macro-menu-btn {
-  color: #aaa !important;
+  color: var(--accent-color, #aaa) !important;
 }
 
 body.dark-mode .macro-actions .macro-menu-btn:hover {
-  background-color: #404040 !important;
+  background-color: rgba(var(--accent-color-rgb, 170, 170, 170), 0.2) !important;
+  color: var(--accent-color, #aaa) !important;
   opacity: 1 !important;
 }
 
@@ -2269,11 +2276,11 @@ body.dark-mode .your-tickets-heading {
 .ticket-menu-btn {
   background: none;
   border: none;
-  color: #666;
+  color: var(--accent-color, #666);
   cursor: pointer;
   padding: 4px 8px;
   border-radius: 4px;
-  transition: background-color 0.2s ease;
+  transition: all 0.2s ease;
   position: relative;
   z-index: 20;
   display: flex;
@@ -2294,7 +2301,8 @@ body.dark-mode .your-tickets-heading {
 }
 
 .ticket-menu-btn:hover {
-  background-color: #f0f0f0;
+  background-color: rgba(var(--accent-color-rgb, 102, 102, 102), 0.1);
+  color: var(--accent-color, #666);
 }
 
 .ticket-menu-dropdown {
@@ -2435,22 +2443,24 @@ body.dark-mode .ticket-card i[style*="color: #dc3545"] {
 }
 
 body.dark-mode .ticket-menu-btn {
-  color: #aaa;
+  color: var(--accent-color, #aaa);
   background-color: #000000 !important;
 }
 
 body.dark-mode .ticket-menu-btn:hover {
-  background-color: #404040 !important;
+  background-color: rgba(var(--accent-color-rgb, 170, 170, 170), 0.2) !important;
+  color: var(--accent-color, #aaa);
 }
 
 /* Override the general button rule for ticket menu buttons specifically */
 body.dark-mode .tab-content .ticket-menu-btn {
   background-color: #000000 !important;
-  color: #aaa !important;
+  color: var(--accent-color, #aaa) !important;
 }
 
 body.dark-mode .tab-content .ticket-menu-btn:hover {
-  background-color: #404040 !important;
+  background-color: rgba(var(--accent-color-rgb, 170, 170, 170), 0.2) !important;
+  color: var(--accent-color, #aaa) !important;
 }
 
 body.dark-mode .ticket-menu-dropdown {
@@ -2561,11 +2571,11 @@ body.dark-mode .menu-option i {
 .completed-ticket-menu-btn {
   background: none;
   border: none;
-  color: #666;
+  color: var(--accent-color, #666);
   cursor: pointer;
   padding: 4px 8px;
   border-radius: 4px;
-  transition: background-color 0.2s ease;
+  transition: all 0.2s ease;
   position: relative;
   z-index: 20;
   display: flex;
@@ -2576,7 +2586,8 @@ body.dark-mode .menu-option i {
 }
 
 .completed-ticket-menu-btn:hover {
-  background-color: #f0f0f0;
+  background-color: rgba(var(--accent-color-rgb, 102, 102, 102), 0.1);
+  color: var(--accent-color, #666);
 }
 
 .completed-ticket-menu-dropdown {
@@ -2679,22 +2690,24 @@ body.dark-mode .tab-content .completed-ticket-card .ticket-datetime {
 }
 
 body.dark-mode .completed-ticket-menu-btn {
-  color: #aaa !important;
+  color: var(--accent-color, #aaa) !important;
   background-color: #000000 !important;
 }
 
 body.dark-mode .completed-ticket-menu-btn:hover {
-  background-color: #404040 !important;
+  background-color: rgba(var(--accent-color-rgb, 170, 170, 170), 0.2) !important;
+  color: var(--accent-color, #aaa) !important;
 }
 
 /* Override the general button rule for completed ticket menu button specifically */
 body.dark-mode .tab-content .completed-ticket-menu-btn {
   background-color: #000000 !important;
-  color: #aaa !important;
+  color: var(--accent-color, #aaa) !important;
 }
 
 body.dark-mode .tab-content .completed-ticket-menu-btn:hover {
-  background-color: #404040 !important;
+  background-color: rgba(var(--accent-color-rgb, 170, 170, 170), 0.2) !important;
+  color: var(--accent-color, #aaa) !important;
 }
 
 /* Completed ticket dropdown styling - should look like light mode regardless of theme */
@@ -2904,7 +2917,7 @@ body.dark-mode .tab-content .clear-completed-btn {
 #pinnedTicketsList .ticket-menu-btn {
   background: transparent;
   border: none;
-  color: #000000;
+  color: var(--accent-color, #000000);
   cursor: pointer;
   padding: 6px 10px;
   border-radius: 8px;
@@ -2919,8 +2932,8 @@ body.dark-mode .tab-content .clear-completed-btn {
 }
 
 #pinnedTicketsList .ticket-menu-btn:hover {
-  background: rgba(59, 130, 246, 0.1);
-  color: #3b82f6;
+  background: rgba(var(--accent-color-rgb, 59, 130, 246), 0.1);
+  color: var(--accent-color, #3b82f6);
 }
 
 #pinnedTicketsList .ticket-menu-dropdown {
@@ -3077,7 +3090,7 @@ body.dark-mode #pinnedTicketsList .ticket-description {
 body.dark-mode #pinnedTicketsList .ticket-menu-btn {
   background: transparent;
   border: none;
-  color: #e5e7eb;
+  color: var(--accent-color, #e5e7eb);
   cursor: pointer;
   padding: 6px 10px;
   border-radius: 8px;
@@ -3092,8 +3105,8 @@ body.dark-mode #pinnedTicketsList .ticket-menu-btn {
 }
 
 body.dark-mode #pinnedTicketsList .ticket-menu-btn:hover {
-  background: rgba(59, 130, 246, 0.1);
-  color: #3b82f6;
+  background: rgba(var(--accent-color-rgb, 59, 130, 246), 0.1);
+  color: var(--accent-color, #3b82f6);
 }
 
 body.dark-mode #pinnedTicketsList .ticket-menu-dropdown {
@@ -3220,7 +3233,7 @@ body.dark-mode #pinnedTicketsList .menu-option.delete:hover {
 #overdueTicketsList .ticket-menu-btn {
   background: transparent;
   border: none;
-  color: #000000;
+  color: var(--accent-color, #000000);
   cursor: pointer;
   padding: 6px 10px;
   border-radius: 8px;
@@ -3235,8 +3248,8 @@ body.dark-mode #pinnedTicketsList .menu-option.delete:hover {
 }
 
 #overdueTicketsList .ticket-menu-btn:hover {
-  background: rgba(220, 38, 38, 0.1);
-  color: #dc2626;
+  background: rgba(var(--accent-color-rgb, 220, 38, 38), 0.1);
+  color: var(--accent-color, #dc2626);
 }
 
 
@@ -3302,12 +3315,12 @@ body.dark-mode #overdueTicketsList .ticket-description {
 }
 
 body.dark-mode #overdueTicketsList .ticket-menu-btn {
-  color: #6b7280;
+  color: var(--accent-color, #6b7280);
 }
 
 body.dark-mode #overdueTicketsList .ticket-menu-btn:hover {
-  background: rgba(220, 38, 38, 0.2);
-  color: #f87171;
+  background: rgba(var(--accent-color-rgb, 220, 38, 38), 0.2);
+  color: var(--accent-color, #f87171);
 }
 
 body.dark-mode #overdueTicketsList .ticket-card > div:last-child {
