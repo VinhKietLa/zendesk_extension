@@ -84,10 +84,20 @@ function validateReminderTime(date, time) {
     }
     return { isValid: true };
   } else if (time) {
-    // Time only - use today's date with that time
+    // Time only - smart handling for past times
     const today = new Date();
     const [hours, minutes] = time.split(':');
-    combinedDateTime = new Date(today.getFullYear(), today.getMonth(), today.getDate(), parseInt(hours), parseInt(minutes));
+    const timeToday = new Date(today.getFullYear(), today.getMonth(), today.getDate(), parseInt(hours), parseInt(minutes));
+    
+    // If the time has already passed today, set it for tomorrow
+    if (timeToday < today) {
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      combinedDateTime = new Date(tomorrow.getFullYear(), tomorrow.getMonth(), tomorrow.getDate(), parseInt(hours), parseInt(minutes));
+    } else {
+      // Time is still in the future today
+      combinedDateTime = timeToday;
+    }
   }
   
   // Only check time-based comparisons (when we have a specific time)
@@ -852,9 +862,22 @@ document.addEventListener("DOMContentLoaded", async () => {
         // If only date is provided, set it to end of day (23:59) for proper datetime format
         combinedReminderTime = `${finalDate}T23:59`;
       } else if (finalTime) {
-        // If only time is provided, use today's date
-        const today = new Date().toISOString().split('T')[0];
-        combinedReminderTime = `${today}T${finalTime}`;
+        // If only time is provided, use smart time handling
+        const today = new Date();
+        const [hours, minutes] = finalTime.split(':');
+        const timeToday = new Date(today.getFullYear(), today.getMonth(), today.getDate(), parseInt(hours), parseInt(minutes));
+        
+        // If the time has already passed today, set it for tomorrow
+        if (timeToday < today) {
+          const tomorrow = new Date(today);
+          tomorrow.setDate(tomorrow.getDate() + 1);
+          const tomorrowDate = tomorrow.toISOString().split('T')[0];
+          combinedReminderTime = `${tomorrowDate}T${finalTime}`;
+        } else {
+          // Time is still in the future today
+          const todayDate = today.toISOString().split('T')[0];
+          combinedReminderTime = `${todayDate}T${finalTime}`;
+        }
       }
 
       const user = auth.currentUser;
@@ -3529,9 +3552,22 @@ function showEditTicketModal(ticket, user, isPro) {
         // If only date is provided, set it to end of day (23:59) for proper datetime format
         newReminderTime = `${finalDate}T23:59`;
       } else if (finalTime) {
-        // If only time is provided, use today's date
-        const today = new Date().toISOString().split('T')[0];
-        newReminderTime = `${today}T${finalTime}`;
+        // If only time is provided, use smart time handling
+        const today = new Date();
+        const [hours, minutes] = finalTime.split(':');
+        const timeToday = new Date(today.getFullYear(), today.getMonth(), today.getDate(), parseInt(hours), parseInt(minutes));
+        
+        // If the time has already passed today, set it for tomorrow
+        if (timeToday < today) {
+          const tomorrow = new Date(today);
+          tomorrow.setDate(tomorrow.getDate() + 1);
+          const tomorrowDate = tomorrow.toISOString().split('T')[0];
+          newReminderTime = `${tomorrowDate}T${finalTime}`;
+        } else {
+          // Time is still in the future today
+          const todayDate = today.toISOString().split('T')[0];
+          newReminderTime = `${todayDate}T${finalTime}`;
+        }
       }
 
       try {
