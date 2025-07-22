@@ -4017,4 +4017,46 @@ body.dark-mode .delete-confirm-btn:hover {
   background: #b91c1c;
 }
 
+/* Semantic icon colors for menu options */
+.menu-option i.icon-done {
+  color: #10b981; /* Green for completion actions */
+}
+
+.menu-option i.icon-overdue {
+  color: #f59e0b; /* Orange for overdue/urgent actions */
+}
+
+.menu-option i.icon-navigation {
+  color: #3b82f6; /* Blue for navigation/movement actions */
+}
+
+.menu-option i.icon-secondary {
+  color: #6b7280; /* Gray for neutral/secondary actions */
+}
+
+.menu-option i.icon-destructive {
+  color: #ef4444; /* Red for destructive actions */
+}
+
+/* Dark mode semantic icon colors */
+body.dark-mode .menu-option i.icon-done {
+  color: #10b981; /* Green for completion actions */
+}
+
+body.dark-mode .menu-option i.icon-overdue {
+  color: #f59e0b; /* Orange for overdue/urgent actions */
+}
+
+body.dark-mode .menu-option i.icon-navigation {
+  color: #60a5fa; /* Lighter blue for dark mode */
+}
+
+body.dark-mode .menu-option i.icon-secondary {
+  color: #9ca3af; /* Lighter gray for dark mode */
+}
+
+body.dark-mode .menu-option i.icon-destructive {
+  color: #f87171; /* Lighter red for dark mode */
+}
+
 

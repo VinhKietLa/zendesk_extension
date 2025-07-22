@@ -1472,7 +1472,7 @@ async function displayImportantTickets(tickets) {
         if (!pinnedIds.includes(ticketId)) {
           const pinOption = document.createElement("button");
           pinOption.className = "menu-option";
-          pinOption.innerHTML = '<i class="fas fa-thumbtack"></i> Pin Ticket';
+          pinOption.innerHTML = '<i class="fas fa-thumbtack icon-navigation"></i> Pin Ticket';
           pinOption.addEventListener("click", async (e) => {
             e.stopPropagation();
             try {
@@ -1492,10 +1492,10 @@ async function displayImportantTickets(tickets) {
           menuDropdown.appendChild(pinOption);
         }
         
-        // Edit Details option (SECOND - secondary action)
-        const editOption = document.createElement("button");
-        editOption.className = "menu-option";
-        editOption.innerHTML = '<i class="fas fa-edit"></i> Edit Details';
+              // Edit Details option (SECOND - secondary action)
+      const editOption = document.createElement("button");
+      editOption.className = "menu-option";
+      editOption.innerHTML = '<i class="fas fa-edit icon-secondary"></i> Edit Details';
         editOption.addEventListener("click", (e) => {
           e.stopPropagation();
           showEditTicketModal({ ticketId, description, reminderTime }, user, isPro);
@@ -1507,7 +1507,7 @@ async function displayImportantTickets(tickets) {
         const completeOption = document.createElement("button");
         completeOption.className = "menu-option";
         completeOption.style.color = "#28a745";
-        completeOption.innerHTML = '<i class="fas fa-check-circle" style="color: #28a745;"></i> Mark as Done';
+        completeOption.innerHTML = '<i class="fas fa-check-circle icon-done"></i> Mark as Done';
         completeOption.addEventListener("click", async (e) => {
           e.stopPropagation();
           try {
@@ -1520,10 +1520,10 @@ async function displayImportantTickets(tickets) {
         });
         menuDropdown.appendChild(completeOption);
         
-        // Delete Ticket option (FOURTH - destructive action)
-        const deleteOption = document.createElement("button");
-        deleteOption.className = "menu-option delete";
-        deleteOption.innerHTML = '<i class="fas fa-trash"></i> Delete Ticket';
+              // Delete Ticket option (FOURTH - destructive action)
+      const deleteOption = document.createElement("button");
+      deleteOption.className = "menu-option delete";
+      deleteOption.innerHTML = '<i class="fas fa-trash icon-destructive"></i> Delete Ticket';
         deleteOption.addEventListener("click", (e) => {
           e.stopPropagation();
               showDeleteConfirmationModal(ticketId, () => {
@@ -1537,7 +1537,7 @@ async function displayImportantTickets(tickets) {
         const overdueOption = document.createElement("button");
         overdueOption.className = "menu-option";
         overdueOption.style.color = "#fd7e14";
-        overdueOption.innerHTML = '<i class="fas fa-clock" style="color: #fd7e14;"></i> Mark as Overdue';
+        overdueOption.innerHTML = '<i class="fas fa-clock icon-overdue"></i> Mark as Overdue';
         overdueOption.addEventListener("click", async (e) => {
           e.stopPropagation();
           try {
@@ -1716,7 +1716,7 @@ function displayCompletedTickets(tickets) {
       // Move back to Important option (FIRST - most common action for completed tickets)
       const moveToImportantOption = document.createElement('button');
       moveToImportantOption.className = 'menu-option';
-      moveToImportantOption.innerHTML = '<i class="fas fa-arrow-left"></i> Move back to Important';
+      moveToImportantOption.innerHTML = '<i class="fas fa-arrow-left icon-navigation"></i> Move back to Important';
       moveToImportantOption.addEventListener('click', async (e) => {
         e.stopPropagation();
         
@@ -1782,7 +1782,7 @@ function displayCompletedTickets(tickets) {
       // Edit Details option (SECOND - secondary action)
       const editOption = document.createElement('button');
       editOption.className = 'menu-option';
-      editOption.innerHTML = '<i class="fas fa-edit"></i> Edit Details';
+      editOption.innerHTML = '<i class="fas fa-edit icon-secondary"></i> Edit Details';
       editOption.addEventListener('click', (e) => {
         e.stopPropagation();
         const ticket = { ticketId, description, reminderTime };
@@ -1794,7 +1794,7 @@ function displayCompletedTickets(tickets) {
       // Delete option (LAST - destructive action)
       const deleteOption = document.createElement('button');
       deleteOption.className = 'menu-option delete';
-      deleteOption.innerHTML = '<i class="fas fa-trash"></i> Delete Ticket';
+      deleteOption.innerHTML = '<i class="fas fa-trash icon-destructive"></i> Delete Ticket';
       deleteOption.addEventListener('click', (e) => {
         e.stopPropagation();
                   showDeleteConfirmationModal(ticketId, () => {
@@ -1958,7 +1958,7 @@ async function displayOverdueTickets(tickets) {
       // Mark as Done option (FIRST - immediate resolution)
       const completeOption = document.createElement('button');
       completeOption.className = 'menu-option';
-      completeOption.innerHTML = '<i class="fas fa-check" style="color: #28a745;"></i> Mark as Done';
+              completeOption.innerHTML = '<i class="fas fa-check icon-done"></i> Mark as Done';
       completeOption.addEventListener('click', (e) => {
         e.stopPropagation();
         markReminderAsDone(user, ticketId);
@@ -1973,7 +1973,7 @@ async function displayOverdueTickets(tickets) {
       // Move to Important option (SECOND - status change to prioritize)
       const moveToImportantOption = document.createElement('button');
       moveToImportantOption.className = 'menu-option';
-      moveToImportantOption.innerHTML = '<i class="fas fa-arrow-right"></i> Move to Important';
+      moveToImportantOption.innerHTML = '<i class="fas fa-arrow-right icon-navigation"></i> Move to Important';
       moveToImportantOption.addEventListener('click', async (e) => {
         e.stopPropagation();
         
@@ -2040,7 +2040,7 @@ async function displayOverdueTickets(tickets) {
       // Snooze 1 hour option (THIRD - quick delay)
       const snooze1HourOption = document.createElement('button');
       snooze1HourOption.className = 'menu-option';
-      snooze1HourOption.innerHTML = '<i class="fas fa-redo"></i> Snooze 1 hour';
+      snooze1HourOption.innerHTML = '<i class="fas fa-redo icon-overdue"></i> Snooze 1 hour';
       snooze1HourOption.addEventListener('click', async (e) => {
         e.stopPropagation();
         const newReminderTime = new Date(Date.now() + 60 * 60 * 1000); // 1 hour from now
@@ -2120,7 +2120,7 @@ async function displayOverdueTickets(tickets) {
       // Snooze 4 hours option (FOURTH - medium delay)
       const snooze4HoursOption = document.createElement('button');
       snooze4HoursOption.className = 'menu-option';
-      snooze4HoursOption.innerHTML = '<i class="fas fa-redo"></i> Snooze 4 hours';
+      snooze4HoursOption.innerHTML = '<i class="fas fa-redo icon-overdue"></i> Snooze 4 hours';
       snooze4HoursOption.addEventListener('click', async (e) => {
         e.stopPropagation();
         const newReminderTime = new Date(Date.now() + 4 * 60 * 60 * 1000); // 4 hours from now
@@ -2200,7 +2200,7 @@ async function displayOverdueTickets(tickets) {
       // Snooze until tomorrow option (FIFTH - long delay)
       const snoozeTomorrowOption = document.createElement('button');
       snoozeTomorrowOption.className = 'menu-option';
-      snoozeTomorrowOption.innerHTML = '<i class="fas fa-redo"></i> Snooze until tomorrow';
+      snoozeTomorrowOption.innerHTML = '<i class="fas fa-redo icon-overdue"></i> Snooze until tomorrow';
       snoozeTomorrowOption.addEventListener('click', async (e) => {
         e.stopPropagation();
         const tomorrow = new Date();
@@ -2282,7 +2282,7 @@ async function displayOverdueTickets(tickets) {
       // Edit Details option (SIXTH - secondary action)
       const editOption = document.createElement('button');
       editOption.className = 'menu-option';
-      editOption.innerHTML = '<i class="fas fa-edit"></i> Edit Details';
+      editOption.innerHTML = '<i class="fas fa-edit icon-secondary"></i> Edit Details';
       editOption.addEventListener('click', (e) => {
         e.stopPropagation();
         const ticket = { ticketId, description, reminderTime };
@@ -2294,7 +2294,7 @@ async function displayOverdueTickets(tickets) {
       // Delete Ticket option (LAST - destructive action)
       const deleteOption = document.createElement('button');
       deleteOption.className = 'menu-option delete';
-      deleteOption.innerHTML = '<i class="fas fa-trash"></i> Delete Ticket';
+      deleteOption.innerHTML = '<i class="fas fa-trash icon-destructive"></i> Delete Ticket';
       deleteOption.addEventListener('click', (e) => {
         e.stopPropagation();
         showDeleteConfirmationModal(ticketId, () => {
@@ -2583,7 +2583,7 @@ async function displayPinnedTickets(user, isPro) {
             // Unpin option (FIRST - most common action for pinned tickets)
             const unpinOption = document.createElement('button');
             unpinOption.className = 'menu-option';
-            unpinOption.innerHTML = '<i class="fas fa-thumbtack"></i> Unpin';
+            unpinOption.innerHTML = '<i class="fas fa-thumbtack icon-navigation"></i> Unpin';
             unpinOption.addEventListener('click', async (e) => {
                 e.stopPropagation();
                 try {
@@ -2600,7 +2600,7 @@ async function displayPinnedTickets(user, isPro) {
             const doneOption = document.createElement('button');
             doneOption.className = 'menu-option';
             doneOption.style.color = '#28a745';
-            doneOption.innerHTML = '<i class="fas fa-check-circle" style="color: #28a745;"></i> Mark as Done';
+            doneOption.innerHTML = '<i class="fas fa-check-circle icon-done"></i> Mark as Done';
             doneOption.addEventListener('click', async (e) => {
                 e.stopPropagation();
                 try {
@@ -2623,7 +2623,7 @@ async function displayPinnedTickets(user, isPro) {
             // Edit option (THIRD - secondary action)
             const editOption = document.createElement('button');
             editOption.className = 'menu-option';
-            editOption.innerHTML = '<i class="fas fa-edit"></i> Edit';
+            editOption.innerHTML = '<i class="fas fa-edit icon-secondary"></i> Edit';
             editOption.addEventListener('click', (e) => {
                 e.stopPropagation();
                 showEditTicketModal(ticket, user, isPro);
@@ -2634,7 +2634,7 @@ async function displayPinnedTickets(user, isPro) {
             // Delete option (LAST - destructive action)
             const deleteOption = document.createElement('button');
             deleteOption.className = 'menu-option delete';
-            deleteOption.innerHTML = '<i class="fas fa-trash"></i> Delete';
+            deleteOption.innerHTML = '<i class="fas fa-trash icon-destructive"></i> Delete';
             deleteOption.addEventListener('click', (e) => {
                 e.stopPropagation();
                       showDeleteConfirmationModal(ticket.ticketId, () => {
@@ -3122,10 +3122,10 @@ function createMacroElement(macro) {
         </button>
         <div class="macro-menu-dropdown">
                       <button class="menu-option edit-option">
-              <i class="fas fa-edit"></i> Edit
+              <i class="fas fa-edit icon-secondary"></i> Edit
             </button>
             <button class="menu-option delete-option">
-              <i class="fas fa-trash"></i> Delete
+              <i class="fas fa-trash icon-destructive"></i> Delete
             </button>
         </div>
       </div>
