@@ -931,7 +931,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         document.getElementById("reminderDate").value = "";
         document.getElementById("reminderTime").value = "";
         
-        showToast("Ticket added successfully", "success");
+        // Removed success toast for ticket creation
       } catch (error) {
         console.error("Error adding reminder:", error);
         alert(error.message || "Failed to add reminder. Please try again.");
@@ -1717,22 +1717,64 @@ function displayCompletedTickets(tickets) {
       const moveToImportantOption = document.createElement('button');
       moveToImportantOption.className = 'menu-option';
       moveToImportantOption.innerHTML = '<i class="fas fa-arrow-left"></i> Move back to Important';
-      moveToImportantOption.addEventListener('click', (e) => {
+      moveToImportantOption.addEventListener('click', async (e) => {
         e.stopPropagation();
-        // Remove from completed tickets and add back to important
-        chrome.storage.local.get(['completedTickets', 'importantTickets'], (data) => {
-          const updatedCompletedTickets = (data.completedTickets || []).filter(ticket => 
-            ticket.ticketId !== ticketId
-          );
-          const updatedImportantTickets = [...(data.importantTickets || []), { ticketId, description, reminderTime }];
-          
-          chrome.storage.local.set({ 
-            completedTickets: updatedCompletedTickets,
-            importantTickets: updatedImportantTickets
-          }, () => {
-            displayCompletedTickets(updatedCompletedTickets);
+        
+        // Check if user is Pro
+        const user = auth.currentUser;
+        if (user) {
+          try {
+            const isPro = await isUserPro(user.uid);
+            if (isPro) {
+              // Pro: Update in Firestore
+              const reminders = await getUserReminders(user.uid);
+              const completedReminder = reminders.find(r => r.ticketId === ticketId && r.type === 'completed');
+              if (completedReminder) {
+                // Update the reminder to important
+                await updateReminder(completedReminder.id, {
+                  type: 'important',
+                  status: 'active'
+                });
+                // Reload all reminders
+                await loadReminders(user);
+              }
+            } else {
+              // Free: Update local storage
+              chrome.storage.local.get(['completedTickets', 'importantTickets'], (data) => {
+                const updatedCompletedTickets = (data.completedTickets || []).filter(ticket => 
+                  ticket.ticketId !== ticketId
+                );
+                const updatedImportantTickets = [...(data.importantTickets || []), { ticketId, description, reminderTime }];
+                
+                chrome.storage.local.set({ 
+                  completedTickets: updatedCompletedTickets,
+                  importantTickets: updatedImportantTickets
+                }, () => {
+                  displayCompletedTickets(updatedCompletedTickets);
+                  displayImportantTickets(updatedImportantTickets);
+                });
+              });
+            }
+          } catch (error) {
+            console.error('Error moving completed ticket to important:', error);
+          }
+        } else {
+          // No user - free mode
+          chrome.storage.local.get(['completedTickets', 'importantTickets'], (data) => {
+            const updatedCompletedTickets = (data.completedTickets || []).filter(ticket => 
+              ticket.ticketId !== ticketId
+            );
+            const updatedImportantTickets = [...(data.importantTickets || []), { ticketId, description, reminderTime }];
+            
+            chrome.storage.local.set({ 
+              completedTickets: updatedCompletedTickets,
+              importantTickets: updatedImportantTickets
+            }, () => {
+              displayCompletedTickets(updatedCompletedTickets);
+              displayImportantTickets(updatedImportantTickets);
+            });
           });
-        });
+        }
         menuDropdown.classList.remove('open');
       });
       menuDropdown.appendChild(moveToImportantOption);
@@ -1743,11 +1785,8 @@ function displayCompletedTickets(tickets) {
       editOption.innerHTML = '<i class="fas fa-edit"></i> Edit Details';
       editOption.addEventListener('click', (e) => {
         e.stopPropagation();
-        const newDescription = prompt('Enter new description:', description);
-        if (newDescription && newDescription.trim() !== '') {
-          updateTicketDescription({ uid: '' }, false, ticketId, newDescription.trim());
-          showToast('Ticket description updated');
-        }
+        const ticket = { ticketId, description, reminderTime };
+        showEditTicketModal(ticket, { uid: '' }, false);
         menuDropdown.classList.remove('open');
       });
       menuDropdown.appendChild(editOption);
@@ -1935,22 +1974,65 @@ async function displayOverdueTickets(tickets) {
       const moveToImportantOption = document.createElement('button');
       moveToImportantOption.className = 'menu-option';
       moveToImportantOption.innerHTML = '<i class="fas fa-arrow-right"></i> Move to Important';
-      moveToImportantOption.addEventListener('click', (e) => {
+      moveToImportantOption.addEventListener('click', async (e) => {
         e.stopPropagation();
-        // Remove from overdue tickets
-        chrome.storage.local.get(['overdueTickets', 'importantTickets'], (data) => {
-          const updatedOverdueTickets = (data.overdueTickets || []).filter(ticket => 
-            ticket.ticketId !== ticketId
-          );
-          const updatedImportantTickets = [...(data.importantTickets || []), { ticketId, description, reminderTime }];
-          
-          chrome.storage.local.set({ 
-            overdueTickets: updatedOverdueTickets,
-            importantTickets: updatedImportantTickets
-          }, () => {
-            displayOverdueTickets(updatedOverdueTickets);
+        
+        // Check if user is Pro
+        const user = auth.currentUser;
+        if (user) {
+          try {
+            const isPro = await isUserPro(user.uid);
+            if (isPro) {
+              // Pro: Update in Firestore
+              const reminders = await getUserReminders(user.uid);
+              const overdueReminder = reminders.find(r => r.ticketId === ticketId && r.type === 'overdue');
+              if (overdueReminder) {
+                // Update the reminder to important
+                await updateReminder(overdueReminder.id, {
+                  type: 'important',
+                  status: 'active'
+                });
+                // Reload all reminders
+                await loadReminders(user);
+              }
+            } else {
+              // Free: Update local storage
+              chrome.storage.local.get(['overdueTickets', 'importantTickets'], (data) => {
+                const updatedOverdueTickets = (data.overdueTickets || []).filter(ticket => 
+                  ticket.ticketId !== ticketId
+                );
+                const updatedImportantTickets = [...(data.importantTickets || []), { ticketId, description, reminderTime }];
+                
+                chrome.storage.local.set({ 
+                  overdueTickets: updatedOverdueTickets,
+                  importantTickets: updatedImportantTickets
+                }, () => {
+                  displayOverdueTickets(updatedOverdueTickets);
+                  displayImportantTickets(updatedImportantTickets);
+                });
+              });
+            }
+          } catch (error) {
+            console.error('Error moving ticket to important:', error);
+            showToast('Failed to move ticket');
+          }
+        } else {
+          // No user - free mode
+          chrome.storage.local.get(['overdueTickets', 'importantTickets'], (data) => {
+            const updatedOverdueTickets = (data.overdueTickets || []).filter(ticket => 
+              ticket.ticketId !== ticketId
+            );
+            const updatedImportantTickets = [...(data.importantTickets || []), { ticketId, description, reminderTime }];
+            
+            chrome.storage.local.set({ 
+              overdueTickets: updatedOverdueTickets,
+              importantTickets: updatedImportantTickets
+            }, () => {
+              displayOverdueTickets(updatedOverdueTickets);
+              displayImportantTickets(updatedImportantTickets);
+            });
           });
-        });
+        }
         menuDropdown.classList.remove('open');
       });
       menuDropdown.appendChild(moveToImportantOption);
@@ -2203,20 +2285,8 @@ async function displayOverdueTickets(tickets) {
       editOption.innerHTML = '<i class="fas fa-edit"></i> Edit Details';
       editOption.addEventListener('click', (e) => {
         e.stopPropagation();
-        const newDescription = prompt('Edit description:', description);
-        if (newDescription && newDescription !== description) {
-          // Update the description in storage
-          chrome.storage.local.get(['overdueTickets'], (data) => {
-            const updatedTickets = (data.overdueTickets || []).map(ticket => 
-              ticket.ticketId === ticketId 
-                ? { ...ticket, description: newDescription }
-                : ticket
-            );
-            chrome.storage.local.set({ overdueTickets: updatedTickets }, () => {
-              displayOverdueTickets(updatedTickets);
-            });
-          });
-        }
+        const ticket = { ticketId, description, reminderTime };
+        showEditTicketModal(ticket, user, isPro);
         menuDropdown.classList.remove('open');
       });
       menuDropdown.appendChild(editOption);
@@ -2402,10 +2472,13 @@ async function unpinTicket(user, isPro, ticket) {
       await createReminder(user.uid, {
         ticketId,
         description,
-        reminderTime: pinned.reminderTime || null,
+        reminderTime: reminderTime || null,
         type: "important",
+        status: "active"
       });
     }
+    // Reload all reminders to refresh the UI
+    await loadReminders(user);
   } else {
     // Free: Remove from pinnedTickets, add back to importantTickets with all properties
     const [pinnedTickets, importantTickets, completedTickets, overdueTickets] =
@@ -2553,10 +2626,7 @@ async function displayPinnedTickets(user, isPro) {
             editOption.innerHTML = '<i class="fas fa-edit"></i> Edit';
             editOption.addEventListener('click', (e) => {
                 e.stopPropagation();
-                const newDescription = prompt('Edit description:', ticket.description);
-                if (newDescription && newDescription !== ticket.description) {
-                    updateTicketDescription(user, isPro, ticket.ticketId, newDescription);
-                }
+                showEditTicketModal(ticket, user, isPro);
                 menuDropdown.classList.remove('open');
             });
             menuDropdown.appendChild(editOption);
