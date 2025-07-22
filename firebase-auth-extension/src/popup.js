@@ -1526,9 +1526,9 @@ async function displayImportantTickets(tickets) {
         deleteOption.innerHTML = '<i class="fas fa-trash"></i> Delete Ticket';
         deleteOption.addEventListener("click", (e) => {
           e.stopPropagation();
-          if (confirm("Are you sure you want to delete this ticket?")) {
-            deleteTicket(user, isPro, ticketId);
-          }
+              showDeleteConfirmationModal(ticketId, () => {
+      deleteTicket(user, isPro, ticketId);
+    });
           menuDropdown.classList.remove("open");
         });
         menuDropdown.appendChild(deleteOption);
@@ -1758,9 +1758,9 @@ function displayCompletedTickets(tickets) {
       deleteOption.innerHTML = '<i class="fas fa-trash"></i> Delete Ticket';
       deleteOption.addEventListener('click', (e) => {
         e.stopPropagation();
-        if (confirm('Are you sure you want to delete this ticket?')) {
-          deleteTicket({ uid: '' }, false, ticketId);
-        }
+                  showDeleteConfirmationModal(ticketId, () => {
+            deleteTicket({ uid: '' }, false, ticketId);
+          });
         menuDropdown.classList.remove('open');
       });
       menuDropdown.appendChild(deleteOption);
@@ -2227,9 +2227,9 @@ async function displayOverdueTickets(tickets) {
       deleteOption.innerHTML = '<i class="fas fa-trash"></i> Delete Ticket';
       deleteOption.addEventListener('click', (e) => {
         e.stopPropagation();
-        if (confirm('Are you sure you want to delete this ticket?')) {
+        showDeleteConfirmationModal(ticketId, () => {
           deleteTicket(user, isPro, ticketId);
-        }
+        });
         menuDropdown.classList.remove('open');
       });
       menuDropdown.appendChild(deleteOption);
@@ -2567,9 +2567,9 @@ async function displayPinnedTickets(user, isPro) {
             deleteOption.innerHTML = '<i class="fas fa-trash"></i> Delete';
             deleteOption.addEventListener('click', (e) => {
                 e.stopPropagation();
-                if (confirm('Are you sure you want to delete this ticket?')) {
-                    deleteTicket(user, isPro, ticket.ticketId);
-                }
+                      showDeleteConfirmationModal(ticket.ticketId, () => {
+        deleteTicket(user, isPro, ticket.ticketId);
+      });
                 menuDropdown.classList.remove('open');
             });
             menuDropdown.appendChild(deleteOption);
@@ -3051,12 +3051,12 @@ function createMacroElement(macro) {
           <i class="fas fa-ellipsis-v"></i>
         </button>
         <div class="macro-menu-dropdown">
-          <button class="menu-option edit-option">
-            <i class="fas fa-edit"></i> Edit
-          </button>
-          <button class="menu-option delete-option">
-            <i class="fas fa-trash"></i> Delete
-          </button>
+                      <button class="menu-option edit-option">
+              <i class="fas fa-edit"></i> Edit
+            </button>
+            <button class="menu-option delete-option">
+              <i class="fas fa-trash"></i> Delete
+            </button>
         </div>
       </div>
     </div>
@@ -3066,9 +3066,9 @@ function createMacroElement(macro) {
   // Add event listeners
   const copyBtn = div.querySelector(".copy-btn");
   const menuBtn = div.querySelector(".macro-menu-btn");
-  const menuDropdown = div.querySelector(".macro-menu-dropdown");
-  const editOption = div.querySelector(".edit-option");
-  const deleteOption = div.querySelector(".delete-option");
+      const menuDropdown = div.querySelector(".macro-menu-dropdown");
+    const editOption = div.querySelector(".edit-option");
+    const deleteOption = div.querySelector(".delete-option");
 
   copyBtn.addEventListener("click", async () => {
     const success = await copyMacroToClipboard(macro.content);
@@ -3121,7 +3121,7 @@ function createMacroElement(macro) {
     e.stopPropagation();
     menuDropdown.classList.remove('open');
     
-    if (confirm("Are you sure you want to delete this macro?")) {
+    showMacroDeleteConfirmationModal(macro.name, async () => {
       try {
         const user = auth.currentUser;
         if (user) {
@@ -3149,7 +3149,7 @@ function createMacroElement(macro) {
         console.error("Error deleting macro:", error);
         showToast("Error deleting macro", "error");
       }
-    }
+    });
   });
 
   return div;
@@ -3655,6 +3655,98 @@ async function updateTicketDetails(user, isPro, oldTicketId, newTicketId, newDes
     console.error("Error updating ticket details:", error);
     throw error;
   }
+}
+
+// Helper function to show delete confirmation modal
+function showDeleteConfirmationModal(ticketId, onConfirm) {
+  const modal = document.createElement("div");
+  modal.className = "edit-modal";
+  modal.innerHTML = `
+    <div class="edit-modal-content" style="max-width: 400px;">
+      <div class="edit-modal-header">
+        <h3>🗑️ Delete Ticket</h3>
+        <button class="close-edit-modal">&times;</button>
+      </div>
+      <div class="edit-modal-body">
+        <p style="margin-bottom: 16px; color: #dc2626; font-weight: 500;">
+          Are you sure you want to delete ticket #${ticketId}?
+        </p>
+        <p style="margin-bottom: 20px; color: #6b7280; font-size: 14px;">
+          This action cannot be undone.
+        </p>
+        <div style="display: flex; gap: 12px; justify-content: flex-end;">
+          <button class="cancel-btn" style="flex: 1;">Cancel</button>
+          <button class="delete-confirm-btn" style="flex: 1;">Delete</button>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  document.body.appendChild(modal);
+  
+  const closeBtn = modal.querySelector(".close-edit-modal");
+  const cancelBtn = modal.querySelector(".cancel-btn");
+  const deleteBtn = modal.querySelector(".delete-confirm-btn");
+  
+  const closeModal = () => modal.remove();
+  
+  closeBtn.addEventListener("click", closeModal);
+  cancelBtn.addEventListener("click", closeModal);
+  
+  modal.addEventListener("click", (e) => {
+    if (e.target === modal) closeModal();
+  });
+  
+  deleteBtn.addEventListener("click", () => {
+    closeModal();
+    onConfirm();
+  });
+}
+
+// Helper function to show macro delete confirmation modal
+function showMacroDeleteConfirmationModal(macroName, onConfirm) {
+  const modal = document.createElement("div");
+  modal.className = "edit-modal";
+  modal.innerHTML = `
+    <div class="edit-modal-content" style="max-width: 400px;">
+      <div class="edit-modal-header">
+        <h3>🗑️ Delete Macro</h3>
+        <button class="close-edit-modal">&times;</button>
+      </div>
+      <div class="edit-modal-body">
+        <p style="margin-bottom: 16px; color: #dc2626; font-weight: 500;">
+          Are you sure you want to delete the macro "${macroName}"?
+        </p>
+        <p style="margin-bottom: 20px; color: #6b7280; font-size: 14px;">
+          This action cannot be undone.
+        </p>
+        <div style="display: flex; gap: 12px; justify-content: flex-end;">
+          <button class="cancel-btn" style="flex: 1;">Cancel</button>
+          <button class="delete-confirm-btn" style="flex: 1;">Delete</button>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  document.body.appendChild(modal);
+  
+  const closeBtn = modal.querySelector(".close-edit-modal");
+  const cancelBtn = modal.querySelector(".cancel-btn");
+  const deleteBtn = modal.querySelector(".delete-confirm-btn");
+  
+  const closeModal = () => modal.remove();
+  
+  closeBtn.addEventListener("click", closeModal);
+  cancelBtn.addEventListener("click", closeModal);
+  
+  modal.addEventListener("click", (e) => {
+    if (e.target === modal) closeModal();
+  });
+  
+  deleteBtn.addEventListener("click", () => {
+    closeModal();
+    onConfirm();
+  });
 }
 
 
