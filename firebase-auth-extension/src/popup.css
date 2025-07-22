@@ -3870,10 +3870,7 @@ body.dark-mode .btn:focus {
   transition: background-color 0.2s ease;
 }
 
-.save-btn:hover {
-  background: var(--accent-color-dark, #2563eb);
-  opacity: 0.9;
-}
+/* Removed hover state for save button */
 
 .cancel-btn {
   background: white;
@@ -3941,10 +3938,7 @@ body.dark-mode .save-btn {
   color: #ffffff;
 }
 
-body.dark-mode .save-btn:hover {
-  background: var(--accent-color-dark, #2563eb);
-  opacity: 0.9;
-}
+/* Removed dark mode hover state for save button */
 
 body.dark-mode .cancel-btn {
   background: #374151;

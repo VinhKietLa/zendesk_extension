@@ -56,18 +56,41 @@ function validateReminderTime(date, time) {
   if (!date && !time) return { isValid: true };
   
   let combinedDateTime = null;
+  let isDateOnly = false;
   
   if (date && time) {
+    // Both date and time provided - exact datetime comparison
     combinedDateTime = new Date(`${date}T${time}`);
   } else if (date) {
-    combinedDateTime = new Date(date);
+    // Date only - treat as "all day" for that date
+    // Compare just the date part (ignore time)
+    const selectedDate = new Date(date);
+    const today = new Date();
+    
+    // Reset both to midnight for date-only comparison
+    const selectedDateOnly = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate());
+    const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    
+    if (selectedDateOnly < todayOnly) {
+      return {
+        isValid: false,
+        message: "This reminder date is in the past",
+        options: [
+          { label: "Create overdue reminder", action: "overdue", description: "Get notified immediately" },
+          { label: "Set to today", action: "adjust", description: "Set reminder for today" },
+          { label: "Pick different date", action: "cancel", description: "Choose a new date" }
+        ]
+      };
+    }
+    return { isValid: true };
   } else if (time) {
-    // If only time is provided, use today's date
+    // Time only - use today's date with that time
     const today = new Date();
     const [hours, minutes] = time.split(':');
     combinedDateTime = new Date(today.getFullYear(), today.getMonth(), today.getDate(), parseInt(hours), parseInt(minutes));
   }
   
+  // Only check time-based comparisons (when we have a specific time)
   if (combinedDateTime && combinedDateTime < new Date()) {
     return {
       isValid: false,
@@ -138,11 +161,19 @@ function showPastDateWarning(date, time, onConfirm) {
           onConfirm(date, time, true);
           break;
         case "adjust":
-          const oneHourFromNow = new Date(Date.now() + 60 * 60 * 1000);
-          const adjustedDate = oneHourFromNow.toISOString().split('T')[0];
-          const adjustedTime = oneHourFromNow.toTimeString().slice(0, 5);
-          onConfirm(adjustedDate, adjustedTime, false);
-          showToast("Reminder time adjusted to 1 hour from now", "success");
+          if (date && !time) {
+            // Date-only adjustment: set to today
+            const today = new Date().toISOString().split('T')[0];
+            onConfirm(today, "", false);
+            showToast("Reminder date adjusted to today", "success");
+          } else {
+            // Time-based adjustment: set to 1 hour from now
+            const oneHourFromNow = new Date(Date.now() + 60 * 60 * 1000);
+            const adjustedDate = oneHourFromNow.toISOString().split('T')[0];
+            const adjustedTime = oneHourFromNow.toTimeString().slice(0, 5);
+            onConfirm(adjustedDate, adjustedTime, false);
+            showToast("Reminder time adjusted to 1 hour from now", "success");
+          }
           break;
         case "cancel":
           // Do nothing, user can pick a different time
@@ -818,9 +849,12 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (finalDate && finalTime) {
         combinedReminderTime = `${finalDate}T${finalTime}`;
       } else if (finalDate) {
-        combinedReminderTime = finalDate;
+        // If only date is provided, set it to end of day (23:59) for proper datetime format
+        combinedReminderTime = `${finalDate}T23:59`;
       } else if (finalTime) {
-        combinedReminderTime = finalTime;
+        // If only time is provided, use today's date
+        const today = new Date().toISOString().split('T')[0];
+        combinedReminderTime = `${today}T${finalTime}`;
       }
 
       const user = auth.currentUser;
@@ -3492,9 +3526,12 @@ function showEditTicketModal(ticket, user, isPro) {
       if (finalDate && finalTime) {
         newReminderTime = `${finalDate}T${finalTime}`;
       } else if (finalDate) {
-        newReminderTime = finalDate;
+        // If only date is provided, set it to end of day (23:59) for proper datetime format
+        newReminderTime = `${finalDate}T23:59`;
       } else if (finalTime) {
-        newReminderTime = finalTime;
+        // If only time is provided, use today's date
+        const today = new Date().toISOString().split('T')[0];
+        newReminderTime = `${today}T${finalTime}`;
       }
 
       try {
