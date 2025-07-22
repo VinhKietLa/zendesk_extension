@@ -1289,10 +1289,7 @@ async function displayImportantTickets(tickets) {
         editOption.innerHTML = '<i class="fas fa-edit"></i> Edit Details';
         editOption.addEventListener("click", (e) => {
           e.stopPropagation();
-          const newDescription = prompt("Edit description:", description);
-          if (newDescription && newDescription !== description) {
-            updateTicketDescription(user, isPro, ticketId, newDescription);
-          }
+          showEditTicketModal({ ticketId, description, reminderTime }, user, isPro);
           menuDropdown.classList.remove("open");
         });
         menuDropdown.appendChild(editOption);
@@ -3250,6 +3247,184 @@ function initializeDarkModeToggle() {
     const tooltip = isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode';
     darkModeBtn.setAttribute('title', tooltip);
   });
+}
+
+// Edit ticket modal function
+function showEditTicketModal(ticket, user, isPro) {
+  // Parse the reminder time for the form
+  let reminderDate = "";
+  let reminderTime = "";
+  if (ticket.reminderTime) {
+    try {
+      const date = new Date(ticket.reminderTime);
+      reminderDate = date.toISOString().split('T')[0];
+      reminderTime = date.toTimeString().slice(0, 5);
+    } catch (error) {
+      console.error('Error parsing reminder time:', error);
+    }
+  }
+  
+  const modal = document.createElement("div");
+  modal.className = "edit-modal";
+  modal.innerHTML = `
+    <div class="edit-modal-content">
+      <div class="edit-modal-header">
+        <h3>Edit Ticket #${ticket.ticketId}</h3>
+        <button class="close-edit-modal">&times;</button>
+      </div>
+      <div class="edit-modal-body">
+        <div class="form-group">
+          <label for="editTicketId">Ticket ID</label>
+          <input type="text" id="editTicketId" value="${ticket.ticketId}">
+        </div>
+        <div class="form-group">
+          <label for="editDescription">Description</label>
+          <textarea id="editDescription" placeholder="Enter description">${ticket.description || ''}</textarea>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="editDate">Date</label>
+            <input type="date" id="editDate" value="${reminderDate}">
+          </div>
+          <div class="form-group">
+            <label for="editTime">Time</label>
+            <input type="time" id="editTime" value="${reminderTime}">
+          </div>
+        </div>
+      </div>
+      <div class="edit-modal-actions">
+        <button id="saveEditBtn" class="save-btn">Save Changes</button>
+        <button id="cancelEditBtn" class="cancel-btn">Cancel</button>
+      </div>
+    </div>
+  `;
+  
+  document.body.appendChild(modal);
+  
+  const closeBtn = modal.querySelector(".close-edit-modal");
+  const cancelBtn = modal.querySelector("#cancelEditBtn");
+  const saveBtn = modal.querySelector("#saveEditBtn");
+  
+  // Close modal functions
+  const closeModal = () => {
+    modal.remove();
+  };
+  
+  closeBtn.addEventListener("click", closeModal);
+  cancelBtn.addEventListener("click", closeModal);
+  
+  // Close when clicking outside
+  modal.addEventListener("click", (e) => {
+    if (e.target === modal) {
+      closeModal();
+    }
+  });
+  
+  // Save button functionality
+  saveBtn.addEventListener("click", async () => {
+    const newTicketId = document.getElementById("editTicketId").value.trim();
+    const newDescription = document.getElementById("editDescription").value.trim();
+    const newDate = document.getElementById("editDate").value;
+    const newTime = document.getElementById("editTime").value;
+
+    // Basic validation
+    if (!newTicketId || !newDescription) {
+      alert("Please enter both Ticket ID and Description");
+      return;
+    }
+
+    // Combine date and time if both are provided
+    let newReminderTime = null;
+    if (newDate && newTime) {
+      newReminderTime = `${newDate}T${newTime}`;
+    } else if (newDate) {
+      newReminderTime = newDate;
+    } else if (newTime) {
+      newReminderTime = newTime;
+    }
+
+    try {
+      // Update all ticket fields
+      await updateTicketDetails(user, isPro, ticket.ticketId, newTicketId, newDescription, newReminderTime);
+      
+      // Show success message
+      showToast("Ticket updated successfully", "success");
+      closeModal();
+    } catch (error) {
+      console.error("Error updating ticket:", error);
+      alert("Failed to update ticket. Please try again.");
+    }
+  });
+}
+
+// Update ticket details function - handles all fields
+async function updateTicketDetails(user, isPro, oldTicketId, newTicketId, newDescription, newReminderTime) {
+  try {
+    if (isPro && user) {
+      // Pro user: Update in Firestore
+      const reminders = await getUserReminders(user.uid);
+      const reminder = reminders.find((r) => r.ticketId === oldTicketId);
+      if (reminder) {
+        const updateData = { 
+          description: newDescription,
+          reminderTime: newReminderTime
+        };
+        
+        // If ticket ID changed, update it too
+        if (oldTicketId !== newTicketId) {
+          updateData.ticketId = newTicketId;
+        }
+        
+        await updateReminder(reminder.id, updateData);
+      }
+    } else {
+      // Free user: Update in local storage
+      const data = await new Promise((resolve) => {
+        chrome.storage.local.get(
+          [
+            "importantTickets",
+            "completedTickets",
+            "overdueTickets",
+            "pinnedTickets",
+          ],
+          resolve
+        );
+      });
+
+      // Update in all relevant lists
+      const updateList = (list) => {
+        return list.map((ticket) => {
+          if (ticket.ticketId === oldTicketId) {
+            return { 
+              ...ticket, 
+              ticketId: newTicketId,
+              description: newDescription, 
+              reminderTime: newReminderTime 
+            };
+          }
+          return ticket;
+        });
+      };
+
+      await chrome.storage.local.set({
+        importantTickets: updateList(data.importantTickets || []),
+        completedTickets: updateList(data.completedTickets || []),
+        overdueTickets: updateList(data.overdueTickets || []),
+        pinnedTickets: updateList(data.pinnedTickets || []),
+      });
+    }
+
+    // Refresh the UI based on user type
+    if (user) {
+      await loadReminders(user);
+    } else {
+      // For Free users, refresh from local storage
+      loadFreeUserData();
+    }
+  } catch (error) {
+    console.error("Error updating ticket details:", error);
+    throw error;
+  }
 }
 
 
