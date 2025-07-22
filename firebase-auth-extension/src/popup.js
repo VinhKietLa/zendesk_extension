@@ -51,6 +51,107 @@ function formatTicketTime(reminderTime) {
   }
 }
 
+// Helper function to validate reminder time and show warning for past dates
+function validateReminderTime(date, time) {
+  if (!date && !time) return { isValid: true };
+  
+  let combinedDateTime = null;
+  
+  if (date && time) {
+    combinedDateTime = new Date(`${date}T${time}`);
+  } else if (date) {
+    combinedDateTime = new Date(date);
+  } else if (time) {
+    // If only time is provided, use today's date
+    const today = new Date();
+    const [hours, minutes] = time.split(':');
+    combinedDateTime = new Date(today.getFullYear(), today.getMonth(), today.getDate(), parseInt(hours), parseInt(minutes));
+  }
+  
+  if (combinedDateTime && combinedDateTime < new Date()) {
+    return {
+      isValid: false,
+      message: "This reminder time is in the past",
+      options: [
+        { label: "Create overdue reminder", action: "overdue", description: "Get notified immediately" },
+        { label: "Set to 1 hour from now", action: "adjust", description: "Recommended for most cases" },
+        { label: "Pick different time", action: "cancel", description: "Choose a new date/time" }
+      ]
+    };
+  }
+  
+  return { isValid: true };
+}
+
+// Helper function to show past date warning modal
+function showPastDateWarning(date, time, onConfirm) {
+  const validation = validateReminderTime(date, time);
+  if (validation.isValid) {
+    onConfirm(date, time);
+    return;
+  }
+  
+  const modal = document.createElement("div");
+  modal.className = "edit-modal";
+  modal.innerHTML = `
+    <div class="edit-modal-content" style="max-width: 400px;">
+      <div class="edit-modal-header">
+        <h3>⚠️ Past Reminder Time</h3>
+        <button class="close-edit-modal">&times;</button>
+      </div>
+      <div class="edit-modal-body">
+        <p style="margin-bottom: 16px; color: #dc2626; font-weight: 500;">
+          ${validation.message}
+        </p>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          ${validation.options.map(option => `
+            <button class="past-date-option" data-action="${option.action}">
+              <div style="font-weight: 600; text-align: left;">${option.label}</div>
+              <div style="font-size: 12px; color: #6b7280; text-align: left;">${option.description}</div>
+            </button>
+          `).join('')}
+        </div>
+      </div>
+    </div>
+  `;
+  
+  document.body.appendChild(modal);
+  
+  const closeBtn = modal.querySelector(".close-edit-modal");
+  const optionBtns = modal.querySelectorAll(".past-date-option");
+  
+  const closeModal = () => modal.remove();
+  
+  closeBtn.addEventListener("click", closeModal);
+  
+  modal.addEventListener("click", (e) => {
+    if (e.target === modal) closeModal();
+  });
+  
+  optionBtns.forEach(btn => {
+    btn.addEventListener("click", () => {
+      const action = btn.dataset.action;
+      closeModal();
+      
+      switch (action) {
+        case "overdue":
+          onConfirm(date, time);
+          break;
+        case "adjust":
+          const oneHourFromNow = new Date(Date.now() + 60 * 60 * 1000);
+          const adjustedDate = oneHourFromNow.toISOString().split('T')[0];
+          const adjustedTime = oneHourFromNow.toTimeString().slice(0, 5);
+          onConfirm(adjustedDate, adjustedTime);
+          showToast("Reminder time adjusted to 1 hour from now", "success");
+          break;
+        case "cancel":
+          // Do nothing, user can pick a different time
+          break;
+      }
+    });
+  });
+}
+
 // Helper function to load reminders based on user type
 async function loadReminders(user) {
   if (!user || !user.uid) return;
@@ -683,56 +784,61 @@ document.addEventListener("DOMContentLoaded", async () => {
       return;
     }
 
-    // Combine date and time if both are provided
-    let combinedReminderTime = "";
-    if (reminderDate && reminderTime) {
-      combinedReminderTime = `${reminderDate}T${reminderTime}`;
-    } else if (reminderDate) {
-      combinedReminderTime = reminderDate;
-    } else if (reminderTime) {
-      combinedReminderTime = reminderTime;
-    }
-
-    const user = auth.currentUser;
-
-    try {
-      if (user) {
-        // Pro user: Use addReminder function
-        await addReminder(user, ticketId, description, combinedReminderTime);
-      } else {
-        // Free user: Save directly to local storage
-        const data = await new Promise((resolve) => {
-          chrome.storage.local.get({ importantTickets: [] }, resolve);
-        });
-
-        const currentTickets = [...data.importantTickets];
-        const isDuplicate = currentTickets.some(
-          (ticket) => ticket.ticketId === ticketId
-        );
-
-        if (isDuplicate) {
-          throw new Error(
-            `Ticket ID #${ticketId} already exists. Please enter a unique ID.`
-          );
-        }
-
-        const updatedTickets = [
-          ...currentTickets,
-          { ticketId, description, reminderTime: combinedReminderTime },
-        ];
-        await chrome.storage.local.set({ importantTickets: updatedTickets });
-        displayImportantTickets(updatedTickets);
+    // Show past date warning if needed
+    showPastDateWarning(reminderDate, reminderTime, async (finalDate, finalTime) => {
+      // Combine date and time if both are provided
+      let combinedReminderTime = "";
+      if (finalDate && finalTime) {
+        combinedReminderTime = `${finalDate}T${finalTime}`;
+      } else if (finalDate) {
+        combinedReminderTime = finalDate;
+      } else if (finalTime) {
+        combinedReminderTime = finalTime;
       }
 
-      // Clear form
-      document.getElementById("ticketInput").value = "";
-      document.getElementById("ticketDescription").value = "";
-      document.getElementById("reminderDate").value = "";
-      document.getElementById("reminderTime").value = "";
-    } catch (error) {
-      console.error("Error adding reminder:", error);
-      alert(error.message || "Failed to add reminder. Please try again.");
-    }
+      const user = auth.currentUser;
+
+      try {
+        if (user) {
+          // Pro user: Use addReminder function
+          await addReminder(user, ticketId, description, combinedReminderTime);
+        } else {
+          // Free user: Save directly to local storage
+          const data = await new Promise((resolve) => {
+            chrome.storage.local.get({ importantTickets: [] }, resolve);
+          });
+
+          const currentTickets = [...data.importantTickets];
+          const isDuplicate = currentTickets.some(
+            (ticket) => ticket.ticketId === ticketId
+          );
+
+          if (isDuplicate) {
+            throw new Error(
+              `Ticket ID #${ticketId} already exists. Please enter a unique ID.`
+            );
+          }
+
+          const updatedTickets = [
+            ...currentTickets,
+            { ticketId, description, reminderTime: combinedReminderTime },
+          ];
+          await chrome.storage.local.set({ importantTickets: updatedTickets });
+          displayImportantTickets(updatedTickets);
+        }
+
+        // Clear form
+        document.getElementById("ticketInput").value = "";
+        document.getElementById("ticketDescription").value = "";
+        document.getElementById("reminderDate").value = "";
+        document.getElementById("reminderTime").value = "";
+        
+        showToast("Ticket added successfully", "success");
+      } catch (error) {
+        console.error("Error adding reminder:", error);
+        alert(error.message || "Failed to add reminder. Please try again.");
+      }
+    });
   });
 
   document.addEventListener("click", async (e) => {
@@ -3333,27 +3439,30 @@ function showEditTicketModal(ticket, user, isPro) {
       return;
     }
 
-    // Combine date and time if both are provided
-    let newReminderTime = null;
-    if (newDate && newTime) {
-      newReminderTime = `${newDate}T${newTime}`;
-    } else if (newDate) {
-      newReminderTime = newDate;
-    } else if (newTime) {
-      newReminderTime = newTime;
-    }
+    // Show past date warning if needed
+    showPastDateWarning(newDate, newTime, async (finalDate, finalTime) => {
+      // Combine date and time if both are provided
+      let newReminderTime = null;
+      if (finalDate && finalTime) {
+        newReminderTime = `${finalDate}T${finalTime}`;
+      } else if (finalDate) {
+        newReminderTime = finalDate;
+      } else if (finalTime) {
+        newReminderTime = finalTime;
+      }
 
-    try {
-      // Update all ticket fields
-      await updateTicketDetails(user, isPro, ticket.ticketId, newTicketId, newDescription, newReminderTime);
-      
-      // Show success message
-      showToast("Ticket updated successfully", "success");
-      closeModal();
-    } catch (error) {
-      console.error("Error updating ticket:", error);
-      alert("Failed to update ticket. Please try again.");
-    }
+      try {
+        // Update all ticket fields
+        await updateTicketDetails(user, isPro, ticket.ticketId, newTicketId, newDescription, newReminderTime);
+        
+        // Show success message
+        showToast("Ticket updated successfully", "success");
+        closeModal();
+      } catch (error) {
+        console.error("Error updating ticket:", error);
+        alert("Failed to update ticket. Please try again.");
+      }
+    });
   });
 }
 

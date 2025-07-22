@@ -242,6 +242,7 @@ function checkLocalReminders() {
               }
             });
 
+            // Move to overdue list (this prevents future notifications)
             if (
               !overdueTickets.some((ticket) => ticket.ticketId === ticketId)
             ) {
