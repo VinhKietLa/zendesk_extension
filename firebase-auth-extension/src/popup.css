@@ -2464,31 +2464,37 @@ body.dark-mode .tab-content .ticket-menu-btn:hover {
 }
 
 body.dark-mode .ticket-menu-dropdown {
-  background: #2c2c2c;
-  border-color: #6b7280;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  background: #1f2937 !important;
+  border-color: #4b5563 !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5) !important;
+}
+
+body.dark-mode .ticket-menu-dropdown.open {
+  background: #1f2937 !important;
+  border-color: #4b5563 !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5) !important;
 }
 
 body.dark-mode .menu-option {
-  color: #e0e0e0;
+  color: #ffffff !important;
 }
 
 body.dark-mode .menu-option:hover {
-  background-color: #3b82f6;
-  color: #ffffff;
+  background-color: #374151 !important;
+  color: #ffffff !important;
 }
 
 body.dark-mode .menu-option.delete {
-  color: #ff6b6b;
+  color: #ffffff !important;
 }
 
 body.dark-mode .menu-option.delete:hover {
-  background-color: #ef4444;
-  color: #ffffff;
+  background-color: #dc2626 !important;
+  color: #ffffff !important;
 }
 
 body.dark-mode .menu-option i {
-  color: var(--icon-color);
+  /* Keep semantic icon colors, don't override them */
 }
 
 .ticket-card {
@@ -2743,7 +2749,7 @@ body.dark-mode .tab-content .completed-ticket-menu-btn:hover {
   color: var(--accent-color, #aaa) !important;
 }
 
-/* Completed ticket dropdown styling - should look like light mode regardless of theme */
+/* Completed ticket dropdown styling */
 .completed-ticket-menu-dropdown {
   background: #ffffff;
   border: 1px solid #e5e7eb;
@@ -2756,6 +2762,19 @@ body.dark-mode .tab-content .completed-ticket-menu-btn:hover {
   right: 0;
   z-index: 1000;
   display: none;
+}
+
+/* Dark mode completed ticket dropdown */
+body.dark-mode .completed-ticket-menu-dropdown {
+  background: #1f2937 !important;
+  border: 1px solid #4b5563 !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5) !important;
+}
+
+body.dark-mode .completed-ticket-menu-dropdown.open {
+  background: #1f2937 !important;
+  border: 1px solid #4b5563 !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5) !important;
 }
 
 .completed-ticket-menu-dropdown.open {
@@ -2801,6 +2820,29 @@ body.dark-mode .tab-content .completed-ticket-menu-btn:hover {
   color: #10b981;
   width: 16px;
   text-align: center;
+}
+
+/* Dark mode completed ticket menu options */
+body.dark-mode .completed-ticket-menu-dropdown .menu-option {
+  color: #ffffff !important;
+}
+
+body.dark-mode .completed-ticket-menu-dropdown .menu-option:hover {
+  background-color: #374151 !important;
+  color: #ffffff !important;
+}
+
+body.dark-mode .completed-ticket-menu-dropdown .menu-option.delete {
+  color: #ffffff !important;
+}
+
+body.dark-mode .completed-ticket-menu-dropdown .menu-option.delete:hover {
+  background-color: #dc2626 !important;
+  color: #ffffff !important;
+}
+
+body.dark-mode .completed-ticket-menu-dropdown .menu-option i {
+  /* Keep semantic icon colors, don't override them */
 }
 
 /* Completed Header Layout - Now using unified structure */
