@@ -2428,13 +2428,13 @@ body.dark-mode .ticket-card .ticket-id-badge[style*="background: #dc3545"] {
 }
 
 body.dark-mode .ticket-card .ticket-datetime[style*="color: #8B4513"] {
-  color: #ffcc80 !important;
+  color: #ffffff !important;
   font-weight: 600;
 }
 
 body.dark-mode .ticket-card div[style*="color: #8B4513"],
 body.dark-mode .ticket-card div[style*="color: rgb(139, 69, 19)"] {
-  color: #ffcc80 !important;
+  color: #ffffff !important;
   font-weight: 600;
 }
 
@@ -2667,15 +2667,15 @@ body:not(.dark-mode) .completed-ticket-description {
   color: #000000 !important;
 }
 
-/* Dark mode: keep green text for completed tickets */
+/* Dark mode: ensure completed ticket text is white for better readability */
 body.dark-mode .tab-content .completion-status,
 body.dark-mode .completion-status {
-  color: #28a745 !important;
+  color: #ffffff !important;
 }
 
 body.dark-mode .tab-content .completed-ticket-description,
 body.dark-mode .completed-ticket-description {
-  color: #28a745 !important;
+  color: #ffffff !important;
 }
 
 /* Light mode: ensure completed ticket icons are black for better readability */
@@ -2694,7 +2694,7 @@ body:not(.dark-mode) .completed-ticket-card .completion-status .fa-check {
   color: #000000 !important;
 }
 
-/* Dark mode: keep green icons for completed tickets */
+/* Dark mode: ensure completed ticket icons are white for better readability */
 body.dark-mode .tab-content .completion-status i,
 body.dark-mode .completion-status i,
 body.dark-mode .tab-content .completed-ticket-card .completion-status i,
@@ -2707,7 +2707,7 @@ body.dark-mode .tab-content .completion-status .fa-check,
 body.dark-mode .completion-status .fa-check,
 body.dark-mode .tab-content .completed-ticket-card .completion-status .fa-check,
 body.dark-mode .completed-ticket-card .completion-status .fa-check {
-  color: #28a745 !important;
+  color: #ffffff !important;
 }
 
 /* Light mode: ensure completed ticket datetime is black for better readability */
@@ -2716,10 +2716,10 @@ body:not(.dark-mode) .tab-content .completed-ticket-card .ticket-datetime {
   color: #000000 !important;
 }
 
-/* Dark mode: keep green datetime for completed tickets */
+/* Dark mode: ensure completed ticket datetime is white for better readability */
 body.dark-mode .completed-ticket-card .ticket-datetime,
 body.dark-mode .tab-content .completed-ticket-card .ticket-datetime {
-  color: #28a745 !important;
+  color: #ffffff !important;
 }
 
 body.dark-mode .completed-ticket-menu-btn {
@@ -3366,12 +3366,12 @@ body.dark-mode #overdueTicketsList .ticket-menu-btn:hover {
 }
 
 body.dark-mode #overdueTicketsList .ticket-card > div:last-child {
-  color: #f87171 !important;
+  color: #ffffff !important;
   background: #7f1d1d;
 }
 
 body.dark-mode #overdueTicketsList .ticket-card > div:last-child i {
-  color: #f87171 !important;
+  color: #f87171 !important; /* Keep icon red for visual emphasis */
 }
 
 
