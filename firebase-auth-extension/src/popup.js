@@ -87,7 +87,7 @@ function validateReminderTime(date, time) {
 function showPastDateWarning(date, time, onConfirm) {
   const validation = validateReminderTime(date, time);
   if (validation.isValid) {
-    onConfirm(date, time);
+    onConfirm(date, time, false);
     return;
   }
   
@@ -135,13 +135,13 @@ function showPastDateWarning(date, time, onConfirm) {
       
       switch (action) {
         case "overdue":
-          onConfirm(date, time);
+          onConfirm(date, time, true);
           break;
         case "adjust":
           const oneHourFromNow = new Date(Date.now() + 60 * 60 * 1000);
           const adjustedDate = oneHourFromNow.toISOString().split('T')[0];
           const adjustedTime = oneHourFromNow.toTimeString().slice(0, 5);
-          onConfirm(adjustedDate, adjustedTime);
+          onConfirm(adjustedDate, adjustedTime, false);
           showToast("Reminder time adjusted to 1 hour from now", "success");
           break;
         case "cancel":
@@ -210,28 +210,44 @@ async function loadReminders(user) {
 }
 
 // Helper function to add a reminder
-async function addReminder(user, ticketId, description, reminderTime) {
+async function addReminder(user, ticketId, description, reminderTime, isOverdue = false) {
   if (!user || !user.uid) throw new Error("User not authenticated");
 
   const pro = await isUserPro(user.uid);
 
   if (pro) {
     // Pro: Save to Firestore
-    await createReminder(user.uid, {
-      ticketId,
-      description,
-      reminderTime,
-      type: "important",
-    });
+    if (isOverdue) {
+      // For overdue tickets, create directly as overdue (no notification needed)
+      await createReminder(user.uid, {
+        ticketId,
+        description,
+        reminderTime,
+        type: "overdue",
+        status: "overdue",
+      });
+    } else {
+      // For future tickets, create as important (will get notification when due)
+      await createReminder(user.uid, {
+        ticketId,
+        description,
+        reminderTime,
+        type: "important",
+        status: "active",
+      });
+    }
     // Reload all reminders from Firestore
     await loadReminders(user);
   } else {
     // Free: Save to local storage only
     return new Promise((resolve, reject) => {
-      chrome.storage.local.get({ importantTickets: [] }, async (data) => {
+      chrome.storage.local.get({ importantTickets: [], overdueTickets: [] }, async (data) => {
         try {
           const currentTickets = [...data.importantTickets];
+          const currentOverdueTickets = [...data.overdueTickets];
           const isDuplicate = currentTickets.some(
+            (ticket) => ticket.ticketId === ticketId
+          ) || currentOverdueTickets.some(
             (ticket) => ticket.ticketId === ticketId
           );
 
@@ -241,12 +257,23 @@ async function addReminder(user, ticketId, description, reminderTime) {
             );
           }
 
-          const updatedTickets = [
-            ...currentTickets,
-            { ticketId, description, reminderTime },
-          ];
-          await chrome.storage.local.set({ importantTickets: updatedTickets });
-          displayImportantTickets(updatedTickets);
+          if (isOverdue) {
+            // Add to overdue tickets
+            const updatedOverdueTickets = [
+              ...currentOverdueTickets,
+              { ticketId, description, reminderTime },
+            ];
+            await chrome.storage.local.set({ overdueTickets: updatedOverdueTickets });
+            displayOverdueTickets(updatedOverdueTickets);
+          } else {
+            // Add to important tickets
+            const updatedTickets = [
+              ...currentTickets,
+              { ticketId, description, reminderTime },
+            ];
+            await chrome.storage.local.set({ importantTickets: updatedTickets });
+            displayImportantTickets(updatedTickets);
+          }
           resolve();
         } catch (error) {
           reject(error);
@@ -785,7 +812,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     // Show past date warning if needed
-    showPastDateWarning(reminderDate, reminderTime, async (finalDate, finalTime) => {
+    showPastDateWarning(reminderDate, reminderTime, async (finalDate, finalTime, isOverdue = false) => {
       // Combine date and time if both are provided
       let combinedReminderTime = "";
       if (finalDate && finalTime) {
@@ -801,15 +828,18 @@ document.addEventListener("DOMContentLoaded", async () => {
       try {
         if (user) {
           // Pro user: Use addReminder function
-          await addReminder(user, ticketId, description, combinedReminderTime);
+          await addReminder(user, ticketId, description, combinedReminderTime, isOverdue);
         } else {
           // Free user: Save directly to local storage
           const data = await new Promise((resolve) => {
-            chrome.storage.local.get({ importantTickets: [] }, resolve);
+            chrome.storage.local.get({ importantTickets: [], overdueTickets: [] }, resolve);
           });
 
           const currentTickets = [...data.importantTickets];
+          const currentOverdueTickets = [...data.overdueTickets];
           const isDuplicate = currentTickets.some(
+            (ticket) => ticket.ticketId === ticketId
+          ) || currentOverdueTickets.some(
             (ticket) => ticket.ticketId === ticketId
           );
 
@@ -819,12 +849,23 @@ document.addEventListener("DOMContentLoaded", async () => {
             );
           }
 
-          const updatedTickets = [
-            ...currentTickets,
-            { ticketId, description, reminderTime: combinedReminderTime },
-          ];
-          await chrome.storage.local.set({ importantTickets: updatedTickets });
-          displayImportantTickets(updatedTickets);
+          if (isOverdue) {
+            // Add to overdue tickets
+            const updatedOverdueTickets = [
+              ...currentOverdueTickets,
+              { ticketId, description, reminderTime: combinedReminderTime },
+            ];
+            await chrome.storage.local.set({ overdueTickets: updatedOverdueTickets });
+            displayOverdueTickets(updatedOverdueTickets);
+          } else {
+            // Add to important tickets
+            const updatedTickets = [
+              ...currentTickets,
+              { ticketId, description, reminderTime: combinedReminderTime },
+            ];
+            await chrome.storage.local.set({ importantTickets: updatedTickets });
+            displayImportantTickets(updatedTickets);
+          }
         }
 
         // Clear form
@@ -979,15 +1020,20 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // Listen for reminder updates from background script
   chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    console.log("📨 Received message:", request.action);
+    
     if (request.action === "remindersUpdated") {
-
+      console.log("🔄 Refreshing reminders due to update");
       const user = auth.currentUser;
       if (user) {
         loadReminders(user);
       }
-        } else if (request.action === "completeSignIn") {
-
+      sendResponse({ success: true });
+    } else if (request.action === "completeSignIn") {
       completeSignInFromBackground(request.idToken, request.accessToken);
+      sendResponse({ success: true });
+    } else {
+      sendResponse({ success: false, error: "Unknown action" });
     }
   });
 
@@ -3440,7 +3486,7 @@ function showEditTicketModal(ticket, user, isPro) {
     }
 
     // Show past date warning if needed
-    showPastDateWarning(newDate, newTime, async (finalDate, finalTime) => {
+    showPastDateWarning(newDate, newTime, async (finalDate, finalTime, isOverdue = false) => {
       // Combine date and time if both are provided
       let newReminderTime = null;
       if (finalDate && finalTime) {
@@ -3453,7 +3499,7 @@ function showEditTicketModal(ticket, user, isPro) {
 
       try {
         // Update all ticket fields
-        await updateTicketDetails(user, isPro, ticket.ticketId, newTicketId, newDescription, newReminderTime);
+        await updateTicketDetails(user, isPro, ticket.ticketId, newTicketId, newDescription, newReminderTime, isOverdue);
         
         // Show success message
         showToast("Ticket updated successfully", "success");
@@ -3467,7 +3513,7 @@ function showEditTicketModal(ticket, user, isPro) {
 }
 
 // Update ticket details function - handles all fields
-async function updateTicketDetails(user, isPro, oldTicketId, newTicketId, newDescription, newReminderTime) {
+async function updateTicketDetails(user, isPro, oldTicketId, newTicketId, newDescription, newReminderTime, isOverdue = false) {
   try {
     if (isPro && user) {
       // Pro user: Update in Firestore
@@ -3476,7 +3522,9 @@ async function updateTicketDetails(user, isPro, oldTicketId, newTicketId, newDes
       if (reminder) {
         const updateData = { 
           description: newDescription,
-          reminderTime: newReminderTime
+          reminderTime: newReminderTime,
+          type: isOverdue ? "overdue" : "important",
+          status: isOverdue ? "overdue" : "active"
         };
         
         // If ticket ID changed, update it too

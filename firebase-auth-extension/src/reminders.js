@@ -84,7 +84,7 @@ async function sendEmailReminder(userId, reminderData) {
 
 // Check Reminders in the Background
 export async function checkManualReminders() {
-  
+  console.log("🔍 Starting manual reminder check...");
 
   // Get current user
   const user = auth.currentUser;
@@ -94,33 +94,47 @@ export async function checkManualReminders() {
     return;
   }
 
+  console.log("👤 User signed in:", user.uid);
+
   // Check if user is Pro
   const isPro = await isUserPro(user.uid);
-  
+  console.log("💎 User is Pro:", isPro);
 
   if (isPro) {
+    console.log("🔍 Checking Firestore reminders...");
     await checkFirestoreReminders(user.uid);
   } else {
+    console.log("🔍 Checking local reminders...");
     checkLocalReminders();
   }
 }
 
 async function checkFirestoreReminders(userId) {
   try {
+    console.log("🔍 Fetching reminders for user:", userId);
     const reminders = await getUserReminders(userId);
+    console.log("📋 Found", reminders.length, "total reminders");
+    
     const now = new Date().getTime();
+    console.log("⏰ Current time:", new Date(now).toISOString());
     let notificationsCreated = false;
 
     for (const reminder of reminders) {
-      if (reminder.type !== "important" || reminder.status !== "active")
+      console.log("🔍 Checking reminder:", reminder.ticketId, "type:", reminder.type, "status:", reminder.status);
+      
+      if (reminder.type !== "important" || reminder.status !== "active") {
+        console.log("⏭️ Skipping reminder (not important/active):", reminder.ticketId);
         continue;
+      }
 
       const reminderTimestamp = reminder.reminderTime
         ? new Date(reminder.reminderTime).getTime()
         : null;
 
+      console.log("🔍 Reminder time for", reminder.ticketId, ":", reminder.reminderTime, "timestamp:", reminderTimestamp);
+
       if (reminderTimestamp && reminderTimestamp <= now) {
-        console.log(`⏰ Reminder due for ticket #${reminder.ticketId}`);
+        console.log(`⏰ Reminder due for ticket #${reminder.ticketId} (${new Date(reminderTimestamp).toISOString()} <= ${new Date(now).toISOString()})`);
 
         // Check working hours before creating notification
         const withinWorkingHours = await isWithinWorkingHours();
@@ -179,6 +193,10 @@ async function checkFirestoreReminders(userId) {
           (response) => {
             if (chrome.runtime.lastError) {
               console.log("📝 Popup not available to receive update");
+            } else if (response && response.success) {
+              console.log("✅ Popup successfully updated");
+            } else {
+              console.log("⚠️ Popup update response:", response);
             }
           }
         );
@@ -280,6 +298,10 @@ function checkLocalReminders() {
                 (response) => {
                   if (chrome.runtime.lastError) {
                     console.log("📝 Popup not available to receive update");
+                  } else if (response && response.success) {
+                    console.log("✅ Popup successfully updated");
+                  } else {
+                    console.log("⚠️ Popup update response:", response);
                   }
                 }
               );
