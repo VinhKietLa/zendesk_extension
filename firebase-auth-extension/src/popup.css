@@ -2656,7 +2656,18 @@ body.dark-mode .completed-ticket-id-badge {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
-/* Override the general dark mode text color rule for completed tickets */
+/* Light mode: ensure completed ticket text is black for better readability */
+body:not(.dark-mode) .tab-content .completion-status,
+body:not(.dark-mode) .completion-status {
+  color: #000000 !important;
+}
+
+body:not(.dark-mode) .tab-content .completed-ticket-description,
+body:not(.dark-mode) .completed-ticket-description {
+  color: #000000 !important;
+}
+
+/* Dark mode: keep green text for completed tickets */
 body.dark-mode .tab-content .completion-status,
 body.dark-mode .completion-status {
   color: #28a745 !important;
@@ -2667,7 +2678,23 @@ body.dark-mode .completed-ticket-description {
   color: #28a745 !important;
 }
 
-/* Override the general dark mode icon color rule for completed tickets */
+/* Light mode: ensure completed ticket icons are black for better readability */
+body:not(.dark-mode) .tab-content .completion-status i,
+body:not(.dark-mode) .completion-status i,
+body:not(.dark-mode) .tab-content .completed-ticket-card .completion-status i,
+body:not(.dark-mode) .completed-ticket-card .completion-status i,
+body:not(.dark-mode) .tab-content .completion-status .fas,
+body:not(.dark-mode) .completion-status .fas,
+body:not(.dark-mode) .tab-content .completed-ticket-card .completion-status .fas,
+body:not(.dark-mode) .completed-ticket-card .completion-status .fas,
+body:not(.dark-mode) .tab-content .completion-status .fa-check,
+body:not(.dark-mode) .completion-status .fa-check,
+body:not(.dark-mode) .tab-content .completed-ticket-card .completion-status .fa-check,
+body:not(.dark-mode) .completed-ticket-card .completion-status .fa-check {
+  color: #000000 !important;
+}
+
+/* Dark mode: keep green icons for completed tickets */
 body.dark-mode .tab-content .completion-status i,
 body.dark-mode .completion-status i,
 body.dark-mode .tab-content .completed-ticket-card .completion-status i,
@@ -2683,7 +2710,13 @@ body.dark-mode .completed-ticket-card .completion-status .fa-check {
   color: #28a745 !important;
 }
 
-/* Override the general dark mode datetime color rule for completed tickets */
+/* Light mode: ensure completed ticket datetime is black for better readability */
+body:not(.dark-mode) .completed-ticket-card .ticket-datetime,
+body:not(.dark-mode) .tab-content .completed-ticket-card .ticket-datetime {
+  color: #000000 !important;
+}
+
+/* Dark mode: keep green datetime for completed tickets */
 body.dark-mode .completed-ticket-card .ticket-datetime,
 body.dark-mode .tab-content .completed-ticket-card .ticket-datetime {
   color: #28a745 !important;
@@ -3268,6 +3301,15 @@ body.dark-mode #pinnedTicketsList .menu-option.delete:hover {
 #overdueTicketsList .ticket-card > div:last-child i {
   color: #dc2626 !important;
   margin-right: 6px;
+}
+
+/* Light mode: ensure overdue status text is black for better readability */
+body:not(.dark-mode) #overdueTicketsList .ticket-card > div:last-child {
+  color: #000000 !important;
+}
+
+body:not(.dark-mode) #overdueTicketsList .ticket-card > div:last-child i {
+  color: #dc2626 !important; /* Keep icon red for visual emphasis */
 }
 
 /* Dark mode styles for overdue tab - now using unified structure */
