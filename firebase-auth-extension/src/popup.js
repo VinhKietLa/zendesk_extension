@@ -3206,7 +3206,13 @@ function createMacroElement(macro) {
   editOption.addEventListener("click", (e) => {
     e.stopPropagation();
     menuDropdown.classList.remove('open');
-    showEditMacroModal(macro);
+    console.log("Edit button clicked for macro:", macro);
+    try {
+      showEditMacroModal(macro);
+    } catch (error) {
+      console.error("Error showing edit modal:", error);
+      showToast("Error opening edit modal", "error");
+    }
   });
 
   deleteOption.addEventListener("click", async (e) => {
@@ -3272,8 +3278,11 @@ function createMacroElement(macro) {
 
 // Show edit macro modal
 function showEditMacroModal(macro) {
+  console.log("showEditMacroModal called with macro:", macro);
+  
   const modal = document.createElement("div");
   modal.className = "modal";
+  modal.style.display = "block"; // Ensure modal is visible
   modal.innerHTML = `
     <div class="modal-content">
       <h2>Edit Macro</h2>
@@ -3287,6 +3296,13 @@ function showEditMacroModal(macro) {
   `;
 
   document.body.appendChild(modal);
+
+  // Add click outside to close functionality
+  modal.addEventListener("click", (e) => {
+    if (e.target === modal) {
+      modal.remove();
+    }
+  });
 
   const saveBtn = modal.querySelector("#saveMacroBtn");
   const cancelBtn = modal.querySelector("#cancelMacroBtn");
@@ -3321,12 +3337,40 @@ function showEditMacroModal(macro) {
       macro.name = name;
       macro.content = content;
 
-      const macroElement = document.querySelector(
-        `[data-macro-id="${macro.id}"]`
-      );
+      // Find the macro element by looking for the one that contains the current macro name
+      const macroElements = document.querySelectorAll(".macro-item");
+      let macroElement = null;
+      
+      for (const element of macroElements) {
+        const elementName = element.querySelector(".macro-name").textContent;
+        if (elementName === macro.name) {
+          macroElement = element;
+          break;
+        }
+      }
+      
       if (macroElement) {
+        // Update the macro name
         macroElement.querySelector(".macro-name").textContent = name;
-        macroElement.querySelector(".macro-content").textContent = content;
+        
+        // Update the macro content - handle both truncated and full content
+        const contentText = macroElement.querySelector(".macro-content-text");
+        const contentFull = macroElement.querySelector(".macro-content-full");
+        
+        if (contentText) {
+          const isLongContent = content.length > 100;
+          const truncatedContent = isLongContent ? content.substring(0, 100) + '...' : content;
+          contentText.textContent = truncatedContent;
+          contentText.className = `macro-content-text ${isLongContent ? 'truncated' : ''}`;
+        }
+        
+        if (contentFull) {
+          contentFull.textContent = content;
+        }
+        
+        // Update the macro object for future reference
+        macro.name = name;
+        macro.content = content;
       }
 
       modal.remove();
