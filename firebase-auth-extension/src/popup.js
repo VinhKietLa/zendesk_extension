@@ -3280,11 +3280,16 @@ function createMacroElement(macro) {
 function showEditMacroModal(macro) {
   console.log("showEditMacroModal called with macro:", macro);
   
+  // Remove any existing modals first
+  const existingModals = document.querySelectorAll('.modal');
+  existingModals.forEach(modal => modal.remove());
+  
   const modal = document.createElement("div");
   modal.className = "modal";
   modal.style.display = "block"; // Ensure modal is visible
+  modal.style.zIndex = "999999999"; // Much higher z-index
   modal.innerHTML = `
-    <div class="modal-content">
+    <div class="modal-content" style="position: relative; z-index: 999999999;">
       <h2>Edit Macro</h2>
       <input type="text" id="editMacroName" value="${macro.name}" placeholder="Macro Name">
       <textarea id="editMacroContent" placeholder="Macro Content">${macro.content}</textarea>
@@ -3862,10 +3867,15 @@ function showDeleteConfirmationModal(ticketId, onConfirm) {
 
 // Helper function to show macro delete confirmation modal
 function showMacroDeleteConfirmationModal(macroName, onConfirm) {
+  // Remove any existing modals first
+  const existingModals = document.querySelectorAll('.edit-modal, .modal');
+  existingModals.forEach(modal => modal.remove());
+  
   const modal = document.createElement("div");
   modal.className = "edit-modal";
+  modal.style.zIndex = "999999999"; // Much higher z-index
   modal.innerHTML = `
-    <div class="edit-modal-content" style="max-width: 400px;">
+    <div class="edit-modal-content" style="max-width: 400px; position: relative; z-index: 999999999;">
       <div class="edit-modal-header">
         <h3>🗑️ Delete Macro</h3>
         <button class="close-edit-modal">&times;</button>
