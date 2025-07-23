@@ -129,15 +129,25 @@ body.dark-mode .tab-content .macro-menu-dropdown {
   background-color: rgb(9, 9, 11) !important;
 }
 
-/* Buttons - white background, black text (excluding theme-aware buttons) */
-body.dark-mode .tab-content .copy-btn,
+/* Buttons - use theme accent colors */
+body.dark-mode .tab-content .copy-btn {
+  background-color: var(--accent-color, #ffffff) !important;
+  color: white !important;
+  transition: background-color 0.2s ease;
+}
+
+body.dark-mode .tab-content .copy-btn:hover {
+  background-color: var(--accent-color, #e0e0e0) !important;
+  filter: brightness(0.8);
+}
+
+/* Other buttons - white background, black text */
 body.dark-mode .tab-content .done-btn,
 body.dark-mode .tab-content .action-btn {
   background-color: #ffffff !important;
   color: #000000 !important;
 }
 
-body.dark-mode .tab-content .copy-btn:hover,
 body.dark-mode .tab-content .done-btn:hover,
 body.dark-mode .tab-content .action-btn:hover {
   background-color: #e0e0e0 !important;
@@ -323,15 +333,17 @@ li .action-buttons {
 
 /* ✅ Modernized buttons */
 .copy-btn {
-  background-color: #636e72;
+  background-color: var(--accent-color, #636e72);
   color: white;
   font-size: 0.85em;
   padding: 6px 12px;
   border-radius: 6px;
+  transition: background-color 0.2s ease;
 }
 
 .copy-btn:hover {
-  background-color: #2d3436;
+  background-color: var(--accent-color, #2d3436);
+  filter: brightness(0.8);
 }
 
 .done-btn {
@@ -1988,7 +2000,7 @@ body.dark-mode .completed-title h2 {
 }
 
 .copy-btn {
-  background-color: #0984e3;
+  background-color: var(--accent-color, #0984e3);
 }
 
 .edit-btn {
