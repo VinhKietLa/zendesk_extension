@@ -1820,6 +1820,45 @@ body.dark-mode .completed-title h2 {
   color: #b8860b;
   font-size: 14px;
   line-height: 1.4;
+  position: relative;
+}
+
+.macro-content-text {
+  display: block;
+  margin-bottom: 8px;
+}
+
+.macro-content-full {
+  display: block;
+  margin-bottom: 8px;
+}
+
+.show-more-btn,
+.show-less-btn {
+  background: none;
+  border: none;
+  color: #ffc107;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.show-more-btn:hover,
+.show-less-btn:hover {
+  background-color: rgba(255, 193, 7, 0.1);
+  color: #e6a700;
+}
+
+.show-more-btn i,
+.show-less-btn i {
+  font-size: 10px;
 }
 
 /* Macro menu button - match completed-ticket-menu-btn exactly */
@@ -2161,6 +2200,17 @@ body.dark-mode .macro-content {
   font-weight: 600;
   font-size: 14px;
   line-height: 1.4;
+}
+
+body.dark-mode .show-more-btn,
+body.dark-mode .show-less-btn {
+  color: #ffc107;
+}
+
+body.dark-mode .show-more-btn:hover,
+body.dark-mode .show-less-btn:hover {
+  background-color: rgba(255, 193, 7, 0.2);
+  color: #ffd54f;
 }
 
 body.dark-mode .add-macro input,

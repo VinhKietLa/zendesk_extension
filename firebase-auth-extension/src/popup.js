@@ -3106,10 +3106,15 @@ function updateMacroCountDisplay(macroCount, isPro) {
   }
 }
 
-// Update createMacroElement to include icons and better structure
+// Update createMacroElement to include icons and better structure with text truncation
 function createMacroElement(macro) {
   const div = document.createElement("div");
   div.className = "macro-item";
+  
+  // Truncate content if it's longer than 100 characters
+  const isLongContent = macro.content.length > 100;
+  const truncatedContent = isLongContent ? macro.content.substring(0, 100) + '...' : macro.content;
+  
   div.innerHTML = `
     <div class="macro-header">
       <span class="macro-name">${macro.name}</span>
@@ -3121,24 +3126,41 @@ function createMacroElement(macro) {
           <i class="fas fa-ellipsis-v"></i>
         </button>
         <div class="macro-menu-dropdown">
-                      <button class="menu-option edit-option">
-              <i class="fas fa-edit icon-secondary"></i> Edit
-            </button>
-            <button class="menu-option delete-option">
-              <i class="fas fa-trash icon-destructive"></i> Delete
-            </button>
+          <button class="menu-option edit-option">
+            <i class="fas fa-edit icon-secondary"></i> Edit
+          </button>
+          <button class="menu-option delete-option">
+            <i class="fas fa-trash icon-destructive"></i> Delete
+          </button>
         </div>
       </div>
     </div>
-    <div class="macro-content">${macro.content}</div>
+    <div class="macro-content">
+      <span class="macro-content-text ${isLongContent ? 'truncated' : ''}">${truncatedContent}</span>
+      ${isLongContent ? `
+        <span class="macro-content-full" style="display: none;">${macro.content}</span>
+        <button class="show-more-btn" title="Show more content">
+          <i class="fas fa-chevron-down"></i> Show More
+        </button>
+        <button class="show-less-btn" title="Show less content" style="display: none;">
+          <i class="fas fa-chevron-up"></i> Show Less
+        </button>
+      ` : ''}
+    </div>
   `;
 
   // Add event listeners
   const copyBtn = div.querySelector(".copy-btn");
   const menuBtn = div.querySelector(".macro-menu-btn");
-      const menuDropdown = div.querySelector(".macro-menu-dropdown");
-    const editOption = div.querySelector(".edit-option");
-    const deleteOption = div.querySelector(".delete-option");
+  const menuDropdown = div.querySelector(".macro-menu-dropdown");
+  const editOption = div.querySelector(".edit-option");
+  const deleteOption = div.querySelector(".delete-option");
+  
+  // Add show more/less functionality
+  const showMoreBtn = div.querySelector(".show-more-btn");
+  const showLessBtn = div.querySelector(".show-less-btn");
+  const contentText = div.querySelector(".macro-content-text");
+  const contentFull = div.querySelector(".macro-content-full");
 
   copyBtn.addEventListener("click", async () => {
     const success = await copyMacroToClipboard(macro.content);
@@ -3221,6 +3243,27 @@ function createMacroElement(macro) {
       }
     });
   });
+
+  // Add show more/less functionality
+  if (showMoreBtn) {
+    showMoreBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      contentText.style.display = 'none';
+      contentFull.style.display = 'block';
+      showMoreBtn.style.display = 'none';
+      showLessBtn.style.display = 'inline-flex';
+    });
+  }
+
+  if (showLessBtn) {
+    showLessBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      contentText.style.display = 'block';
+      contentFull.style.display = 'none';
+      showMoreBtn.style.display = 'inline-flex';
+      showLessBtn.style.display = 'none';
+    });
+  }
 
   return div;
 }
