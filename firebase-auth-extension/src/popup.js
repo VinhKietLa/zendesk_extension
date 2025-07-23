@@ -30,6 +30,13 @@ import {
   deleteMacro,
   copyMacroToClipboard,
 } from "./macros.js";
+import {
+  initializePayments,
+  checkProSubscription,
+  purchasePro,
+  restorePurchases,
+  getSubscriptionStatus,
+} from "./payments.js";
 
 const clientId = import.meta.env.VITE_OAUTH_CLIENT_ID;
 const CLOUD_FUNCTION_URL = "https://exchangeoauthcode-7ylhtvfxha-uc.a.run.app";
@@ -578,6 +585,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Initialize licensing
   await initializeLicensing();
 
+  // Initialize payment system
+  await initializePayments();
+
   // Add tab switching functionality
   const tabBtns = document.querySelectorAll(".tab-btn");
   const tabPanes = document.querySelectorAll(".tab-pane");
@@ -673,8 +683,10 @@ document.addEventListener("DOMContentLoaded", async () => {
             });
           }
 
-          // Check pro status and load appropriate data
-          const isPro = await isUserPro(user.uid);
+          // Check pro status using Chrome payments and Firebase
+          const chromeProStatus = await checkProSubscription();
+          const firebaseProStatus = await isUserPro(user.uid);
+          const isPro = chromeProStatus || firebaseProStatus;
           
           // Store user data and pro status in local storage for options page
           await chrome.storage.local.set({ 
@@ -1044,33 +1056,102 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   if (activateProBtn) {
     activateProBtn.addEventListener("click", async () => {
-      const user = auth.currentUser;
-      if (!user) {
-        alert("Please sign in to upgrade to Pro.");
-        return;
-      }
-
       try {
-        await updateProStatus(user.uid, true);
+        // Show loading state
+        activateProBtn.textContent = "Processing...";
+        activateProBtn.disabled = true;
 
-        // Close modal
-        if (modal) modal.style.display = "none";
+        console.log("🛒 Starting Pro purchase...");
 
-        // Refresh the UI
-        const proBadge = document.getElementById("proBadge");
-        const upgradeBtn = document.getElementById("upgradeBtn");
-        if (proBadge) proBadge.style.display = "inline-block";
-        if (upgradeBtn) upgradeBtn.style.display = "none";
+        // Attempt to purchase Pro subscription
+        const result = await purchasePro();
 
-        // Show success message
-        showToast("Successfully upgraded to Pro!");
+        if (result.success) {
+          // Close modal
+          if (modal) modal.style.display = "none";
 
-        // Reload reminders and macros to use Firestore
-        await loadReminders(user);
-        await initializeMacros();
+          // Update UI to show Pro status
+          const proBadge = document.getElementById("proBadge");
+          const upgradeBtn = document.getElementById("upgradeBtn");
+          if (proBadge) proBadge.style.display = "inline-block";
+          if (upgradeBtn) upgradeBtn.style.display = "none";
+
+          // Show success message
+          showToast(result.message || "Successfully upgraded to Pro!");
+
+          // Reload data to use Pro features
+          const user = auth.currentUser;
+          if (user) {
+            await loadReminders(user);
+            await initializeMacros();
+          }
+
+          console.log("✅ Pro upgrade completed successfully");
+        } else {
+          // Show error message
+          showToast(result.message || "Purchase failed. Please try again.");
+          console.log("❌ Pro purchase failed:", result.message);
+        }
+
       } catch (error) {
-        console.error("Error upgrading to Pro:", error);
-        alert("Failed to upgrade to Pro. Please try again.");
+        console.error("Error during Pro purchase:", error);
+        showToast("Payment error occurred. Please try again.");
+      } finally {
+        // Reset button state
+        activateProBtn.textContent = "Upgrade Now";
+        activateProBtn.disabled = false;
+      }
+    });
+  }
+
+  // Restore purchases button
+  const restorePurchasesBtn = document.getElementById("restorePurchasesBtn");
+  if (restorePurchasesBtn) {
+    restorePurchasesBtn.addEventListener("click", async () => {
+      try {
+        // Show loading state
+        restorePurchasesBtn.textContent = "Restoring...";
+        restorePurchasesBtn.disabled = true;
+
+        console.log("🔄 Restoring purchases...");
+
+        // Attempt to restore purchases
+        const restored = await restorePurchases();
+
+        if (restored) {
+          // Close modal
+          if (modal) modal.style.display = "none";
+
+          // Update UI to show Pro status
+          const proBadge = document.getElementById("proBadge");
+          const upgradeBtn = document.getElementById("upgradeBtn");
+          if (proBadge) proBadge.style.display = "inline-block";
+          if (upgradeBtn) upgradeBtn.style.display = "none";
+
+          // Show success message
+          showToast("Pro subscription restored successfully!");
+
+          // Reload data to use Pro features
+          const user = auth.currentUser;
+          if (user) {
+            await loadReminders(user);
+            await initializeMacros();
+          }
+
+          console.log("✅ Pro subscription restored");
+        } else {
+          // Show message that no purchases were found
+          showToast("No Pro subscription found to restore.");
+          console.log("ℹ️ No Pro subscription found");
+        }
+
+      } catch (error) {
+        console.error("Error restoring purchases:", error);
+        showToast("Error restoring purchases. Please try again.");
+      } finally {
+        // Reset button state
+        restorePurchasesBtn.textContent = "Restore Purchases";
+        restorePurchasesBtn.disabled = false;
       }
     });
   }

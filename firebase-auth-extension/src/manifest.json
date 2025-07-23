@@ -9,7 +9,8 @@
     "identity",
     "enterprise.deviceAttributes",
     "clipboardWrite",
-    "scripting"
+    "scripting",
+    "payments"
   ],
   "host_permissions": [
     "*://*.zendesk.com/*",
