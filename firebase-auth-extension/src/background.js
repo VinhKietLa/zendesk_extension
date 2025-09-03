@@ -90,7 +90,14 @@ let writeTimeout;
 function throttleWriteData(dataToWrite) {
   clearTimeout(writeTimeout); // Clear the previous timeout if it's still pending
   writeTimeout = setTimeout(() => {
-    chrome.storage.local.set(dataToWrite, () => {});
+    console.log("💾 Throttled write to storage:", dataToWrite);
+    chrome.storage.sync.set(dataToWrite, () => {
+      if (chrome.runtime.lastError) {
+        console.error("❌ Error writing to storage:", chrome.runtime.lastError);
+      } else {
+        console.log("✅ Successfully wrote to storage:", dataToWrite);
+      }
+    });
   }, 5000); // Adjust this interval as necessary (5 seconds in this case)
 }
 
@@ -411,7 +418,14 @@ function refreshZendesk() {
     }
 
     tabs.forEach((tab) => {
+      // Safety check: ensure tab.url exists before using it
+      if (!tab || !tab.url) {
+        console.log("⚠️ Tab or tab.url is undefined, skipping:", tab);
+        return;
+      }
+
       const url = tab.url;
+      console.log("🔄 Checking tab for auto-refresh:", url);
 
       // Only refresh on pages where the refresh button is expected
       if (url.includes("/filters/") || url.includes("/views/")) {
@@ -459,23 +473,42 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 
 // Listen for notification clicks globally
 chrome.notifications.onClicked.addListener((notificationId) => {
-  const ticketId = parseInt(notificationId, 10); // Convert the notificationId back to an integer
+  console.log("🔄 Notification clicked for ticket:", notificationId);
+  
+  // Extract ticket ID from notification ID (e.g., "reminder-14614" -> "14614")
+  let ticketId;
+  if (notificationId.startsWith("reminder-")) {
+    ticketId = parseInt(notificationId.replace("reminder-", ""), 10);
+  } else {
+    ticketId = parseInt(notificationId, 10);
+  }
+  
+  console.log("🔢 Parsed ticket ID:", ticketId);
 
   if (!isNaN(ticketId)) {
     // Get the Zendesk domain from storage
     chrome.storage.sync.get("zendeskDomain", (data) => {
+      console.log("🌐 Zendesk domain from storage:", data.zendeskDomain);
+      
       if (data.zendeskDomain) {
         const zendeskDomain = data.zendeskDomain;
         const ticketUrl = `${zendeskDomain}/agent/tickets/${ticketId}`;
+        console.log("🔗 Opening ticket URL:", ticketUrl);
 
         // Always open the ticket in a new tab
-        chrome.tabs.create({ url: ticketUrl });
+        chrome.tabs.create({ url: ticketUrl }, (tab) => {
+          if (chrome.runtime.lastError) {
+            console.error("❌ Error creating tab:", chrome.runtime.lastError);
+          } else {
+            console.log("✅ Ticket tab created successfully:", tab.id);
+          }
+        });
       } else {
-        console.error("Zendesk domain not found.");
+        console.error("❌ Zendesk domain not found in storage");
       }
     });
   } else {
-    console.error("Invalid ticket ID:", notificationId);
+    console.error("❌ Invalid ticket ID:", notificationId);
   }
 });
 
@@ -498,3 +531,18 @@ setInterval(() => {
 checkUnassignedTickets();
 // When the extension loads, restore the badge count
 restoreBadge();
+
+// Save current Zendesk domain if we're on a Zendesk page
+chrome.tabs.query({ url: "*://*.zendesk.com/*" }, (tabs) => {
+  if (tabs.length > 0) {
+    const zendeskDomain = new URL(tabs[0].url).origin;
+    console.log("🌐 Extension startup - saving Zendesk domain:", zendeskDomain);
+    chrome.storage.sync.set({ zendeskDomain: zendeskDomain }, () => {
+      if (chrome.runtime.lastError) {
+        console.error("❌ Error saving domain:", chrome.runtime.lastError);
+      } else {
+        console.log("✅ Zendesk domain saved successfully:", zendeskDomain);
+      }
+    });
+  }
+});
