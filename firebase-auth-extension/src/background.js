@@ -18,14 +18,23 @@ chrome.storage.sync.get({
   workStartTime: "09:00",
   workEndTime: "17:00"
 }, (data) => {
+  console.log("🔍 Raw data from storage:", data);
+  
   autoRefreshEnabled = data.autoRefresh;
-  refreshInterval = data.refreshInterval * 1000; // Convert seconds to ms
+  refreshInterval = data.refreshInterval; // Keep in seconds, don't convert to ms
   workingHoursEnabled = data.workingHoursEnabled;
   workStartTime = data.workStartTime;
   workEndTime = data.workEndTime;
   
+  console.log("🔍 Parsed values:", {
+    autoRefresh: autoRefreshEnabled,
+    refreshInterval: refreshInterval,
+    workingHours: workingHoursEnabled
+  });
+  
   if (autoRefreshEnabled) {
-    setRefreshInterval(refreshInterval);
+    console.log("🔍 Calling setRefreshInterval with:", data.refreshInterval);
+    setRefreshInterval(data.refreshInterval);
   }
 });
 
@@ -34,9 +43,12 @@ chrome.storage.onChanged.addListener((changes, area) => {
   if (area === 'sync') {
     if (changes.autoRefresh) {
       autoRefreshEnabled = changes.autoRefresh.newValue;
+      console.log("🔄 Auto-refresh setting changed:", autoRefreshEnabled);
+      
       if (autoRefreshEnabled) {
         // Get the current refresh interval
         chrome.storage.sync.get({ refreshInterval: 60 }, (data) => {
+          console.log("🔄 Starting auto-refresh with interval:", data.refreshInterval);
           setRefreshInterval(data.refreshInterval);
         });
       } else {
@@ -44,12 +56,15 @@ chrome.storage.onChanged.addListener((changes, area) => {
         if (refreshIntervalId) {
           clearInterval(refreshIntervalId);
           refreshIntervalId = null;
+          console.log("🔄 Auto-refresh stopped");
         }
       }
     }
     
     if (changes.refreshInterval && autoRefreshEnabled) {
-      setRefreshInterval(changes.refreshInterval.newValue);
+      const newInterval = changes.refreshInterval.newValue;
+      console.log("⏱️ Refresh interval changed:", newInterval);
+      setRefreshInterval(newInterval);
     }
 
     // Handle working hours changes
@@ -97,12 +112,31 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     // New: Handle sign-in entirely in background
     startSignInFlow(sendResponse);
     return true;
+  } else if (request.action === "checkAutoRefreshStatus") {
+    // Check if auto-refresh is running and restart if needed
+    const shouldBeRunning = autoRefreshEnabled && !refreshIntervalId;
+    
+    if (shouldBeRunning) {
+      console.log("🔄 Popup requested status - auto-refresh should be running but isn't, restarting...");
+      chrome.storage.sync.get({ refreshInterval: 60 }, (data) => {
+        setRefreshInterval(data.refreshInterval);
+      });
+    }
+    
+    sendResponse({
+      autoRefreshEnabled,
+      refreshInterval: refreshInterval, // Already in seconds, don't divide
+      isRunning: !!refreshIntervalId,
+      shouldBeRunning
+    });
+    return false;
   }
 });
 
 // Set refresh interval
 function setRefreshInterval(intervalSeconds) {
   console.log(`🔄 Setting refresh interval to ${intervalSeconds} seconds`);
+  console.log(`🔄 Current auto-refresh state: ${autoRefreshEnabled}`);
   
   // Clear existing interval
   if (refreshIntervalId) {
@@ -113,9 +147,16 @@ function setRefreshInterval(intervalSeconds) {
 
   // Only start the interval if auto-refresh is enabled
   if (autoRefreshEnabled) {
-    const intervalMs = intervalSeconds * 1000; // Convert seconds to ms
+    const intervalMs = intervalSeconds * 1000; // Convert seconds to ms for setInterval
     refreshIntervalId = setInterval(refreshZendesk, intervalMs);
     console.log(`🔄 Auto-refresh started with ${intervalSeconds} second interval (${intervalMs}ms)`);
+    
+    // Verify the interval was created
+    if (refreshIntervalId) {
+      console.log("✅ Auto-refresh interval successfully created");
+    } else {
+      console.error("❌ Failed to create auto-refresh interval");
+    }
   } else {
     console.log("🔄 Auto-refresh is disabled, not starting interval");
   }
@@ -442,6 +483,16 @@ chrome.notifications.onClicked.addListener((notificationId) => {
 setInterval(checkUnassignedTickets, 60 * 1000);
 // Check reminders every 60 seconds (optimizing check interval to reduce overhead)
 setInterval(checkManualReminders, 60 * 1000);
+
+// Health check for auto-refresh - ensure it's still running if it should be
+setInterval(() => {
+  if (autoRefreshEnabled && !refreshIntervalId) {
+    console.log("🔄 Health check: Auto-refresh should be running but isn't, restarting...");
+    chrome.storage.sync.get({ refreshInterval: 60 }, (data) => {
+      setRefreshInterval(data.refreshInterval);
+    });
+  }
+}, 30000); // Check every 30 seconds
 
 // Initial check when the extension loads
 checkUnassignedTickets();

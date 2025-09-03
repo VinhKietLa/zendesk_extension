@@ -113,6 +113,7 @@
                             </div>
                             <input type="number" id="refreshInterval" value="60" min="30" max="300" class="number-input">
                         </div>
+
                     </div>
                 </div>
             </section>
@@ -186,6 +187,173 @@
                 </div>
             </div>
         </footer>
+    </div>
+
+    <!-- Upgrade Modal -->
+    <div id="upgradeModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Upgrade to Pro! 🚀</h2>
+                <button class="modal-close" id="closeUpgradeModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="pricing-header">
+                    <div class="price-box free">
+                        <h3>Free</h3>
+                        <div class="price">£0</div>
+                        <p>Get started with basic features</p>
+                    </div>
+                    <div class="price-box pro">
+                        <div class="pro-badge">RECOMMENDED</div>
+                        <h3>Pro</h3>
+                        <div class="price">£2.00<span>/month</span></div>
+                        <button id="activateProBtn" class="cta-button">Upgrade Now</button>
+                        <p>Unlock all premium features</p>
+                    </div>
+                </div>
+
+                <div class="feature-table">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Feature</th>
+                                <th>Free</th>
+                                <th>Pro</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Auto-refresh</td>
+                                <td>✅</td>
+                                <td>✅</td>
+                            </tr>
+                            <tr>
+                                <td>Badge Counter</td>
+                                <td>✅</td>
+                                <td>✅</td>
+                            </tr>
+                            <tr>
+                                <td>Notifications</td>
+                                <td>✅</td>
+                                <td>✅</td>
+                            </tr>
+                            <tr>
+                                <td>Reminders</td>
+                                <td>✅ Local only</td>
+                                <td>✅ Cloud + Email</td>
+                            </tr>
+                            <tr>
+                                <td>Dark Mode</td>
+                                <td>✅ Manual toggle</td>
+                                <td>✅ Auto-schedule</td>
+                            </tr>
+                            <tr>
+                                <td>One-click from notification</td>
+                                <td>✅</td>
+                                <td>✅</td>
+                            </tr>
+                            <tr>
+                                <td>Auto Copy Ticket ID</td>
+                                <td>✅</td>
+                                <td>✅</td>
+                            </tr>
+                            <tr>
+                                <td>Pinned Tickets</td>
+                                <td>✅ Max 3</td>
+                                <td>✅ Unlimited</td>
+                            </tr>
+                            <tr>
+                                <td>Quick Macros</td>
+                                <td>✅ Max 3</td>
+                                <td>✅ Unlimited</td>
+                            </tr>
+                            <tr>
+                                <td>Ticket Snooze</td>
+                                <td>✅ Basic</td>
+                                <td>✅ Custom</td>
+                            </tr>
+                            <tr>
+                                <td>Smart Alerts</td>
+                                <td>❌</td>
+                                <td>✅</td>
+                            </tr>
+                            <tr>
+                                <td>Cloud Save</td>
+                                <td>❌</td>
+                                <td>✅</td>
+                            </tr>
+                            <tr>
+                                <td>Email Reminders</td>
+                                <td>❌</td>
+                                <td>✅</td>
+                            </tr>
+                            <tr>
+                                <td>Reminder Dashboard</td>
+                                <td>❌</td>
+                                <td>✅</td>
+                            </tr>
+                            <tr>
+                                <td>Productivity Stats</td>
+                                <td>❌</td>
+                                <td>✅</td>
+                            </tr>
+                            <tr>
+                                <td>Assigned Monitor</td>
+                                <td>❌</td>
+                                <td>✅</td>
+                            </tr>
+                            <tr>
+                                <td>Open Ticket History</td>
+                                <td>❌</td>
+                                <td>✅</td>
+                            </tr>
+                            <tr>
+                                <td>Priority Support</td>
+                                <td>❌</td>
+                                <td>✅</td>
+                            </tr>
+                            <tr>
+                                <td>Priority Highlights</td>
+                                <td>❌</td>
+                                <td>✅</td>
+                            </tr>
+                            <tr>
+                                <td>One-Click Macros</td>
+                                <td>❌</td>
+                                <td>✅</td>
+                            </tr>
+                            <tr>
+                                <td>Working Hours Mode</td>
+                                <td>✅ Basic</td>
+                                <td>✅ Advanced</td>
+                            </tr>
+                            <tr>
+                                <td>Session Timer</td>
+                                <td>✅ Basic</td>
+                                <td>✅ Analytics</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Restore Purchases Section -->
+                <div class="restore-purchases">
+                    <p>Already have a Pro subscription? <button id="restorePurchasesBtn" class="restore-btn">Restore Purchases</button></p>
+                </div>
+                
+                <!-- Development Mode Section (only visible in dev mode) -->
+                <div id="devModeSection" class="dev-mode-section" style="display: none;">
+                    <div class="dev-mode-header">
+                        <h4>🧪 Development Mode</h4>
+                        <p>Test payment functionality locally</p>
+                    </div>
+                    <div class="dev-mode-controls">
+                        <button id="resetProStatusBtn" class="dev-btn">Reset Pro Status</button>
+                        <button id="setProStatusBtn" class="dev-btn">Set Pro Status</button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Help Modal -->

@@ -128,6 +128,8 @@ function setupEventListeners() {
         workEndTime.addEventListener('change', saveSettings);
     }
     
+
+    
     // Add event listeners for buttons
     if (upgradeBtn) {
         upgradeBtn.addEventListener('click', handleUpgrade);
@@ -156,6 +158,159 @@ function setupEventListeners() {
                 hideHelpModal();
             }
         });
+    }
+
+    // Upgrade modal
+    const closeUpgradeModal = document.getElementById('closeUpgradeModal');
+    const upgradeModal = document.getElementById('upgradeModal');
+    const activateProBtn = document.getElementById('activateProBtn');
+    const restorePurchasesBtn = document.getElementById('restorePurchasesBtn');
+    const resetProStatusBtn = document.getElementById('resetProStatusBtn');
+    const setProStatusBtn = document.getElementById('setProStatusBtn');
+
+    if (closeUpgradeModal) {
+        closeUpgradeModal.addEventListener('click', () => {
+            if (upgradeModal) upgradeModal.style.display = 'none';
+        });
+    }
+
+    if (upgradeModal) {
+        upgradeModal.addEventListener('click', function(e) {
+            if (e.target === upgradeModal) {
+                upgradeModal.style.display = 'none';
+            }
+        });
+    }
+
+    if (activateProBtn) {
+        activateProBtn.addEventListener('click', async () => {
+            try {
+                // Show loading state
+                activateProBtn.textContent = "Processing...";
+                activateProBtn.disabled = true;
+
+                console.log("🛒 Starting Pro purchase...");
+
+                // Import the payments module
+                const { purchasePro } = await import('./payments.js');
+
+                // Attempt to purchase Pro subscription
+                const result = await purchasePro();
+
+                if (result.success) {
+                    // Close modal
+                    if (upgradeModal) upgradeModal.style.display = 'none';
+
+                    // Update UI to show Pro status
+                    updateAccountInfo('Pro', 'Pro User');
+                    updateProFeaturesVisibility('Pro');
+
+                    // Show success message
+                    showSaveConfirmation();
+
+                    console.log("✅ Pro upgrade completed successfully");
+                } else {
+                    // Show error message
+                    alert(result.message || "Purchase failed. Please try again.");
+                    console.log("❌ Pro purchase failed:", result.message);
+                }
+
+            } catch (error) {
+                console.error("Error during Pro purchase:", error);
+                alert("Payment error occurred. Please try again.");
+            } finally {
+                // Reset button state
+                activateProBtn.textContent = "Upgrade Now";
+                activateProBtn.disabled = false;
+            }
+        });
+    }
+
+    if (restorePurchasesBtn) {
+        restorePurchasesBtn.addEventListener('click', async () => {
+            try {
+                // Show loading state
+                restorePurchasesBtn.textContent = "Restoring...";
+                restorePurchasesBtn.disabled = true;
+
+                console.log("🔄 Restoring purchases...");
+
+                // Import the payments module
+                const { restorePurchases } = await import('./payments.js');
+
+                // Attempt to restore purchases
+                const restored = await restorePurchases();
+
+                if (restored) {
+                    // Close modal
+                    if (upgradeModal) upgradeModal.style.display = 'none';
+
+                    // Update UI to show Pro status
+                    updateAccountInfo('Pro', 'Pro User');
+                    updateProFeaturesVisibility('Pro');
+
+                    // Show success message
+                    showSaveConfirmation();
+
+                    console.log("✅ Pro subscription restored");
+                } else {
+                    // Show message that no purchases were found
+                    alert("No Pro subscription found to restore.");
+                    console.log("ℹ️ No Pro subscription found");
+                }
+
+            } catch (error) {
+                console.error("Error restoring purchases:", error);
+                alert("Error restoring purchases. Please try again.");
+            } finally {
+                // Reset button state
+                restorePurchasesBtn.textContent = "Restore Purchases";
+                restorePurchasesBtn.disabled = false;
+            }
+        });
+    }
+
+    // Development mode controls
+    if (resetProStatusBtn) {
+        resetProStatusBtn.addEventListener('click', async () => {
+            try {
+                await chrome.storage.local.set({ testProStatus: false });
+                alert("Pro status reset to Free");
+                
+                // Update UI
+                updateAccountInfo('Free', 'Free User');
+                updateProFeaturesVisibility('Free');
+                
+                console.log("🧪 DEV MODE: Pro status reset to Free");
+            } catch (error) {
+                console.error("Error resetting Pro status:", error);
+                alert("Error resetting Pro status");
+            }
+        });
+    }
+
+    if (setProStatusBtn) {
+        setProStatusBtn.addEventListener('click', async () => {
+            try {
+                await chrome.storage.local.set({ testProStatus: true });
+                alert("Pro status set to Pro");
+                
+                // Update UI
+                updateAccountInfo('Pro', 'Pro User');
+                updateProFeaturesVisibility('Pro');
+                
+                console.log("🧪 DEV MODE: Pro status set to Pro");
+            } catch (error) {
+                console.error("Error setting Pro status:", error);
+                alert("Error setting Pro status");
+            }
+        });
+    }
+
+    // Show development mode section if in dev mode
+    const devModeSection = document.getElementById('devModeSection');
+    if (devModeSection) {
+        devModeSection.style.display = 'block';
     }
 }
 
@@ -307,10 +462,11 @@ function updateProFeaturesVisibility(plan) {
 }
 
 function handleUpgrade() {
-    // Open upgrade modal or redirect to payment page
-    chrome.tabs.create({
-        url: 'https://github.com/VinhKietLa/zendesk_extension#upgrade'
-    });
+    // Open upgrade modal
+    const upgradeModal = document.getElementById('upgradeModal');
+    if (upgradeModal) {
+        upgradeModal.style.display = 'block';
+    }
 }
 
 

@@ -1,6 +1,9 @@
 // Chrome Web Store Payment Service
 // Handles in-app purchases for Pro subscription
 
+// Development mode flag - set to true for local testing
+const DEV_MODE = true;
+
 // Product ID for Pro subscription (you'll get this from Chrome Web Store)
 const PRO_PRODUCT_ID = 'pro_subscription_monthly';
 
@@ -28,6 +31,12 @@ export async function initializePayments() {
  */
 export async function checkProSubscription() {
   try {
+    // In development mode, check local storage for test Pro status
+    if (DEV_MODE) {
+      const data = await chrome.storage.local.get('testProStatus');
+      return data.testProStatus || false;
+    }
+
     if (!chrome.payments) {
       return false;
     }
@@ -50,6 +59,24 @@ export async function checkProSubscription() {
  */
 export async function purchasePro() {
   try {
+    // In development mode, simulate successful purchase
+    if (DEV_MODE) {
+      console.log('🧪 DEV MODE: Simulating Pro purchase...');
+      
+      // Simulate network delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Set test Pro status
+      await chrome.storage.local.set({ testProStatus: true });
+      
+      console.log('✅ DEV MODE: Pro purchase simulated successfully!');
+      return {
+        success: true,
+        purchaseId: 'dev-test-purchase-' + Date.now(),
+        message: 'Successfully upgraded to Pro! (Development Mode)'
+      };
+    }
+
     if (!chrome.payments) {
       throw new Error('Chrome payments API not available');
     }
@@ -107,6 +134,22 @@ export async function purchasePro() {
  */
 export async function restorePurchases() {
   try {
+    // In development mode, check local storage for test Pro status
+    if (DEV_MODE) {
+      console.log('🧪 DEV MODE: Checking for test Pro status...');
+      
+      const data = await chrome.storage.local.get('testProStatus');
+      const hasPro = data.testProStatus || false;
+      
+      if (hasPro) {
+        console.log('✅ DEV MODE: Pro subscription restored from test data');
+        return true;
+      } else {
+        console.log('ℹ️ DEV MODE: No test Pro subscription found');
+        return false;
+      }
+    }
+
     if (!chrome.payments) {
       return false;
     }

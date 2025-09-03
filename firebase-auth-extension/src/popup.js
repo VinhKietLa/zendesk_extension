@@ -58,6 +58,21 @@ function formatTicketTime(reminderTime) {
   }
 }
 
+// Helper function to check auto-refresh status and restart if needed
+async function checkAutoRefreshStatus() {
+  try {
+    const response = await new Promise((resolve) => {
+      chrome.runtime.sendMessage({ action: "checkAutoRefreshStatus" }, resolve);
+    });
+    
+    if (response && response.shouldBeRunning) {
+      console.log("🔄 Auto-refresh was not running but should be - background script is restarting it");
+    }
+  } catch (error) {
+    console.log("Could not check auto-refresh status:", error);
+  }
+}
+
 // Helper function to validate reminder time and show warning for past dates
 function validateReminderTime(date, time) {
   if (!date && !time) return { isValid: true };
@@ -587,6 +602,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // Initialize payment system
   await initializePayments();
+  
+  // Check auto-refresh status when popup opens to ensure it's working
+  checkAutoRefreshStatus();
 
   // Add tab switching functionality
   const tabBtns = document.querySelectorAll(".tab-btn");
@@ -642,9 +660,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   const userInfo = document.getElementById("userInfo");
   const proBadge = document.getElementById("proBadge");
   const upgradeBtn = document.getElementById("upgradeBtn");
-  const modal = document.getElementById("upgradeModal");
-  const closeModal = document.getElementsByClassName("close-modal")[0];
-  const activateProBtn = document.getElementById("activateProBtn");
 
   // Load free user data immediately
   loadFreeUserData();
@@ -1033,128 +1048,16 @@ document.addEventListener("DOMContentLoaded", async () => {
   chrome.runtime.sendMessage({ action: "resetBadge" });
   migrateSyncToLocal();
 
-  // Modal handling
-  if (upgradeBtn && modal) {
+  // Upgrade button - opens options page
+  if (upgradeBtn) {
     upgradeBtn.addEventListener("click", () => {
-      modal.style.display = "block";
+      chrome.runtime.openOptionsPage();
     });
   }
 
-  if (closeModal && modal) {
-    closeModal.addEventListener("click", () => {
-      modal.style.display = "none";
-    });
-  }
 
-  if (modal) {
-    window.addEventListener("click", (event) => {
-      if (event.target === modal) {
-        modal.style.display = "none";
-      }
-    });
-  }
 
-  if (activateProBtn) {
-    activateProBtn.addEventListener("click", async () => {
-      try {
-        // Show loading state
-        activateProBtn.textContent = "Processing...";
-        activateProBtn.disabled = true;
 
-        console.log("🛒 Starting Pro purchase...");
-
-        // Attempt to purchase Pro subscription
-        const result = await purchasePro();
-
-        if (result.success) {
-          // Close modal
-          if (modal) modal.style.display = "none";
-
-          // Update UI to show Pro status
-          const proBadge = document.getElementById("proBadge");
-          const upgradeBtn = document.getElementById("upgradeBtn");
-          if (proBadge) proBadge.style.display = "inline-block";
-          if (upgradeBtn) upgradeBtn.style.display = "none";
-
-          // Show success message
-          showToast(result.message || "Successfully upgraded to Pro!");
-
-          // Reload data to use Pro features
-          const user = auth.currentUser;
-          if (user) {
-            await loadReminders(user);
-            await initializeMacros();
-          }
-
-          console.log("✅ Pro upgrade completed successfully");
-        } else {
-          // Show error message
-          showToast(result.message || "Purchase failed. Please try again.");
-          console.log("❌ Pro purchase failed:", result.message);
-        }
-
-      } catch (error) {
-        console.error("Error during Pro purchase:", error);
-        showToast("Payment error occurred. Please try again.");
-      } finally {
-        // Reset button state
-        activateProBtn.textContent = "Upgrade Now";
-        activateProBtn.disabled = false;
-      }
-    });
-  }
-
-  // Restore purchases button
-  const restorePurchasesBtn = document.getElementById("restorePurchasesBtn");
-  if (restorePurchasesBtn) {
-    restorePurchasesBtn.addEventListener("click", async () => {
-      try {
-        // Show loading state
-        restorePurchasesBtn.textContent = "Restoring...";
-        restorePurchasesBtn.disabled = true;
-
-        console.log("🔄 Restoring purchases...");
-
-        // Attempt to restore purchases
-        const restored = await restorePurchases();
-
-        if (restored) {
-          // Close modal
-          if (modal) modal.style.display = "none";
-
-          // Update UI to show Pro status
-          const proBadge = document.getElementById("proBadge");
-          const upgradeBtn = document.getElementById("upgradeBtn");
-          if (proBadge) proBadge.style.display = "inline-block";
-          if (upgradeBtn) upgradeBtn.style.display = "none";
-
-          // Show success message
-          showToast("Pro subscription restored successfully!");
-
-          // Reload data to use Pro features
-          const user = auth.currentUser;
-          if (user) {
-            await loadReminders(user);
-            await initializeMacros();
-          }
-
-          console.log("✅ Pro subscription restored");
-        } else {
-          // Show message that no purchases were found
-          showToast("No Pro subscription found to restore.");
-          console.log("ℹ️ No Pro subscription found");
-        }
-
-      } catch (error) {
-        console.error("Error restoring purchases:", error);
-        showToast("Error restoring purchases. Please try again.");
-      } finally {
-        // Reset button state
-        restorePurchasesBtn.textContent = "Restore Purchases";
-        restorePurchasesBtn.disabled = false;
-      }
-    });
-  }
 
   // Listen for reminder updates from background script
   chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
