@@ -1850,9 +1850,11 @@ function displayCompletedTickets(tickets) {
       deleteOption.innerHTML = '<i class="fas fa-trash icon-destructive"></i> Delete Ticket';
       deleteOption.addEventListener('click', (e) => {
         e.stopPropagation();
-                  showDeleteConfirmationModal(ticketId, () => {
-            deleteTicket({ uid: '' }, false, ticketId);
-          });
+        showDeleteConfirmationModal(ticketId, async () => {
+          await deleteTicket({ uid: '' }, false, ticketId);
+          // Ensure completed tickets are refreshed immediately
+          loadFreeUserData();
+        });
         menuDropdown.classList.remove('open');
       });
       menuDropdown.appendChild(deleteOption);
