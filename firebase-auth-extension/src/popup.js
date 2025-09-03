@@ -45,16 +45,40 @@ const CLOUD_FUNCTION_URL = "https://exchangeoauthcode-7ylhtvfxha-uc.a.run.app";
 function formatTicketTime(reminderTime) {
   if (!reminderTime) return null;
   
+  console.log("🔍 formatTicketTime called with:", reminderTime, typeof reminderTime);
+  
   try {
     const date = new Date(reminderTime);
-    // Use consistent formatting: DD/MM/YYYY HH:MM
-    return date.toLocaleDateString('en-GB') + ' ' + date.toLocaleTimeString('en-GB', {
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    console.log("🔍 Parsed date:", date, "Is valid:", !isNaN(date.getTime()));
+    
+    if (isNaN(date.getTime())) {
+      console.error("❌ Invalid date object created from:", reminderTime);
+      return "Invalid reminder time";
+    }
+    
+    const now = new Date();
+    
+    // Check if the date is in the past
+    if (date < now) {
+      // Format as "Overdue - DD/MM/YYYY HH:MM"
+      const formattedDate = date.toLocaleDateString('en-GB') + ' ' + date.toLocaleTimeString('en-GB', {
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+      console.log("✅ Past date formatted as overdue:", formattedDate);
+      return `Overdue - ${formattedDate}`;
+    } else {
+      // Format as normal: DD/MM/YYYY HH:MM
+      const formattedDate = date.toLocaleDateString('en-GB') + ' ' + date.toLocaleTimeString('en-GB', {
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+      console.log("✅ Future date formatted normally:", formattedDate);
+      return formattedDate;
+    }
   } catch (error) {
-    console.error('Error formatting time:', error);
-    return null;
+    console.error('❌ Error formatting time:', error);
+    return "Error formatting time";
   }
 }
 
@@ -384,6 +408,7 @@ async function markReminderAsDone(user, ticketId) {
                 { 
                   ticketId: ticket.ticketId, 
                   description: ticket.description,
+                  reminderTime: ticket.reminderTime, // Preserve original reminder time
                   completedAt: Date.now()
                 },
               ];
@@ -462,6 +487,7 @@ async function markReminderAsDone(user, ticketId) {
                 { 
                   ticketId: ticket.ticketId, 
                   description: ticket.description,
+                  reminderTime: ticket.reminderTime, // Preserve original reminder time
                   completedAt: Date.now() // Add completion timestamp
                 },
               ];
@@ -1460,7 +1486,7 @@ async function displayImportantTickets(tickets) {
           pinOption.addEventListener("click", async (e) => {
             e.stopPropagation();
             try {
-              await pinTicket(user, isPro, { ticketId, description });
+              await pinTicket(user, isPro, { ticketId, description, reminderTime });
               // Refresh the UI based on user type
               if (user) {
                 await loadReminders(user);
@@ -1496,7 +1522,18 @@ async function displayImportantTickets(tickets) {
           e.stopPropagation();
           try {
             await markReminderAsDone(user, ticketId);
-            await loadReminders(user);
+            // Ensure UI is refreshed for both Pro and Free users
+            if (user && user.uid) {
+              await loadReminders(user);
+            } else {
+              // For free users, refresh the display immediately
+              chrome.storage.local.get(['importantTickets', 'completedTickets', 'overdueTickets', 'pinnedTickets'], (data) => {
+                displayImportantTickets(data.importantTickets || []);
+                displayCompletedTickets(data.completedTickets || []);
+                displayOverdueTickets(data.overdueTickets || []);
+                displayPinnedTickets(null, false);
+              });
+            }
           } catch (error) {
             console.error("Failed to mark ticket as completed:", error);
           }
@@ -1558,7 +1595,16 @@ async function displayImportantTickets(tickets) {
                 });
               }
             }
-            await loadReminders(user);
+            // Ensure UI is refreshed for both Pro and Free users
+            if (user && user.uid) {
+              await loadReminders(user);
+            } else {
+              // For free users, refresh the display immediately
+              chrome.storage.local.get(['importantTickets', 'overdueTickets'], (data) => {
+                displayImportantTickets(data.importantTickets || []);
+                displayOverdueTickets(data.overdueTickets || []);
+              });
+            }
           } catch (error) {
             console.error("Failed to mark ticket as overdue:", error);
           }
@@ -1647,6 +1693,8 @@ function displayCompletedTickets(tickets) {
   if (!list) return;
   list.innerHTML = "";
 
+  console.log("🔍 displayCompletedTickets called with tickets:", tickets);
+
   // Update count badge
   const countElement = document.getElementById('completedTicketsCount');
   if (countElement) {
@@ -1657,7 +1705,7 @@ function displayCompletedTickets(tickets) {
     const zendeskDomain =
       data.zendeskDomain || "https://your_zendesk_domain.com";
 
-    tickets.forEach(({ ticketId, description, completedAt }) => {
+    tickets.forEach(({ ticketId, description, completedAt, reminderTime }) => {
       const ticketElement = document.createElement('li');
       ticketElement.className = 'completed-ticket-card';
       ticketElement.style.cursor = 'pointer';
@@ -1704,6 +1752,8 @@ function displayCompletedTickets(tickets) {
       moveToImportantOption.addEventListener('click', async (e) => {
         e.stopPropagation();
         
+        console.log("🔍 Moving completed ticket back to important:", { ticketId, description, reminderTime });
+        
         // Check if user is Pro
         const user = auth.currentUser;
         if (user) {
@@ -1714,6 +1764,7 @@ function displayCompletedTickets(tickets) {
               const reminders = await getUserReminders(user.uid);
               const completedReminder = reminders.find(r => r.ticketId === ticketId && r.type === 'completed');
               if (completedReminder) {
+                console.log("🔍 Found completed reminder in Firestore:", completedReminder);
                 // Update the reminder to important
                 await updateReminder(completedReminder.id, {
                   type: 'important',
@@ -1729,6 +1780,9 @@ function displayCompletedTickets(tickets) {
                   ticket.ticketId !== ticketId
                 );
                 const updatedImportantTickets = [...(data.importantTickets || []), { ticketId, description, reminderTime }];
+                
+                console.log("🔍 Free user - moving ticket with data:", { ticketId, description, reminderTime });
+                console.log("🔍 Updated important tickets:", updatedImportantTickets);
                 
                 chrome.storage.local.set({ 
                   completedTickets: updatedCompletedTickets,
@@ -1749,6 +1803,9 @@ function displayCompletedTickets(tickets) {
               ticket.ticketId !== ticketId
             );
             const updatedImportantTickets = [...(data.importantTickets || []), { ticketId, description, reminderTime }];
+            
+            console.log("🔍 No user - moving ticket with data:", { ticketId, description, reminderTime });
+            console.log("🔍 Updated important tickets:", updatedImportantTickets);
             
             chrome.storage.local.set({ 
               completedTickets: updatedCompletedTickets,
@@ -2395,6 +2452,7 @@ async function pinTicket(user, isPro, ticket) {
     await createReminder(user.uid, {
       ticketId: ticket.ticketId,
       description: ticket.description,
+      reminderTime: ticket.reminderTime, // Preserve reminder time
       type: "pinned",
       pinnedAt: Date.now(),
     });
@@ -2425,6 +2483,7 @@ async function pinTicket(user, isPro, ticket) {
     pinnedTickets.push({
       ticketId: ticket.ticketId,
       description: ticket.description,
+      reminderTime: ticket.reminderTime, // Preserve reminder time
       pinnedAt: Date.now(),
     });
     await Promise.all([
@@ -2536,8 +2595,6 @@ async function displayPinnedTickets(user, isPro) {
             const ticketElement = document.createElement('li');
             ticketElement.className = 'ticket-card';
             
-            const pinnedDate = new Date(ticket.pinnedAt).toLocaleString('en-GB');
-            
             // Create header
             const header = document.createElement('div');
             header.className = 'ticket-header';
@@ -2548,10 +2605,19 @@ async function displayPinnedTickets(user, isPro) {
             idBadge.textContent = `#${ticket.ticketId}`;
             header.appendChild(idBadge);
             
-            // Date/time
+            // Date/time - show reminder time if available, otherwise show when it was pinned
+            let dateTimeText = '';
+            if (ticket.reminderTime) {
+                const formattedTime = formatTicketTime(ticket.reminderTime);
+                dateTimeText = formattedTime || 'Invalid reminder time';
+            } else {
+                const pinnedDate = new Date(ticket.pinnedAt).toLocaleString('en-GB');
+                dateTimeText = `Pinned: ${pinnedDate}`;
+            }
+            
             const dateTime = document.createElement('div');
             dateTime.className = 'ticket-datetime';
-            dateTime.innerHTML = `<i class="fas fa-thumbtack"></i>${pinnedDate}`;
+            dateTime.innerHTML = `<i class="fas fa-thumbtack"></i>${dateTimeText}`;
             header.appendChild(dateTime);
             
             // Three-dot menu button
@@ -2738,6 +2804,7 @@ async function getPinnedTickets(user, isPro) {
       .map((r) => ({
         ticketId: r.ticketId,
         description: r.description,
+        reminderTime: r.reminderTime, // Preserve reminder time
         pinnedAt: r.pinnedAt || r.createdAt || Date.now(),
         id: r.id,
       }));
