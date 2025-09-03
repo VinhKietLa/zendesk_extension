@@ -1,8 +1,8 @@
 // Chrome Web Store Payment Service
 // Handles in-app purchases for Pro subscription
 
-// Development mode flag - set to true for local testing
-const DEV_MODE = true;
+// Development mode flag - set to false for production
+const DEV_MODE = false;
 
 // Product ID for Pro subscription (you'll get this from Chrome Web Store)
 const PRO_PRODUCT_ID = 'pro_subscription_monthly';
