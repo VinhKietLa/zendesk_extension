@@ -97,6 +97,24 @@ async function checkAutoRefreshStatus() {
   }
 }
 
+// Helper function to determine which storage to use based on user status
+async function getStorageForUser(user) {
+  // If no user or user.uid is empty, use chrome.storage.sync (Free user)
+  if (!user || !user.uid || user.uid.trim() === '') {
+    return 'sync';
+  }
+  
+  // If user exists, check if they're Pro
+  try {
+    const isPro = await isUserPro(user.uid);
+    // Pro users use Firebase, Free users use chrome.storage.sync
+    return isPro ? 'firebase' : 'sync';
+  } catch (error) {
+    console.error('Error checking Pro status, defaulting to sync storage:', error);
+    return 'sync';
+  }
+}
+
 // Helper function to validate reminder time and show warning for past dates
 function validateReminderTime(date, time) {
   if (!date && !time) return { isValid: true };
@@ -284,8 +302,8 @@ async function loadReminders(user) {
     displayCompletedTickets(completedTickets);
     displayOverdueTickets(overdueTickets);
   } else {
-    // Free: Load from local storage
-    chrome.storage.local.get(
+    // Free: Load from sync storage
+    chrome.storage.sync.get(
       ["importantTickets", "completedTickets", "overdueTickets"],
       (data) => {
         displayImportantTickets(data.importantTickets || []);
@@ -326,9 +344,9 @@ async function addReminder(user, ticketId, description, reminderTime, isOverdue 
     // Reload all reminders from Firestore
     await loadReminders(user);
   } else {
-    // Free: Save to local storage only
+    // Free: Save to sync storage only
     return new Promise((resolve, reject) => {
-      chrome.storage.local.get({ importantTickets: [], overdueTickets: [] }, async (data) => {
+      chrome.storage.sync.get({ importantTickets: [], overdueTickets: [] }, async (data) => {
         try {
           const currentTickets = [...data.importantTickets];
           const currentOverdueTickets = [...data.overdueTickets];
@@ -350,7 +368,7 @@ async function addReminder(user, ticketId, description, reminderTime, isOverdue 
               ...currentOverdueTickets,
               { ticketId, description, reminderTime },
             ];
-            await chrome.storage.local.set({ overdueTickets: updatedOverdueTickets });
+            await chrome.storage.sync.set({ overdueTickets: updatedOverdueTickets });
             // Refresh all tabs to show the ticket moved to overdue
             loadFreeUserData();
           } else {
@@ -359,7 +377,7 @@ async function addReminder(user, ticketId, description, reminderTime, isOverdue 
               ...currentTickets,
               { ticketId, description, reminderTime },
             ];
-            await chrome.storage.local.set({ importantTickets: updatedTickets });
+            await chrome.storage.sync.set({ importantTickets: updatedTickets });
             displayImportantTickets(updatedTickets);
           }
           resolve();
@@ -375,9 +393,9 @@ async function addReminder(user, ticketId, description, reminderTime, isOverdue 
 async function markReminderAsDone(user, ticketId) {
   // Handle free users (user is null)
   if (!user) {
-    // Free: Update local storage only
+    // Free: Update sync storage only
     return new Promise((resolve, reject) => {
-      chrome.storage.local.get(
+      chrome.storage.sync.get(
         ["importantTickets", "completedTickets", "overdueTickets", "pinnedTickets"],
         async (data) => {
           try {
@@ -414,7 +432,7 @@ async function markReminderAsDone(user, ticketId) {
                 },
               ];
 
-              await chrome.storage.local.set({
+              await chrome.storage.sync.set({
                 importantTickets: updatedImportantTickets,
                 overdueTickets: updatedOverdueTickets,
                 completedTickets: updatedCompletedTickets,
@@ -454,9 +472,9 @@ async function markReminderAsDone(user, ticketId) {
     // Reload all reminders
     await loadReminders(user);
   } else {
-    // Free: Update local storage only
+    // Free: Update sync storage only
     return new Promise((resolve, reject) => {
-      chrome.storage.local.get(
+      chrome.storage.sync.get(
         ["importantTickets", "completedTickets", "overdueTickets", "pinnedTickets"],
         async (data) => {
           try {
@@ -493,7 +511,7 @@ async function markReminderAsDone(user, ticketId) {
                 },
               ];
 
-              await chrome.storage.local.set({
+              await chrome.storage.sync.set({
                 importantTickets: updatedImportantTickets,
                 overdueTickets: updatedOverdueTickets,
                 completedTickets: updatedCompletedTickets,
@@ -536,8 +554,8 @@ async function clearCompletedTickets(user) {
     // Reload reminders
     await loadReminders(user);
   } else {
-    // Free: Clear from local storage only
-    await chrome.storage.local.set({ completedTickets: [] });
+    // Free: Clear from sync storage only
+    await chrome.storage.sync.set({ completedTickets: [] });
     displayCompletedTickets([]);
   }
 }
@@ -590,8 +608,8 @@ async function completeSignInFromBackground(idToken, accessToken) {
     
     showToast("Successfully signed in!", "success");
     
-    // Store user data in local storage for options page
-    await chrome.storage.local.set({
+    // Store user data in sync storage for options page
+    await chrome.storage.sync.set({
       user: {
         uid: user.uid,
         email: user.email,
@@ -599,7 +617,7 @@ async function completeSignInFromBackground(idToken, accessToken) {
         photoURL: user.photoURL,
       }
     });
-    console.log("💾 Stored user data in local storage:", user.email);
+    console.log("💾 Stored user data in sync storage:", user.email);
     
     // Notify options page of auth state change
     try {
@@ -659,7 +677,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           const isPro = await isUserPro(currentUser.uid);
           await loadReminders(currentUser);
         } else {
-          // For free users, load from local storage
+          // For free users, load from sync storage
           loadFreeUserData();
         }
       } else if (tabId === "pinned") {
@@ -670,7 +688,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           const isPro = await isUserPro(currentUser.uid);
           await displayPinnedTickets(currentUser, isPro);
         } else {
-          // For free users, load from local storage
+          // For free users, load from sync storage
           await displayPinnedTickets({ uid: "" }, false);
         }
       } else if (tabId === "macros") {
@@ -740,8 +758,8 @@ document.addEventListener("DOMContentLoaded", async () => {
             userId: user.uid 
           });
           
-          // Store user data and pro status in local storage for options page
-          await chrome.storage.local.set({ 
+          // Store user data and pro status in sync storage for options page
+          await chrome.storage.sync.set({ 
             user: {
               uid: user.uid,
               email: user.email,
@@ -757,7 +775,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
           // Check if we need to migrate data
           const localData = await new Promise((resolve) => {
-            chrome.storage.local.get(
+            chrome.storage.sync.get(
               [
                 "importantTickets",
                 "completedTickets",
@@ -800,7 +818,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (upgradeBtn) upgradeBtn.style.display = "none";
 
       // Clear user data and pro status from storage
-      chrome.storage.local.remove(['user', 'userProStatus']);
+      chrome.storage.sync.remove(['user', 'userProStatus']);
 
       // Load free user data when signed out
       loadFreeUserData();
@@ -952,9 +970,9 @@ document.addEventListener("DOMContentLoaded", async () => {
           // Pro user: Use addReminder function
           await addReminder(user, ticketId, description, combinedReminderTime, isOverdue);
         } else {
-          // Free user: Save directly to local storage
+          // Free user: Save directly to sync storage
           const data = await new Promise((resolve) => {
-            chrome.storage.local.get({ importantTickets: [], overdueTickets: [] }, resolve);
+            chrome.storage.sync.get({ importantTickets: [], overdueTickets: [] }, resolve);
           });
 
           const currentTickets = [...data.importantTickets];
@@ -977,7 +995,7 @@ document.addEventListener("DOMContentLoaded", async () => {
               ...currentOverdueTickets,
               { ticketId, description, reminderTime: combinedReminderTime },
             ];
-            await chrome.storage.local.set({ overdueTickets: updatedOverdueTickets });
+            await chrome.storage.sync.set({ overdueTickets: updatedOverdueTickets });
             displayOverdueTickets(updatedOverdueTickets);
           } else {
             // Add to important tickets
@@ -985,7 +1003,7 @@ document.addEventListener("DOMContentLoaded", async () => {
               ...currentTickets,
               { ticketId, description, reminderTime: combinedReminderTime },
             ];
-            await chrome.storage.local.set({ importantTickets: updatedTickets });
+            await chrome.storage.sync.set({ importantTickets: updatedTickets });
             displayImportantTickets(updatedTickets);
           }
         }
@@ -1014,9 +1032,9 @@ document.addEventListener("DOMContentLoaded", async () => {
           // Pro user: Use markReminderAsDone function
           await markReminderAsDone(user, ticketId);
         } else {
-          // Free user: Update local storage directly
+          // Free user: Update sync storage directly
           const data = await new Promise((resolve) => {
-            chrome.storage.local.get(
+            chrome.storage.sync.get(
               ["importantTickets", "completedTickets", "overdueTickets"],
               resolve
             );
@@ -1045,7 +1063,7 @@ document.addEventListener("DOMContentLoaded", async () => {
               { ticketId: ticket.ticketId, description: ticket.description },
             ];
 
-            await chrome.storage.local.set({
+            await chrome.storage.sync.set({
               importantTickets: updatedImportantTickets,
               overdueTickets: updatedOverdueTickets,
               completedTickets: updatedCompletedTickets,
@@ -1073,8 +1091,8 @@ document.addEventListener("DOMContentLoaded", async () => {
           // Pro user: Use clearCompletedTickets function
           await clearCompletedTickets(user);
         } else {
-          // Free user: Clear from local storage directly
-          await chrome.storage.local.set({ completedTickets: [] });
+          // Free user: Clear from sync storage directly
+          await chrome.storage.sync.set({ completedTickets: [] });
           displayCompletedTickets([]);
         }
       } catch (error) {
@@ -1117,7 +1135,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
   // Check for pending sign-in on popup load
-  chrome.storage.local.get(['pendingSignIn', 'signInTimestamp'], (data) => {
+  chrome.storage.sync.get(['pendingSignIn', 'signInTimestamp'], (data) => {
     if (data.pendingSignIn && data.signInTimestamp) {
       const timeDiff = Date.now() - data.signInTimestamp;
       // Only process if less than 5 minutes old
@@ -1125,10 +1143,10 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         completeSignInFromBackground(data.pendingSignIn.idToken, data.pendingSignIn.accessToken);
         // Clear the pending sign-in
-        chrome.storage.local.remove(['pendingSignIn', 'signInTimestamp']);
+        chrome.storage.sync.remove(['pendingSignIn', 'signInTimestamp']);
       } else {
         // Clear old pending sign-in
-        chrome.storage.local.remove(['pendingSignIn', 'signInTimestamp']);
+        chrome.storage.sync.remove(['pendingSignIn', 'signInTimestamp']);
       }
     }
   });
@@ -1274,9 +1292,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         // Pro user: Use addMacro function
         newMacro = await addMacro(user, name, content);
       } else {
-        // Free user: Save directly to local storage
+        // Free user: Save directly to sync storage
         const data = await new Promise((resolve) => {
-          chrome.storage.local.get({ macros: [] }, resolve);
+          chrome.storage.sync.get({ macros: [] }, resolve);
         });
 
         const currentMacros = data.macros || [];
@@ -1290,7 +1308,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         newMacro = { id: Date.now().toString(), name, content };
         const updatedMacros = [...currentMacros, newMacro];
 
-        await chrome.storage.local.set({ macros: updatedMacros });
+        await chrome.storage.sync.set({ macros: updatedMacros });
       }
 
       const macrosList = document.getElementById("macrosList");
@@ -1369,7 +1387,7 @@ function extractTicketId(input) {
 }
 
 function migrateSyncToLocal() {
-  chrome.storage.local.get(
+  chrome.storage.sync.get(
     ["importantTickets", "completedTickets", "overdueTickets"],
     (localData) => {
       const needsMigration =
@@ -1382,7 +1400,7 @@ function migrateSyncToLocal() {
       chrome.storage.sync.get(
         ["importantTickets", "completedTickets", "overdueTickets"],
         (syncData) => {
-          chrome.storage.local.set(syncData, () => {
+          chrome.storage.sync.set(syncData, () => {
             // Migration complete
           });
         }
@@ -1395,8 +1413,8 @@ let writeTimeout;
 function throttleWriteData(dataToWrite) {
   clearTimeout(writeTimeout);
   writeTimeout = setTimeout(() => {
-    chrome.storage.local.set(dataToWrite, () => {
-      // Data written to local storage
+    chrome.storage.sync.set(dataToWrite, () => {
+      // Data written to sync storage
     });
   }, 1000);
 }
@@ -1432,7 +1450,7 @@ async function displayImportantTickets(tickets) {
     isPro = await isUserPro(user.uid);
     pinnedIds = await getPinnedTicketIds(user, isPro);
   } else {
-    // For free users, get pinned tickets from local storage
+    // For free users, get pinned tickets from sync storage
     isPro = false;
     pinnedIds = await getPinnedTicketIds(null, false);
   }
@@ -1489,7 +1507,7 @@ async function displayImportantTickets(tickets) {
               if (user) {
                 await loadReminders(user);
               } else {
-                // For Free users, refresh from local storage
+                // For Free users, refresh from sync storage
                 loadFreeUserData();
               }
             } catch (error) {
@@ -1525,7 +1543,7 @@ async function displayImportantTickets(tickets) {
               await loadReminders(user);
             } else {
               // For free users, refresh the display immediately
-              chrome.storage.local.get(['importantTickets', 'completedTickets', 'overdueTickets', 'pinnedTickets'], (data) => {
+              chrome.storage.sync.get(['importantTickets', 'completedTickets', 'overdueTickets', 'pinnedTickets'], (data) => {
                 displayImportantTickets(data.importantTickets || []);
                 displayCompletedTickets(data.completedTickets || []);
                 displayOverdueTickets(data.overdueTickets || []);
@@ -1572,9 +1590,9 @@ async function displayImportantTickets(tickets) {
                 });
               }
             } else {
-              // For free users, move from important to overdue in local storage
+              // For free users, move from important to overdue in sync storage
               const data = await new Promise((resolve) => {
-                chrome.storage.local.get(["importantTickets", "overdueTickets"], resolve);
+                chrome.storage.sync.get(["importantTickets", "overdueTickets"], resolve);
               });
               
               const importantTickets = data.importantTickets || [];
@@ -1587,7 +1605,7 @@ async function displayImportantTickets(tickets) {
                 const overdueTicket = { ...ticket }; // Don't change reminderTime
                 const updatedOverdueTickets = [...overdueTickets, overdueTicket];
                 
-                await chrome.storage.local.set({
+                await chrome.storage.sync.set({
                   importantTickets: updatedImportantTickets,
                   overdueTickets: updatedOverdueTickets
                 });
@@ -1598,7 +1616,7 @@ async function displayImportantTickets(tickets) {
               await loadReminders(user);
             } else {
               // For free users, refresh the display immediately
-              chrome.storage.local.get(['importantTickets', 'overdueTickets'], (data) => {
+              chrome.storage.sync.get(['importantTickets', 'overdueTickets'], (data) => {
                 displayImportantTickets(data.importantTickets || []);
                 displayOverdueTickets(data.overdueTickets || []);
               });
@@ -1772,8 +1790,8 @@ function displayCompletedTickets(tickets) {
                 await loadReminders(user);
               }
             } else {
-              // Free: Update local storage
-              chrome.storage.local.get(['completedTickets', 'importantTickets'], (data) => {
+              // Free: Update sync storage
+              chrome.storage.sync.get(['completedTickets', 'importantTickets'], (data) => {
                 const updatedCompletedTickets = (data.completedTickets || []).filter(ticket => 
                   ticket.ticketId !== ticketId
                 );
@@ -1782,7 +1800,7 @@ function displayCompletedTickets(tickets) {
                 console.log("🔍 Free user - moving ticket with data:", { ticketId, description, reminderTime });
                 console.log("🔍 Updated important tickets:", updatedImportantTickets);
                 
-                chrome.storage.local.set({ 
+                chrome.storage.sync.set({ 
                   completedTickets: updatedCompletedTickets,
                   importantTickets: updatedImportantTickets
                 }, () => {
@@ -1796,7 +1814,7 @@ function displayCompletedTickets(tickets) {
           }
         } else {
           // No user - free mode
-          chrome.storage.local.get(['completedTickets', 'importantTickets'], (data) => {
+          chrome.storage.sync.get(['completedTickets', 'importantTickets'], (data) => {
             const updatedCompletedTickets = (data.completedTickets || []).filter(ticket => 
               ticket.ticketId !== ticketId
             );
@@ -1805,7 +1823,7 @@ function displayCompletedTickets(tickets) {
             console.log("🔍 No user - moving ticket with data:", { ticketId, description, reminderTime });
             console.log("🔍 Updated important tickets:", updatedImportantTickets);
             
-            chrome.storage.local.set({ 
+            chrome.storage.sync.set({ 
               completedTickets: updatedCompletedTickets,
               importantTickets: updatedImportantTickets
             }, () => {
@@ -2037,14 +2055,14 @@ async function displayOverdueTickets(tickets) {
                 await loadReminders(user);
               }
             } else {
-              // Free: Update local storage
-              chrome.storage.local.get(['overdueTickets', 'importantTickets'], (data) => {
+              // Free: Update sync storage
+              chrome.storage.sync.get(['overdueTickets', 'importantTickets'], (data) => {
                 const updatedOverdueTickets = (data.overdueTickets || []).filter(ticket => 
                   ticket.ticketId !== ticketId
                 );
                 const updatedImportantTickets = [...(data.importantTickets || []), { ticketId, description, reminderTime }];
                 
-                chrome.storage.local.set({ 
+                chrome.storage.sync.set({ 
                   overdueTickets: updatedOverdueTickets,
                   importantTickets: updatedImportantTickets
                 }, () => {
@@ -2059,13 +2077,13 @@ async function displayOverdueTickets(tickets) {
           }
         } else {
           // No user - free mode
-          chrome.storage.local.get(['overdueTickets', 'importantTickets'], (data) => {
+          chrome.storage.sync.get(['overdueTickets', 'importantTickets'], (data) => {
             const updatedOverdueTickets = (data.overdueTickets || []).filter(ticket => 
               ticket.ticketId !== ticketId
             );
             const updatedImportantTickets = [...(data.importantTickets || []), { ticketId, description, reminderTime }];
             
-            chrome.storage.local.set({ 
+            chrome.storage.sync.set({ 
               overdueTickets: updatedOverdueTickets,
               importantTickets: updatedImportantTickets
             }, () => {
@@ -2107,8 +2125,8 @@ async function displayOverdueTickets(tickets) {
                 showToast('Ticket snoozed for 1 hour');
               }
             } else {
-              // Free: Update local storage
-              chrome.storage.local.get(['overdueTickets', 'importantTickets'], (data) => {
+              // Free: Update sync storage
+              chrome.storage.sync.get(['overdueTickets', 'importantTickets'], (data) => {
                 const updatedOverdueTickets = (data.overdueTickets || []).filter(ticket => 
                   ticket.ticketId !== ticketId
                 );
@@ -2118,7 +2136,7 @@ async function displayOverdueTickets(tickets) {
                   reminderTime: newReminderTime.getTime() 
                 }];
                 
-                chrome.storage.local.set({ 
+                chrome.storage.sync.set({ 
                   overdueTickets: updatedOverdueTickets,
                   importantTickets: updatedImportantTickets
                 }, () => {
@@ -2134,7 +2152,7 @@ async function displayOverdueTickets(tickets) {
           }
         } else {
           // No user - free mode
-          chrome.storage.local.get(['overdueTickets', 'importantTickets'], (data) => {
+          chrome.storage.sync.get(['overdueTickets', 'importantTickets'], (data) => {
             const updatedOverdueTickets = (data.overdueTickets || []).filter(ticket => 
               ticket.ticketId !== ticketId
             );
@@ -2144,7 +2162,7 @@ async function displayOverdueTickets(tickets) {
               reminderTime: newReminderTime.getTime() 
             }];
             
-            chrome.storage.local.set({ 
+            chrome.storage.sync.set({ 
               overdueTickets: updatedOverdueTickets,
               importantTickets: updatedImportantTickets
             }, () => {
@@ -2187,8 +2205,8 @@ async function displayOverdueTickets(tickets) {
                 showToast('Ticket snoozed for 4 hours');
               }
             } else {
-              // Free: Update local storage
-              chrome.storage.local.get(['overdueTickets', 'importantTickets'], (data) => {
+              // Free: Update sync storage
+              chrome.storage.sync.get(['overdueTickets', 'importantTickets'], (data) => {
                 const updatedOverdueTickets = (data.overdueTickets || []).filter(ticket => 
                   ticket.ticketId !== ticketId
                 );
@@ -2198,7 +2216,7 @@ async function displayOverdueTickets(tickets) {
                   reminderTime: newReminderTime.getTime() 
                 }];
                 
-                chrome.storage.local.set({ 
+                chrome.storage.sync.set({ 
                   overdueTickets: updatedOverdueTickets,
                   importantTickets: updatedImportantTickets
                 }, () => {
@@ -2214,7 +2232,7 @@ async function displayOverdueTickets(tickets) {
           }
         } else {
           // No user - free mode
-          chrome.storage.local.get(['overdueTickets', 'importantTickets'], (data) => {
+          chrome.storage.sync.get(['overdueTickets', 'importantTickets'], (data) => {
             const updatedOverdueTickets = (data.overdueTickets || []).filter(ticket => 
               ticket.ticketId !== ticketId
             );
@@ -2224,7 +2242,7 @@ async function displayOverdueTickets(tickets) {
               reminderTime: newReminderTime.getTime() 
             }];
             
-            chrome.storage.local.set({ 
+            chrome.storage.sync.set({ 
               overdueTickets: updatedOverdueTickets,
               importantTickets: updatedImportantTickets
             }, () => {
@@ -2269,8 +2287,8 @@ async function displayOverdueTickets(tickets) {
                 showToast('Ticket snoozed until tomorrow');
               }
             } else {
-              // Free: Update local storage
-              chrome.storage.local.get(['overdueTickets', 'importantTickets'], (data) => {
+              // Free: Update sync storage
+              chrome.storage.sync.get(['overdueTickets', 'importantTickets'], (data) => {
                 const updatedOverdueTickets = (data.overdueTickets || []).filter(ticket => 
                   ticket.ticketId !== ticketId
                 );
@@ -2280,7 +2298,7 @@ async function displayOverdueTickets(tickets) {
                   reminderTime: tomorrow.getTime() 
                 }];
                 
-                chrome.storage.local.set({ 
+                chrome.storage.sync.set({ 
                   overdueTickets: updatedOverdueTickets,
                   importantTickets: updatedImportantTickets
                 }, () => {
@@ -2296,7 +2314,7 @@ async function displayOverdueTickets(tickets) {
           }
         } else {
           // No user - free mode
-          chrome.storage.local.get(['overdueTickets', 'importantTickets'], (data) => {
+          chrome.storage.sync.get(['overdueTickets', 'importantTickets'], (data) => {
             const updatedOverdueTickets = (data.overdueTickets || []).filter(ticket => 
               ticket.ticketId !== ticketId
             );
@@ -2306,7 +2324,7 @@ async function displayOverdueTickets(tickets) {
               reminderTime: tomorrow.getTime() 
             }];
             
-            chrome.storage.local.set({ 
+            chrome.storage.sync.set({ 
               overdueTickets: updatedOverdueTickets,
               importantTickets: updatedImportantTickets
             }, () => {
@@ -2460,7 +2478,7 @@ async function pinTicket(user, isPro, ticket) {
     // Free: Remove from importantTickets, add to pinnedTickets (max 3)
     const [importantTickets, pinnedTickets] = await Promise.all([
       new Promise((resolve) =>
-        chrome.storage.local.get({ importantTickets: [] }, (data) =>
+        chrome.storage.sync.get({ importantTickets: [] }, (data) =>
           resolve(data.importantTickets || [])
         )
       ),
@@ -2487,8 +2505,8 @@ async function pinTicket(user, isPro, ticket) {
       pinnedAt: Date.now(),
     });
     await Promise.all([
-      chrome.storage.local.set({ importantTickets: updatedImportant }),
-      chrome.storage.local.set({ pinnedTickets }),
+      chrome.storage.sync.set({ importantTickets: updatedImportant }),
+      chrome.storage.sync.set({ pinnedTickets }),
     ]);
   }
 }
@@ -2528,17 +2546,17 @@ async function unpinTicket(user, isPro, ticket) {
       await Promise.all([
         getPinnedTickets(user, false),
         new Promise((resolve) =>
-          chrome.storage.local.get({ importantTickets: [] }, (data) =>
+          chrome.storage.sync.get({ importantTickets: [] }, (data) =>
             resolve(data.importantTickets || [])
           )
         ),
         new Promise((resolve) =>
-          chrome.storage.local.get({ completedTickets: [] }, (data) =>
+          chrome.storage.sync.get({ completedTickets: [] }, (data) =>
             resolve(data.completedTickets || [])
           )
         ),
         new Promise((resolve) =>
-          chrome.storage.local.get({ overdueTickets: [] }, (data) =>
+          chrome.storage.sync.get({ overdueTickets: [] }, (data) =>
             resolve(data.overdueTickets || [])
           )
         ),
@@ -2556,8 +2574,8 @@ async function unpinTicket(user, isPro, ticket) {
       });
     }
     await Promise.all([
-      chrome.storage.local.set({ pinnedTickets: updatedPinned }),
-      chrome.storage.local.set({ importantTickets }),
+      chrome.storage.sync.set({ pinnedTickets: updatedPinned }),
+      chrome.storage.sync.set({ importantTickets }),
     ]);
   }
 }
@@ -2660,7 +2678,7 @@ async function displayPinnedTickets(user, isPro) {
                     if (user) {
                         await loadReminders(user);
                     } else {
-                        // For Free users, refresh from local storage
+                        // For Free users, refresh from sync storage
                         loadFreeUserData();
                     }
                 } catch (error) {
@@ -2818,9 +2836,9 @@ async function getPinnedTickets(user, isPro) {
       }));
     return pinnedTickets;
   } else {
-    // Free: Store in local storage
+    // Free: Store in sync storage
     return new Promise((resolve) => {
-      chrome.storage.local.get({ pinnedTickets: [] }, (data) => {
+      chrome.storage.sync.get({ pinnedTickets: [] }, (data) => {
         resolve(data.pinnedTickets || []);
       });
     });
@@ -2902,7 +2920,7 @@ loadReminders = async function (user) {
 
 // Add new function to load free user data
 async function loadFreeUserData() {
-  chrome.storage.local.get(
+  chrome.storage.sync.get(
     ["importantTickets", "completedTickets", "overdueTickets", "pinnedTickets"],
     (data) => {
       displayImportantTickets(data.importantTickets || []);
@@ -2921,7 +2939,7 @@ async function migrateLocalToFirestore(userId) {
   try {
     // First check if we need to migrate
     const localData = await new Promise((resolve) => {
-      chrome.storage.local.get(
+      chrome.storage.sync.get(
         [
           "importantTickets",
           "completedTickets",
@@ -2980,8 +2998,8 @@ async function migrateLocalToFirestore(userId) {
       });
     }
 
-    // Clear local storage after successful migration
-    await chrome.storage.local.remove([
+    // Clear sync storage after successful migration
+    await chrome.storage.sync.remove([
       "importantTickets",
       "completedTickets",
       "overdueTickets",
@@ -3006,7 +3024,7 @@ async function updateTicketDescription(user, isPro, ticketId, newDescription) {
       }
     } else {
       const data = await new Promise((resolve) => {
-        chrome.storage.local.get(
+        chrome.storage.sync.get(
           [
             "importantTickets",
             "completedTickets",
@@ -3026,7 +3044,7 @@ async function updateTicketDescription(user, isPro, ticketId, newDescription) {
         );
       };
 
-      await chrome.storage.local.set({
+      await chrome.storage.sync.set({
         importantTickets: updateList(data.importantTickets || []),
         completedTickets: updateList(data.completedTickets || []),
         overdueTickets: updateList(data.overdueTickets || []),
@@ -3040,7 +3058,7 @@ async function updateTicketDescription(user, isPro, ticketId, newDescription) {
     if (user) {
       await loadReminders(user);
     } else {
-      // For Free users, refresh from local storage
+      // For Free users, refresh from sync storage
       loadFreeUserData();
     }
   } catch (error) {
@@ -3061,7 +3079,7 @@ async function deleteTicket(user, isPro, ticketId) {
       }
     } else {
       const data = await new Promise((resolve) => {
-        chrome.storage.local.get(
+        chrome.storage.sync.get(
           [
             "importantTickets",
             "completedTickets",
@@ -3078,7 +3096,7 @@ async function deleteTicket(user, isPro, ticketId) {
       };
 
       await new Promise((resolve, reject) => {
-        chrome.storage.local.set({
+        chrome.storage.sync.set({
           importantTickets: removeFromList(data.importantTickets || []),
           completedTickets: removeFromList(data.completedTickets || []),
           overdueTickets: removeFromList(data.overdueTickets || []),
@@ -3100,7 +3118,7 @@ async function deleteTicket(user, isPro, ticketId) {
       console.log("🔍 Pro user - calling loadReminders after delete...");
       await loadReminders(user);
     } else {
-      // For Free users, refresh from local storage
+      // For Free users, refresh from sync storage
       console.log("🔍 Free user - calling loadFreeUserData after delete...");
       loadFreeUserData();
     }
@@ -3133,9 +3151,9 @@ async function initializeMacros() {
         isPro = false;
       }
     } else {
-      // Free user: Get from local storage
+      // Free user: Get from sync storage
       const data = await new Promise((resolve) => {
-        chrome.storage.local.get({ macros: [] }, resolve);
+        chrome.storage.sync.get({ macros: [] }, resolve);
       });
       macros = data.macros || [];
     }
@@ -3300,12 +3318,12 @@ function createMacroElement(macro) {
           // Pro user: Use deleteMacro function
           await deleteMacro(user, macro.id);
         } else {
-          // Free user: Delete from local storage
+          // Free user: Delete from sync storage
           const data = await new Promise((resolve) => {
-            chrome.storage.local.get({ macros: [] }, resolve);
+            chrome.storage.sync.get({ macros: [] }, resolve);
           });
           const updatedMacros = data.macros.filter((m) => m.id !== macro.id);
-          await chrome.storage.local.set({ macros: updatedMacros });
+          await chrome.storage.sync.set({ macros: updatedMacros });
         }
         div.remove();
         
@@ -3403,14 +3421,14 @@ function showEditMacroModal(macro) {
         // Pro user: Use updateMacro function
         await updateMacro(user, macro.id, name, content);
       } else {
-        // Free user: Update in local storage
+        // Free user: Update in sync storage
         const data = await new Promise((resolve) => {
-          chrome.storage.local.get({ macros: [] }, resolve);
+          chrome.storage.sync.get({ macros: [] }, resolve);
         });
         const updatedMacros = data.macros.map((m) =>
           m.id === macro.id ? { ...m, name, content } : m
         );
-        await chrome.storage.local.set({ macros: updatedMacros });
+        await chrome.storage.sync.set({ macros: updatedMacros });
       }
       
       macro.name = name;
@@ -3499,7 +3517,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 });
 
 // Check for pending sign-in on popup load
-chrome.storage.local.get(['pendingSignIn', 'signInTimestamp', 'shouldReopenPopup'], (data) => {
+chrome.storage.sync.get(['pendingSignIn', 'signInTimestamp', 'shouldReopenPopup'], (data) => {
   if (data.pendingSignIn && data.signInTimestamp) {
     const timeDiff = Date.now() - data.signInTimestamp;
     // Only process if less than 5 minutes old
@@ -3507,21 +3525,21 @@ chrome.storage.local.get(['pendingSignIn', 'signInTimestamp', 'shouldReopenPopup
 
       completeSignInFromBackground(data.pendingSignIn.idToken, data.pendingSignIn.accessToken);
       // Clear the pending sign-in
-      chrome.storage.local.remove(['pendingSignIn', 'signInTimestamp', 'shouldReopenPopup']);
+      chrome.storage.sync.remove(['pendingSignIn', 'signInTimestamp', 'shouldReopenPopup']);
     } else {
       // Clear old pending sign-in
-      chrome.storage.local.remove(['pendingSignIn', 'signInTimestamp', 'shouldReopenPopup']);
+      chrome.storage.sync.remove(['pendingSignIn', 'signInTimestamp', 'shouldReopenPopup']);
     }
   }
   
   // If popup was reopened to show success message, clear the flag
   if (data.shouldReopenPopup) {
-    chrome.storage.local.remove(['shouldReopenPopup']);
+    chrome.storage.sync.remove(['shouldReopenPopup']);
   }
 });
 
 // Check for stored user data on popup load
-chrome.storage.local.get(['user'], (data) => {
+chrome.storage.sync.get(['user'], (data) => {
   if (data.user) {
     // Update UI to show signed in state
     const userInfo = document.getElementById("userInfo");
@@ -3546,7 +3564,7 @@ function initializeThemeSystem() {
   
   // Load saved theme and dark mode together with immediate fallback
   Promise.all([
-    new Promise(resolve => chrome.storage.local.get(['selectedTheme'], resolve)),
+    new Promise(resolve => chrome.storage.sync.get(['selectedTheme'], resolve)),
     new Promise(resolve => chrome.storage.sync.get(['darkMode'], resolve))
   ]).then(([themeData, darkModeData]) => {
     currentTheme = themeData.selectedTheme || 'ocean-blue';
@@ -3591,7 +3609,7 @@ function initializeThemeSystem() {
       themeDropdown.classList.remove('open');
       
       // Save theme preference
-      chrome.storage.local.set({ selectedTheme: currentTheme }, () => {
+      chrome.storage.sync.set({ selectedTheme: currentTheme }, () => {
         console.log('Theme saved to storage:', currentTheme);
       });
     });
@@ -3870,10 +3888,10 @@ async function updateTicketDetails(user, isPro, oldTicketId, newTicketId, newDes
         await updateReminder(reminder.id, updateData);
       }
     } else {
-      // Free user: Update in local storage
+      // Free user: Update in sync storage
       console.log("🔍 Free user update - getting data from storage...");
       const data = await new Promise((resolve) => {
-        chrome.storage.local.get(
+        chrome.storage.sync.get(
           [
             "importantTickets",
             "completedTickets",
@@ -3933,7 +3951,7 @@ async function updateTicketDetails(user, isPro, oldTicketId, newTicketId, newDes
 
         console.log("🔍 Setting storage for overdue ticket...");
         await new Promise((resolve, reject) => {
-          chrome.storage.local.set({
+          chrome.storage.sync.set({
             importantTickets: filteredImportant,
             completedTickets: updatedCompletedTickets,
             overdueTickets: updatedOverdueTickets,
@@ -3952,7 +3970,7 @@ async function updateTicketDetails(user, isPro, oldTicketId, newTicketId, newDes
         // Normal update - keep in current lists
         console.log("🔍 Normal update - keeping ticket in current lists...");
         await new Promise((resolve, reject) => {
-          chrome.storage.local.set({
+          chrome.storage.sync.set({
             importantTickets: updatedImportantTickets,
             completedTickets: updatedCompletedTickets,
             overdueTickets: updatedOverdueTickets,
@@ -3975,7 +3993,7 @@ async function updateTicketDetails(user, isPro, oldTicketId, newTicketId, newDes
       console.log("🔍 Pro user - calling loadReminders...");
       await loadReminders(user);
     } else {
-      // For Free users, refresh from local storage
+      // For Free users, refresh from sync storage
       console.log("🔍 Free user - calling loadFreeUserData...");
       loadFreeUserData();
     }

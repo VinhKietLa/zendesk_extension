@@ -35,7 +35,7 @@ function initializeOptions() {
 
 function checkAuthState() {
     // Check if user is signed in by looking for user data in storage
-    chrome.storage.local.get(null, (allData) => {
+    chrome.storage.sync.get(null, (allData) => {
         console.log('🔍 Options page checking ALL storage data:', allData);
         
         const user = allData.user;
@@ -274,7 +274,7 @@ function setupEventListeners() {
     if (resetProStatusBtn) {
         resetProStatusBtn.addEventListener('click', async () => {
             try {
-                await chrome.storage.local.set({ testProStatus: false });
+                await chrome.storage.sync.set({ testProStatus: false });
                 alert("Pro status reset to Free");
                 
                 // Update UI
@@ -292,7 +292,7 @@ function setupEventListeners() {
     if (setProStatusBtn) {
         setProStatusBtn.addEventListener('click', async () => {
             try {
-                await chrome.storage.local.set({ testProStatus: true });
+                await chrome.storage.sync.set({ testProStatus: true });
                 alert("Pro status set to Pro");
                 
                 // Update UI

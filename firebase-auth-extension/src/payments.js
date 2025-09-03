@@ -33,7 +33,7 @@ export async function checkProSubscription() {
   try {
     // In development mode, check local storage for test Pro status
     if (DEV_MODE) {
-      const data = await chrome.storage.local.get('testProStatus');
+      const data = await chrome.storage.sync.get('testProStatus');
       return data.testProStatus || false;
     }
 
@@ -67,7 +67,7 @@ export async function purchasePro() {
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       // Set test Pro status
-      await chrome.storage.local.set({ testProStatus: true });
+      await chrome.storage.sync.set({ testProStatus: true });
       
       console.log('✅ DEV MODE: Pro purchase simulated successfully!');
       return {
@@ -138,7 +138,7 @@ export async function restorePurchases() {
     if (DEV_MODE) {
       console.log('🧪 DEV MODE: Checking for test Pro status...');
       
-      const data = await chrome.storage.local.get('testProStatus');
+      const data = await chrome.storage.sync.get('testProStatus');
       const hasPro = data.testProStatus || false;
       
       if (hasPro) {

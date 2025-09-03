@@ -12,11 +12,11 @@ export async function checkLicense() {
     // In test mode, simulate a license check
     if (TEST_MODE) {
       // Get test license status from local storage
-      const data = await chrome.storage.local.get("testLicenseStatus");
+      const data = await chrome.storage.sync.get("testLicenseStatus");
       const hasLicense = data.testLicenseStatus || false;
 
       // Store the license status
-      await chrome.storage.local.set({ hasProLicense: hasLicense });
+      await chrome.storage.sync.set({ hasProLicense: hasLicense });
 
       return hasLicense;
     }
@@ -31,7 +31,7 @@ export async function checkLicense() {
 
     const license = await chrome.enterprise.deviceAttributes.getDeviceId();
     const hasLicense = license !== null;
-    await chrome.storage.local.set({ hasProLicense: hasLicense });
+    await chrome.storage.sync.set({ hasProLicense: hasLicense });
     return hasLicense;
   } catch (error) {
     console.error("Error checking license:", error);
@@ -49,7 +49,7 @@ export async function setTestLicenseStatus(status) {
     return;
   }
 
-  await chrome.storage.local.set({ testLicenseStatus: status });
+  await chrome.storage.sync.set({ testLicenseStatus: status });
   await checkLicense(); // Refresh the license status
 }
 
@@ -89,7 +89,7 @@ export async function initializeLicensing() {
  */
 export async function getLicenseStatus() {
   try {
-    const data = await chrome.storage.local.get("hasProLicense");
+    const data = await chrome.storage.sync.get("hasProLicense");
     return data.hasProLicense || false;
   } catch (error) {
     console.error("Error getting license status:", error);

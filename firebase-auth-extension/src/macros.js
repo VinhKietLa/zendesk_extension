@@ -19,7 +19,7 @@ export async function getMacros(user) {
   } else {
     // Free: Get from local storage
     return new Promise((resolve) => {
-      chrome.storage.local.get({ macros: [] }, (data) => {
+      chrome.storage.sync.get({ macros: [] }, (data) => {
         resolve(data.macros || []);
       });
     });
@@ -38,7 +38,7 @@ export async function addMacro(user, name, content) {
   } else {
     // Free: Save to local storage (max 3)
     return new Promise((resolve, reject) => {
-      chrome.storage.local.get({ macros: [] }, async (data) => {
+      chrome.storage.sync.get({ macros: [] }, async (data) => {
         try {
           const currentMacros = data.macros || [];
 
@@ -53,7 +53,7 @@ export async function addMacro(user, name, content) {
             { id: Date.now().toString(), name, content },
           ];
 
-          await chrome.storage.local.set({ macros: updatedMacros });
+          await chrome.storage.sync.set({ macros: updatedMacros });
           resolve({ id: Date.now().toString(), name, content });
         } catch (error) {
           reject(error);
@@ -75,14 +75,14 @@ export async function updateMacro(user, macroId, name, content) {
   } else {
     // Free: Update in local storage
     return new Promise((resolve, reject) => {
-      chrome.storage.local.get({ macros: [] }, async (data) => {
+      chrome.storage.sync.get({ macros: [] }, async (data) => {
         try {
           const macros = data.macros || [];
           const updatedMacros = macros.map((macro) =>
             macro.id === macroId ? { ...macro, name, content } : macro
           );
 
-          await chrome.storage.local.set({ macros: updatedMacros });
+          await chrome.storage.sync.set({ macros: updatedMacros });
           resolve();
         } catch (error) {
           reject(error);
@@ -104,12 +104,12 @@ export async function deleteMacro(user, macroId) {
   } else {
     // Free: Delete from local storage
     return new Promise((resolve, reject) => {
-      chrome.storage.local.get({ macros: [] }, async (data) => {
+      chrome.storage.sync.get({ macros: [] }, async (data) => {
         try {
           const macros = data.macros || [];
           const updatedMacros = macros.filter((macro) => macro.id !== macroId);
 
-          await chrome.storage.local.set({ macros: updatedMacros });
+          await chrome.storage.sync.set({ macros: updatedMacros });
           resolve();
         } catch (error) {
           reject(error);
