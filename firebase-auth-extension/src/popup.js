@@ -1142,7 +1142,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const dropdownMenu = document.getElementById("dropdownMenu");
   const planBadge = document.getElementById("planBadge");
   const dropdownUser = document.getElementById("dropdownUser");
-  const dropdownSignIn = document.getElementById("dropdownSignIn");
+  const dropdownUpgrade = document.getElementById("dropdownUpgrade");
   const dropdownSignOut = document.getElementById("dropdownSignOut");
 
   // Only add event listeners if elements exist
@@ -1177,32 +1177,18 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   }
 
-  if (dropdownSignIn) {
-    dropdownSignIn.addEventListener("click", async () => {
+  if (dropdownUpgrade) {
+    dropdownUpgrade.addEventListener("click", async () => {
       try {
-
-        showToast("Signing in...", "info");
-        // Send message to background to start sign-in
-        chrome.runtime.sendMessage({ action: "startSignIn" }, (response) => {
-          if (chrome.runtime.lastError) {
-            console.error("Error sending startSignIn message:", chrome.runtime.lastError);
-            showToast("Failed to start sign-in process", "error");
-            return;
-          }
-          if (response && response.success === false) {
-            showToast("Sign-in failed: " + (response.error || "Unknown error"), "error");
-          } else {
-            // Wait for signInComplete message or storage update
-            showToast("Waiting for sign-in to complete...", "info");
-          }
-        });
+        // Open options page to show upgrade modal
+        chrome.runtime.openOptionsPage();
         // Close the dropdown
         if (dropdownMenu) {
           dropdownMenu.classList.remove("open");
         }
       } catch (error) {
-        console.error("Error starting sign-in:", error);
-        showToast("Failed to start sign-in process", "error");
+        console.error("Error opening upgrade page:", error);
+        showToast("Failed to open upgrade page", "error");
       }
     });
   }
@@ -1236,9 +1222,9 @@ document.addEventListener("DOMContentLoaded", async () => {
           }`;
         }
 
-        // Update sign in/out visibility
-        if (dropdownSignIn) {
-          dropdownSignIn.style.display = "none";
+        // Update upgrade/sign out visibility
+        if (dropdownUpgrade) {
+          dropdownUpgrade.style.display = "none";
         }
         if (dropdownSignOut) {
           dropdownSignOut.style.display = "block";
@@ -1252,8 +1238,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (dropdownUser) {
           dropdownUser.textContent = "Not signed in";
         }
-        if (dropdownSignIn) {
-          dropdownSignIn.style.display = "block";
+        if (dropdownUpgrade) {
+          dropdownUpgrade.style.display = "block";
         }
         if (dropdownSignOut) {
           dropdownSignOut.style.display = "none";

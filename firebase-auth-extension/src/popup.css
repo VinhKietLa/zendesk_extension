@@ -1485,7 +1485,7 @@ body.dark-mode .header-icon-btn:hover {
   font-size: 0.9em;
 }
 
-.dropdown-signin {
+.dropdown-upgrade {
   width: 100%;
   text-align: left;
   padding: 8px 16px;
@@ -1496,7 +1496,7 @@ body.dark-mode .header-icon-btn:hover {
   font-size: 0.9em;
 }
 
-.dropdown-signin:hover {
+.dropdown-upgrade:hover {
   background-color: #f8f9fa;
 }
 
@@ -1526,11 +1526,11 @@ body.dark-mode .dropdown-user {
   color: #e0e0e0;
 }
 
-body.dark-mode .dropdown-signin {
+body.dark-mode .dropdown-upgrade {
   color: #74b9ff;
 }
 
-body.dark-mode .dropdown-signin:hover {
+body.dark-mode .dropdown-upgrade:hover {
   background-color: #3c3c3c;
 }
 
